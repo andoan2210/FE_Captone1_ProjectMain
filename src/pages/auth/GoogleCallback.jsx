@@ -31,7 +31,7 @@ function GoogleCallback() {
         if (token) {
           localStorage.setItem('token', token);
         }
-        navigate('/');
+        navigate('/admin/dashboard');
       } catch (err) {
         setError(err.message);
       }
@@ -46,9 +46,9 @@ function GoogleCallback() {
         {error ? (
           <>
             <p className="login-error" style={{ width: '100%' }}>{error}</p>
-            <button 
+            <button
               className="btn-login"
-              onClick={() => navigate('/login')} 
+              onClick={() => navigate('/login')}
             >
               Quay lại đăng nhập
             </button>
