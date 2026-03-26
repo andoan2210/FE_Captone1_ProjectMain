@@ -1,4 +1,25 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
+import Login from './Logins/Login';
+import GoogleCallback from './Logins/GoogleCallback';
+import Register from './Logins/Register';
+import VerifyOtp from './Logins/VerifyOtp';
+import ForgotPassword from './Logins/ForgotPassword';
+import VerifyForgotPasswordOtp from './Logins/VerifyForgotPasswordOtp';
+import ChangePassword from './Logins/ChangePassword';
+import UserProfile from "./pages/profile/UserProfile";
+import UpdateProfile from './pages/profile/UpdateProfile';
+import Vieworder from './pages/order/Vieworder';
+import Manageinvoice from './pages/manage/Manageinvoice';
+<<<<<<< HEAD
+=======
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
 import Login from './pages/auth/Login';
 import GoogleCallback from './pages/auth/GoogleCallback';
 import Register from './pages/auth/Register';
@@ -12,6 +33,11 @@ import AddProduct from './pages/admin/AddProduct';
 import EditProduct from './pages/admin/EditProduct';
 import QuanLyCuaHang from './pages/admin/ShopOwner';
 import LandingPage from './pages/LandingPage/LandingPage';
+<<<<<<< HEAD
+>>>>>>> main
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
 
 function App() {
   return (
@@ -25,6 +51,21 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-forgot-password-otp" element={<VerifyForgotPasswordOtp />} />
       <Route path="/change-password" element={<ChangePassword />} />
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
+      <Route path="/profile/UserProfile" element={<UserProfile />} />
+       <Route path="/profile/UpdateProfile" element={<UpdateProfile />} />
+      <Route path="/order/Vieworder" element={<Vieworder />} />
+      <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
+   
+<<<<<<< HEAD
+=======
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
       
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminLayout />}>
@@ -38,6 +79,11 @@ function App() {
         <Route path="vouchers" element={<div className="p-6">Vouchers Preview</div>} />
         <Route path="settings" element={<div className="p-6">Settings Preview</div>} />
       </Route>
+<<<<<<< HEAD
+>>>>>>> main
+=======
+
+>>>>>>> d42d152ec80735f37c722b7977a8419f0b3bb21e
       {/* Thêm các route khác ở đây */}
     </Routes>
   );
