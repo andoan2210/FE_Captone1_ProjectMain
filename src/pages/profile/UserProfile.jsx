@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import userService from '../../services/userService';
 
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,6 +69,9 @@ const TwitterIcon = () => (
   </svg>
 );
 export default function UserProfile() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [editingBasicInfo, setEditingBasicInfo] = useState(false);
   const [basicInfo, setBasicInfo] = useState({
     fullName: 'Nguyễn Minh',
@@ -94,6 +98,29 @@ export default function UserProfile() {
   const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
   const [newPayment, setNewPayment] = useState({ type: '', number: '' });
   const [paymentErrors, setPaymentErrors] = useState({});
+
+  // Load user profile on mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await userService.getUserProfile();
+        if (profile) {
+          setBasicInfo(profile.basicInfo || basicInfo);
+          setBasicInfoTemp(profile.basicInfo || basicInfo);
+          setAddresses(profile.addresses || addresses);
+          setPayments(profile.payments || payments);
+        }
+        setError(null);
+      } catch (err) {
+        console.log('[v0] Profile load error:', err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUserProfile();
+  }, []);
 
   // Validation Functions
   const validateBasicInfo = (data) => {
@@ -166,17 +193,22 @@ export default function UserProfile() {
     }
   };
 
-  const handleSaveBasicInfo = () => {
+  const handleSaveBasicInfo = async () => {
     const errors = validateBasicInfo(basicInfoTemp);
     if (Object.keys(errors).length > 0) {
       setBasicInfoErrors(errors);
-      console.log("[v0] Basic info validation errors:", errors);
       return;
     }
-    setBasicInfo({ ...basicInfoTemp });
-    setEditingBasicInfo(false);
-    setBasicInfoErrors({});
-    console.log("[v0] Basic info saved successfully:", basicInfoTemp);
+    try {
+      await userService.updateUserProfile(basicInfoTemp);
+      setBasicInfo({ ...basicInfoTemp });
+      setEditingBasicInfo(false);
+      setBasicInfoErrors({});
+      console.log('[v0] Basic info saved successfully');
+    } catch (err) {
+      console.error('[v0] Save basic info error:', err.message);
+      setError(err.message);
+    }
   };
 
   const handleCancelBasicInfo = () => {
@@ -185,52 +217,80 @@ export default function UserProfile() {
     setBasicInfoErrors({});
   };
 
-  const handleAddAddress = () => {
+  const handleAddAddress = async () => {
     const errors = validateAddress(newAddress);
     if (Object.keys(errors).length > 0) {
       setAddressErrors(errors);
       return;
     }
-    const address = {
-      id: Date.now(),
-      type: newAddress.type,
-      address: newAddress.address
-    };
-    setAddresses([...addresses, address]);
-    setNewAddress({ type: '', address: '' });
-    setAddressErrors({});
-    setShowAddAddressForm(false);
+    try {
+      const result = await userService.addAddress(newAddress);
+      setAddresses([...addresses, result]);
+      setNewAddress({ type: '', address: '' });
+      setAddressErrors({});
+      setShowAddAddressForm(false);
+      console.log('[v0] Address added successfully');
+    } catch (err) {
+      console.error('[v0] Add address error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleDeleteAddress = (id) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
-    setAddressErrors({});
+  const handleDeleteAddress = async (id) => {
+    try {
+      await userService.deleteAddress(id);
+      setAddresses(addresses.filter(addr => addr.id !== id));
+      setAddressErrors({});
+      console.log('[v0] Address deleted successfully');
+    } catch (err) {
+      console.error('[v0] Delete address error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleAddPayment = () => {
+  const handleAddPayment = async () => {
     const errors = validatePayment(newPayment);
     if (Object.keys(errors).length > 0) {
       setPaymentErrors(errors);
       return;
     }
-    const payment = {
-      id: Date.now(),
-      type: newPayment.type,
-      number: newPayment.number
-    };
-    setPayments([...payments, payment]);
-    setNewPayment({ type: '', number: '' });
-    setPaymentErrors({});
-    setShowAddPaymentForm(false);
+    try {
+      const result = await userService.addPayment(newPayment);
+      setPayments([...payments, result]);
+      setNewPayment({ type: '', number: '' });
+      setPaymentErrors({});
+      setShowAddPaymentForm(false);
+      console.log('[v0] Payment added successfully');
+    } catch (err) {
+      console.error('[v0] Add payment error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleDeletePayment = (id) => {
-    setPayments(payments.filter(pay => pay.id !== id));
-    setPaymentErrors({});
+  const handleDeletePayment = async (id) => {
+    try {
+      await userService.deletePayment(id);
+      setPayments(payments.filter(pay => pay.id !== id));
+      setPaymentErrors({});
+      console.log('[v0] Payment deleted successfully');
+    } catch (err) {
+      console.error('[v0] Delete payment error:', err.message);
+      setError(err.message);
+    }
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      {error && (
+        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '12px', margin: '12px', borderRadius: '6px', color: '#dc2626', fontSize: '14px' }}>
+          Lỗi: {error}
+        </div>
+      )}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p>Đang tải thông tin...</p>
+        </div>
+      )}
      {/* Header */}
       <header className="header">
         <div className="header-top">

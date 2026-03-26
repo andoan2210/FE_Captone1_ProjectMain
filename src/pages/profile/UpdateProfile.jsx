@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import userService from '../../services/userService';
 import './UpdateProfile.css';
 
 // SVG Icons
@@ -71,6 +72,9 @@ const TwitterIcon = () => (
 );
 
 const UpdateProfile = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [formData, setFormData] = useState({
     fullName: 'Nguyễn Minh',
     birthDate: '01/01/1990',
@@ -98,6 +102,29 @@ const UpdateProfile = () => {
   const [avatarUrl, setAvatarUrl] = useState('https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Load profile data on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await userService.getUserProfile();
+        if (profile) {
+          setFormData(profile.basicInfo || formData);
+          setAddresses(profile.addresses || addresses);
+          setPayments(profile.payments || payments);
+          setAvatarUrl(profile.avatar || avatarUrl);
+        }
+        setError(null);
+      } catch (err) {
+        console.log('[v0] Profile load error:', err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -108,31 +135,56 @@ const UpdateProfile = () => {
     setPasswordData({ ...passwordData, [name]: value });
   };
 
-  const handleDeleteAddress = (id) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
-    console.log("[v0] Address deleted:", id);
+  const handleDeleteAddress = async (id) => {
+    try {
+      await userService.deleteAddress(id);
+      setAddresses(addresses.filter(addr => addr.id !== id));
+      console.log('[v0] Address deleted:', id);
+    } catch (err) {
+      console.error('[v0] Delete address error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleDeletePayment = (id) => {
-    setPayments(payments.filter(pay => pay.id !== id));
-    console.log("[v0] Payment deleted:", id);
+  const handleDeletePayment = async (id) => {
+    try {
+      await userService.deletePayment(id);
+      setPayments(payments.filter(pay => pay.id !== id));
+      console.log('[v0] Payment deleted:', id);
+    } catch (err) {
+      console.error('[v0] Delete payment error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleSaveChanges = () => {
-    setSuccessMessage('Cập nhật thành công!');
-    setTimeout(() => setSuccessMessage(''), 3000);
-    console.log("[v0] Profile saved:", formData);
+  const handleSaveChanges = async () => {
+    try {
+      await userService.updateUserProfile(formData);
+      setSuccessMessage('Cập nhật thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      console.log('[v0] Profile saved:', formData);
+    } catch (err) {
+      console.error('[v0] Save profile error:', err.message);
+      setError(err.message);
+    }
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setAvatarUrl(event.target.result);
-        setSuccessMessage('Ảnh đại diện đã được cập nhật!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        console.log("[v0] Avatar changed successfully");
+      reader.onload = async (event) => {
+        try {
+          const newAvatarUrl = event.target.result;
+          setAvatarUrl(newAvatarUrl);
+          await userService.updateUserProfile({ avatar: newAvatarUrl });
+          setSuccessMessage('Ảnh đại diện đã được cập nhật!');
+          setTimeout(() => setSuccessMessage(''), 3000);
+          console.log('[v0] Avatar changed successfully');
+        } catch (err) {
+          console.error('[v0] Update avatar error:', err.message);
+          setError(err.message);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -145,6 +197,16 @@ const UpdateProfile = () => {
 
   return (
     <div className="update-profile-page">
+      {error && (
+        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '12px', margin: '12px', borderRadius: '6px', color: '#dc2626', fontSize: '14px' }}>
+          Lỗi: {error}
+        </div>
+      )}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p>Đang tải thông tin...</p>
+        </div>
+      )}
       {/* Header */}
       <header className="header">
         <div className="header-top">

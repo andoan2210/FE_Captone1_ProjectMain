@@ -8,6 +8,9 @@ import VerifyForgotPasswordOtp from './Logins/VerifyForgotPasswordOtp';
 import ChangePassword from './Logins/ChangePassword';
 import UserProfile from "./pages/profile/UserProfile";
 import UpdateProfile from './pages/profile/UpdateProfile';
+import Vieworder from './pages/order/Vieworder';
+import Manageinvoice from './pages/manage/Manageinvoice';
+
 function App() {
   return (
     <Routes>
@@ -22,6 +25,9 @@ function App() {
       <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/profile/UserProfile" element={<UserProfile />} />
        <Route path="/profile/UpdateProfile" element={<UpdateProfile />} />
+      <Route path="/order/Vieworder" element={<Vieworder />} />
+      <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
+   
       {/* Thêm các route khác ở đây */}
     </Routes>
   );
