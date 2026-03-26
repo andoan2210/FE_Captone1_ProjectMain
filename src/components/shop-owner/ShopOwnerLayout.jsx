@@ -1,13 +1,13 @@
 /**
- * File: AdminLayout.jsx
- * Mục đích: Component Layout tổng (Khung sườn chính) cho toàn bộ khu vực Admin.
+ * File: ShopOwnerLayout.jsx
+ * Mục đích: Component Layout tổng (Khung sườn chính) cho toàn bộ khu vực Shop Owner.
  * Đóng gói Sidebar ở bên trái và chừa khoảng trống (Outlet) ở giữa để render các trang con tương ứng.
  */
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 
-export default function AdminLayout() {
+export default function ShopOwnerLayout() {
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans text-slate-800 w-full overflow-hidden text-left selection:bg-blue-200">
       <Sidebar />

@@ -21,7 +21,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     description: initialData?.description || '',
     price: initialData?.price || '',
     stock: initialData?.stock || '',
-    images: initialData?.images || (initialData?.image ? [initialData.image] : [])
+    images: initialData?.images || (initialData?.image ? [initialData.image] : []),
+    variants: initialData?.variants || []
   });
 
   const [errors, setErrors] = useState({});
@@ -45,7 +46,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       setShowDeleteModal(false);
       setTimeout(() => {
         setSuccessMessage('');
-        navigate('/admin/products');
+        navigate('/shop-owner/products');
       }, 1500);
     } catch (error) {
       console.error("Delete failed", error);
@@ -64,11 +65,24 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (!isDraft) {
       if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
       
-      if (formData.price === '' || formData.price === null) newErrors.price = 'Giá bán không được để trống';
-      else if (Number(formData.price) <= 0) newErrors.price = 'Giá bán phải lớn hơn 0';
-      
-      if (formData.stock === '' || formData.stock === null) newErrors.stock = 'Số lượng không được để trống';
-      else if (Number(formData.stock) < 0) newErrors.stock = 'Số lượng không được âm';
+      // Validate variants - BẮT BUỘC có ít nhất 1 biến thể
+      if (!formData.variants || formData.variants.length === 0) {
+        newErrors.variants_global = 'Vui lòng thêm ít nhất một biến thể sản phẩm (Size, Giá, Kho)';
+      } else {
+        const variantErrors = [];
+        formData.variants.forEach((variant, index) => {
+          const errors = {};
+          if (!variant.size) errors.size = 'Kích thước là bắt buộc';
+          if (variant.price === '' || variant.price === null || Number(variant.price) <= 0) errors.price = 'Giá phải lớn hơn 0';
+          if (variant.stock === '' || variant.stock === null || Number(variant.stock) < 0) errors.stock = 'Tồn kho không được âm';
+          if (Object.keys(errors).length > 0) {
+            variantErrors[index] = errors;
+          }
+        });
+        if (variantErrors.length > 0) {
+          newErrors.variants = variantErrors;
+        }
+      }
 
       if (formData.images.length === 0) newErrors.images = 'Vui lòng tải lên ít nhất một hình ảnh sản phẩm';
     }
@@ -117,6 +131,40 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     setIsDirty(true);
   };
 
+  // Các hàm xử lý Biến thể
+  const addVariant = () => {
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, { size: '', color: '', stock: '', price: '' }]
+    }));
+    setIsDirty(true);
+  };
+
+  const removeVariant = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+    setIsDirty(true);
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    const newVariants = [...formData.variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    setFormData(prev => ({ ...prev, variants: newVariants }));
+    setIsDirty(true);
+
+    // Xóa lỗi cho trường đang sửa
+    if (errors.variants && errors.variants[index] && errors.variants[index][field]) {
+      const newVariantErrors = { ...errors.variants };
+      delete newVariantErrors[index][field];
+      if (Object.keys(newVariantErrors[index]).length === 0) {
+        delete newVariantErrors[index];
+      }
+      setErrors(prev => ({ ...prev, variants: Object.keys(newVariantErrors).length > 0 ? newVariantErrors : null }));
+    }
+  };
+
   // Xử lý LƯU SẢN PHẨM (Add hoặc Update)
   const handleSave = async (isDraft = false) => {
     if (!validateForm(isDraft)) return;
@@ -137,8 +185,22 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         }
       }
 
-      // 2. Lưu sản phẩm với danh sách ảnh cuối cùng
-      const updatedData = { ...formData, images: finalImages };
+      // 2. Tính toán lại giá và kho hàng tổng hợp để đồng bộ với legacy components (nếu có)
+      const calculatedPrice = formData.variants?.length > 0 
+        ? Math.min(...formData.variants.map(v => Number(v.price || 0)))
+        : Number(formData.price || 0);
+      
+      const calculatedStock = formData.variants?.length > 0
+        ? formData.variants.reduce((acc, v) => acc + Number(v.stock || 0), 0)
+        : Number(formData.stock || 0);
+
+      // 3. Lưu sản phẩm với danh sách ảnh cuối cùng và dữ liệu đã tính toán
+      const updatedData = { 
+        ...formData, 
+        images: finalImages,
+        price: calculatedPrice,
+        stock: calculatedStock
+      };
       await ProductService.saveProduct(updatedData, isEdit);
       
       setSuccessMessage(isDraft ? 'Đã lưu bản nháp thành công!' : (isEdit ? 'Đã cập nhật sản phẩm thành công!' : 'Đã thêm sản phẩm mới thành công!'));
@@ -147,7 +209,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       
       setTimeout(() => {
         setSuccessMessage('');
-        navigate('/admin/products');
+        navigate('/shop-owner/products');
       }, 2000);
     } catch (error) {
       console.error("Save failed", error);
@@ -170,7 +232,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (isDirty) {
       setShowCancelModal(true);
     } else {
-      navigate('/admin/products');
+      navigate('/shop-owner/products');
     }
   };
 
@@ -190,7 +252,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2 font-medium">
-            <span>Dashboard</span>
+            <span>Shop Owner</span>
             <span className="text-slate-300">/</span>
             <span>Sản phẩm</span>
             <span className="text-slate-300">/</span>
@@ -204,7 +266,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
           </p>
         </div>
         <button 
-          onClick={() => navigate('/admin/products')}
+          onClick={() => navigate('/shop-owner/products')}
           className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95"
         >
           <FiArrowLeft size={18} />
@@ -297,48 +359,109 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                   ></textarea>
                 </div>
               </div>
+
+              {/* Phân cách và Phần Biến thể tích hợp */}
+              <div className="pt-6 border-t border-slate-50 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                      <FiGrid size={20} />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-800">Biến thể sản phẩm</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addVariant}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-md shadow-blue-100"
+                  >
+                    <FiPlus size={16} />
+                    Thêm biến thể
+                  </button>
+                </div>
+
+                {formData.variants && formData.variants.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-slate-100">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/50 text-[11px] font-black text-slate-400 uppercase tracking-widest ">
+                          <th className="px-4 py-4">Size</th>
+                          <th className="px-4 py-4">Màu sắc</th>
+                          <th className="px-4 py-4">Tồn kho</th>
+                          <th className="px-4 py-4">Giá bán</th>
+                          <th className="px-4 py-4 w-10 text-center">Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {formData.variants.map((variant, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
+                            <td className="px-3 py-3">
+                              <input
+                                type="text"
+                                placeholder="S, M..."
+                                value={variant.size}
+                                onChange={(e) => handleVariantChange(idx, 'size', e.target.value)}
+                                className={`w-full px-4 py-2 bg-slate-50/50 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.variants?.[idx]?.size ? 'border-rose-300 focus:ring-rose-50' : 'border-slate-100 focus:ring-blue-100 focus:bg-white focus:border-blue-400'}`}
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <input
+                                type="text"
+                                placeholder="Đen..."
+                                value={variant.color}
+                                onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
+                                className="w-full px-4 py-2 bg-slate-50/50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-400 transition-all"
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={variant.stock}
+                                onChange={(e) => handleVariantChange(idx, 'stock', e.target.value)}
+                                className={`w-full px-4 py-2 bg-slate-50/50 border rounded-xl text-sm font-bold focus:outline-none focus:ring-2 transition-all ${errors.variants?.[idx]?.stock ? 'border-rose-300 focus:ring-rose-50' : 'border-slate-100 focus:ring-blue-100 focus:bg-white focus:border-blue-400'}`}
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={variant.price}
+                                  onChange={(e) => handleVariantChange(idx, 'price', e.target.value)}
+                                  className={`w-full px-4 py-2 pr-8 bg-slate-50/50 border rounded-xl text-sm font-bold focus:outline-none focus:ring-2 transition-all text-blue-600 ${errors.variants?.[idx]?.price ? 'border-rose-300 focus:ring-rose-50' : 'border-slate-100 focus:ring-blue-100 focus:bg-white focus:border-blue-400'}`}
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">đ</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => removeVariant(idx)}
+                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                              >
+                                <FiTrash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-slate-50/30 rounded-3xl border-2 border-dashed border-slate-100 group hover:border-blue-200 transition-all">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Chưa có biến thể nào</p>
+                  </div>
+                )}
+                {errors.variants_global && (
+                  <p className="text-rose-500 text-xs font-bold mt-2 ml-1">{errors.variants_global}</p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* 3.2 Nhóm: Giá & Kho hàng */}
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <FiDollarSign size={20} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800">Giá & Kho hàng</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Giá bán (VND)</label>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="0"
-                    className={`w-full px-4 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 transition-all text-blue-600 ${errors.price ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VND</span>
-                </div>
-                {errors.price && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.price}</p>}
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Số lượng tồn kho</label>
-                <input 
-                  type="number" 
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className={`w-full px-4 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 transition-all ${errors.stock ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
-                />
-                {errors.stock && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.stock}</p>}
-              </div>
-            </div>
-          </div>
+          {/* Khối Giá & Kho hàng cơ bản đã bị loại bỏ hoàn toàn */}
+
+          {/* Nhóm cũ của Biến thể sản phẩm đã được xóa và di chuyển */}
 
           {isEdit && (
             <div className="bg-white p-8 rounded-3xl border border-rose-100 shadow-sm flex items-center justify-between">
@@ -355,6 +478,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               </button>
             </div>
           )}
+
+          {/* Nút lưu lớn đã bị xóa theo yêu cầu */}
         </div>
 
         {/* CỘT PHẢI: Hình ảnh & Xem trước */}
@@ -437,16 +562,24 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                   )}
                </div>
                <div className="space-y-2">
-                  <div className="text-[10px] text-emerald-600 font-bold uppercase bg-emerald-50 px-1.5 py-0.5 rounded w-fit">CÒN HÀNG</div>
+                  <div className="text-[10px] text-emerald-600 font-bold uppercase bg-emerald-50 px-1.5 py-0.5 rounded w-fit">
+                    {formData.variants?.reduce((acc, v) => acc + Number(v.stock || 0), 0) > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG'}
+                  </div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{formData.category || 'DANH MỤC'}</p>
                   <h4 className="font-extrabold text-slate-800 leading-tight">{formData.name || 'Tên sản phẩm sẽ hiển thị ở đây'}</h4>
                   <div className="flex items-center justify-between pt-1">
-                    <p className="text-blue-600 font-black">{formData.price ? Number(formData.price).toLocaleString('vi-VN') + 'đ' : '0đ'}</p>
-                    <p className="text-[10px] text-slate-400 font-bold italic">Còn {formData.stock || 0} sản phẩm</p>
+                    <p className="text-blue-600 font-black">
+                      {formData.variants?.length > 0 
+                        ? (Math.min(...formData.variants.map(v => Number(v.price || 0))) || 0).toLocaleString('vi-VN') + 'đ'
+                        : '0đ'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold italic">
+                      Còn {formData.variants?.reduce((acc, v) => acc + Number(v.stock || 0), 0) || 0} sản phẩm
+                    </p>
                   </div>
-               </div>
-            </div>
-          </div>
+                </div>
+             </div>
+           </div>
           
           {isEdit && (
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
@@ -479,6 +612,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       {/* 3.5 THANH CÔNG CỤ NỔI (ACTION BAR) */}
       <div className="fixed bottom-8 right-8 z-30 flex gap-3 animate-in slide-in-from-right-10 duration-700">
          <button 
+           type="button"
            onClick={handleCancel}
            className="bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-50 transition-all active:scale-95"
          >
@@ -486,6 +620,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
          </button>
          {!isEdit && (
            <button 
+             type="button"
              onClick={handleSaveDraft}
              className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-900 transition-all active:scale-95"
            >
@@ -493,6 +628,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
            </button>
          )}
          <button 
+           type="button"
            onClick={handleSubmit}
            disabled={loading}
            className={`bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
@@ -515,7 +651,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       <ConfirmModal 
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        onConfirm={() => navigate('/admin/products')}
+        onConfirm={() => navigate('/shop-owner/products')}
         title="Hủy bỏ thay đổi?"
         message="Những thông tin bạn vừa nhập sẽ không được lưu lại. Bạn có chắc chắn muốn rời đi?"
         confirmText="Rời khỏi trang"

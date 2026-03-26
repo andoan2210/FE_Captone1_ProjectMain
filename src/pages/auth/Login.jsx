@@ -4,7 +4,7 @@ import { FaFingerprint, FaLock } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
 import './Login.css';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 
 function Login() {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ function Login() {
       if (token) {
         localStorage.setItem('token', token);
       }
-      navigate('/admin/dashboard');
+      navigate('/shop-owner/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

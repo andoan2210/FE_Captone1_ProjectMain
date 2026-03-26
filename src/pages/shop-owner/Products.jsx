@@ -1,7 +1,7 @@
 // Sản phẩm
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ConfirmModal from '../../components/Admin/ConfirmModal';
+import ConfirmModal from '../../components/shop-owner/ConfirmModal';
 import {
   FiBox, FiPlus, FiSearch, FiFilter, FiMoreVertical,
   FiEdit2, FiEye, FiTrash2, FiChevronLeft, FiChevronRight,
@@ -105,10 +105,14 @@ const Products = () => {
     const matchesCategory = categoryFilter === 'Tất cả danh mục' || product.category === categoryFilter;
     const matchesStatus = statusFilter === 'Tất cả' || product.status === statusFilter;
 
+    const totalStock = product.variants?.length > 0 
+      ? product.variants.reduce((acc, v) => acc + Number(v.stock || 0), 0)
+      : Number(product.stock || 0);
+
     let matchesStock = true;
-    if (stockFilter === 'Hết hàng') matchesStock = product.stock === 0;
-    else if (stockFilter === 'Sắp hết hàng') matchesStock = product.stock > 0 && product.stock < 10;
-    else if (stockFilter === 'Còn hàng') matchesStock = product.stock >= 10;
+    if (stockFilter === 'Hết hàng') matchesStock = totalStock === 0;
+    else if (stockFilter === 'Sắp hết hàng') matchesStock = totalStock > 0 && totalStock < 10;
+    else if (stockFilter === 'Còn hàng') matchesStock = totalStock >= 10;
 
     return matchesSearch && matchesCategory && matchesStatus && matchesStock;
   });
@@ -122,7 +126,12 @@ const Products = () => {
     { title: 'Tổng sản phẩm', value: allProducts.length, trend: '+12% tháng này', icon: FiBox, color: 'text-blue-600', bg: 'bg-blue-50' },
     { title: 'Đang hoạt động', value: allProducts.filter(p => p.status === 'Đang hoạt động').length, trend: '+5%', icon: FiCheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { title: 'Tạm ẩn', value: allProducts.filter(p => p.status === 'Tạm ẩn').length, trend: 'Không đổi', icon: FiEyeOff, color: 'text-slate-500', bg: 'bg-slate-100' },
-    { title: 'Hết hàng', value: allProducts.filter(p => p.stock === 0).length, trend: '+2 từ hôm qua', icon: FiAlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { title: 'Hết hàng', value: allProducts.filter(p => {
+        const stock = p.variants?.length > 0 
+          ? p.variants.reduce((acc, v) => acc + Number(v.stock || 0), 0)
+          : Number(p.stock || 0);
+        return stock === 0;
+      }).length, trend: '+2 từ hôm qua', icon: FiAlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50' },
     { title: 'Tổng danh mục', value: '45', trend: 'Hoạt động tốt', icon: FiGrid, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
@@ -132,7 +141,7 @@ const Products = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2">
-            <span>Dashboard</span>
+            <span>Shop Owner</span>
             <span className="text-slate-300">/</span>
             <span>Sản phẩm</span>
             <span className="text-slate-300">/</span>
@@ -141,7 +150,7 @@ const Products = () => {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Danh sách sản phẩm</h1>
         </div>
         <button
-          onClick={() => navigate('/admin/products/add')}
+          onClick={() => navigate('/shop-owner/products/add')}
           className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95"
         >
           <FiPlus className="text-xl" />
@@ -306,12 +315,26 @@ const Products = () => {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm relative group-hover:shadow-md transition-all">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm relative group-hover:shadow-md transition-all shrink-0">
+                        <img src={product.images?.[0] || product.image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                       </div>
                       <div>
-                        <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer">{product.name}</div>
-                        <div className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-wide">SKU: {product.sku}</div>
+                        <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer line-clamp-1">{product.name}</div>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SKU: {product.sku}</div>
+                          {product.variants?.length > 0 && (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ring-1 ring-blue-100">
+                                Size: {[...new Set(product.variants.map(v => v.size))].join(', ')}
+                              </span>
+                              {[...new Set(product.variants.map(v => v.color))].filter(Boolean).length > 0 && (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ring-1 ring-emerald-100">
+                                  Màu: {[...new Set(product.variants.map(v => v.color))].filter(Boolean).join(', ')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -319,25 +342,42 @@ const Products = () => {
                     <span className="text-sm font-semibold text-slate-600">{product.category}</span>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm font-bold text-slate-900">
-                      {isNaN(product.price) ? product.price : `${Number(product.price).toLocaleString('vi-VN')}đ`}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-slate-900">
+                        {product.variants?.length > 0 
+                          ? `${Math.min(...product.variants.map(v => Number(v.price || 0))).toLocaleString('vi-VN')}đ`
+                          : (isNaN(product.price) ? product.price : `${Number(product.price || 0).toLocaleString('vi-VN')}đ`)}
+                      </span>
+                      {product.variants?.length > 1 && (
+                        <span className="text-[10px] font-bold text-slate-400 italic">Giá khởi điểm</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="flex flex-col gap-2 min-w-[100px]">
-                      <div className="flex justify-between items-center text-xs font-bold">
-                        <span className={product.stock < 10 ? 'text-rose-500' : 'text-slate-600'}>
-                          {product.stock} {product.stock < 10 && <FiAlertTriangle className="inline-block ml-1" />}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${product.stock < 10 ? 'bg-rose-500' :
-                              product.stock < 50 ? 'bg-amber-500' : 'bg-blue-500'
-                            }`}
-                          style={{ width: `${Math.min(product.stock, 100)}%` }}
-                        ></div>
-                      </div>
+                    <div className="flex flex-col gap-2 min-w-[120px]">
+                      {(() => {
+                        const totalStock = product.variants?.length > 0 
+                          ? product.variants.reduce((acc, v) => acc + Number(v.stock || 0), 0)
+                          : Number(product.stock || 0);
+                        return (
+                          <>
+                            <div className="flex justify-between items-center text-xs font-bold">
+                              <span className={totalStock < 10 ? 'text-rose-500' : 'text-slate-600'}>
+                                {totalStock} {totalStock < 10 && <FiAlertTriangle className="inline-block ml-1" />}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">TỔNG KHO</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${totalStock < 10 ? 'bg-rose-500' :
+                                    totalStock < 50 ? 'bg-amber-500' : 'bg-blue-500'
+                                  }`}
+                                style={{ width: `${Math.min((totalStock / 100) * 100, 100)}%` }}
+                              ></div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-5">
@@ -356,7 +396,7 @@ const Products = () => {
                   <td className="px-6 py-5">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                        onClick={() => navigate(`/shop-owner/products/edit/${product.id}`)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
                         <FiEdit2 size={18} />
@@ -535,7 +575,7 @@ const Products = () => {
                <button 
                   onClick={() => {
                     setIsViewModalOpen(false);
-                    navigate(`/admin/products/edit/${productToView.id}`);
+                    navigate(`/shop-owner/products/edit/${productToView.id}`);
                   }}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all active:scale-95"
                >

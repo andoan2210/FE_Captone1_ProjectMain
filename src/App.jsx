@@ -7,11 +7,11 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import VerifyForgotPasswordOtp from './pages/auth/VerifyForgotPasswordOtp';
 import ChangePassword from './pages/auth/ChangePassword';
 
-import AdminLayout from './components/Admin/AdminLayout';
-import Products from './pages/admin/Products';
-import AddProduct from './pages/admin/AddProduct';
-import EditProduct from './pages/admin/EditProduct';
-import QuanLyCuaHang from './pages/admin/ShopOwner';
+import ShopOwnerLayout from './components/shop-owner/ShopOwnerLayout';
+import Products from './pages/shop-owner/Products';
+import AddProduct from './pages/shop-owner/AddProduct';
+import EditProduct from './pages/shop-owner/EditProduct';
+import QuanLyCuaHang from './pages/shop-owner/ShopOwner';
 
 function App() {
   return (
@@ -25,9 +25,9 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-forgot-password-otp" element={<VerifyForgotPasswordOtp />} />
       <Route path="/change-password" element={<ChangePassword />} />
-      
-      {/* Admin Routes */}
-      <Route path="/admin" element={<AdminLayout />}>
+
+      {/* Shop Owner Routes */}
+      <Route path="/shop-owner" element={<ShopOwnerLayout />}>
         <Route index element={<Navigate to="store" replace />} />
         <Route path="store" element={<QuanLyCuaHang />} />
         <Route path="dashboard" element={<div className="p-6">Trang Dashboard đang phát triển</div>} />

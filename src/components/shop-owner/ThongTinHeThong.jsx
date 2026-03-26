@@ -48,7 +48,7 @@ export default function ThongTinHeThong({ storeInfo }) {
         </div>
         <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 p-3 rounded-xl border border-slate-100 transition-colors">
           <div className="bg-white p-2.5 rounded-lg text-slate-400 shadow-sm border border-slate-100/50"><FiUser /></div>
-          <div><p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Chủ sở hữu</p><p className="text-sm font-medium text-slate-800">{storeInfo.ownerName || 'Nguyễn Văn Admin'}</p></div>
+          <div><p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Chủ sở hữu</p><p className="text-sm font-medium text-slate-800">{storeInfo.ownerName || 'Chủ cửa hàng'}</p></div>
         </div>
         <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 p-3 rounded-xl border border-slate-100 transition-colors">
           <div className="bg-white p-2.5 rounded-lg text-slate-400 shadow-sm border border-slate-100/50"><FiCalendar /></div>

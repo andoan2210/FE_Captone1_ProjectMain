@@ -1,6 +1,6 @@
 // Sản phẩm
 import React from 'react';
-import ProductForm from '../../components/Admin/ProductForm';
+import ProductForm from '../../components/shop-owner/ProductForm';
 
 const AddProduct = () => {
   return (

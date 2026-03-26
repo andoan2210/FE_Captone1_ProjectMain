@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Login.css';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 
 function GoogleCallback() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ function GoogleCallback() {
         if (token) {
           localStorage.setItem('token', token);
         }
-        navigate('/admin/dashboard');
+        navigate('/shop-owner/dashboard');
       } catch (err) {
         setError(err.message);
       }
