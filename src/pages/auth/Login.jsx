@@ -38,7 +38,7 @@ function Login() {
       if (token) {
         localStorage.setItem('token', token);
       }
-      navigate('/');
+      navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
