@@ -6,18 +6,18 @@ import VerifyOtp from './pages/auth/VerifyOtp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import VerifyForgotPasswordOtp from './pages/auth/VerifyForgotPasswordOtp';
 import ChangePassword from './pages/auth/ChangePassword';
-
 import AdminLayout from './components/Admin/AdminLayout';
 import Products from './pages/admin/Products';
 import AddProduct from './pages/admin/AddProduct';
 import EditProduct from './pages/admin/EditProduct';
 import QuanLyCuaHang from './pages/admin/ShopOwner';
+import LandingPage from './pages/LandingPage/LandingPage';
 
 function App() {
   return (
     <Routes>
       {/* Mặc định chuyển đến trang đăng nhập */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={localStorage.getItem('token') ? <LandingPage /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
       <Route path="/register" element={<Register />} />
