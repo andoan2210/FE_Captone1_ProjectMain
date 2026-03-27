@@ -1,8 +1,8 @@
 // Cửa hàng
 /**
  * File: TheThongKe.jsx
- * Mục đích: Hiển thị 4 dãy thẻ thống kê trên cùng (Tổng sản phẩm, đơn hàng, tổng voucher, trạng thái).
- * Component này sẽ tự động gọi API adminService.getStoreStats() để hiển thị số liệu thực tế.
+ * Mục đích: Thành phần hiển thị 1 thẻ nhỏ thống kê trạng thái cửa hàng cho Shop Owner.
+ * Component này sẽ tự động gọi API CuahangService.getStoreStats() để hiển thị số liệu thực tế.
  */
 import React, { useEffect, useState } from 'react';
 import { FiBox, FiShoppingCart, FiTag, FiActivity } from 'react-icons/fi';

@@ -123,10 +123,15 @@
 .input-icon {
   position: absolute;
   left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: #9ca3af;
   pointer-events: none;
-  font-size: 1rem;
+  font-size: 1.1rem;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-icon--sm {
@@ -134,12 +139,15 @@
 }
 
 .form-input {
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  width: 100% !important;
+  padding-left: 54px !important;
+  padding-right: 16px !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
   background: #f8fbff;
   border: 1px solid #d0e4ff;
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #374151;
   outline: none;
   transition: all 0.2s;
@@ -158,7 +166,7 @@
 }
 
 .form-input--password {
-  padding-right: 2.75rem;
+  padding-right: 50px !important;
 }
 
 .toggle-password {
@@ -299,4 +307,58 @@
 
 .register-link:hover {
   color: #0062cc;
+}
+
+/* Resend OTP Link */
+.resend-otp-container {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.resend-otp-link {
+  font-size: 0.875rem;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.resend-otp-link:hover {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+/* ===== OTP Inputs ===== */
+.otp-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.otp-input {
+  width: 50px !important;
+  height: 60px !important;
+  background: #f8fbff;
+  border: 2px solid #d0e4ff;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+.otp-input:focus {
+  background: #ffffff;
+  border-color: #007BFF;
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.otp-input::selection {
+  background: transparent;
 }

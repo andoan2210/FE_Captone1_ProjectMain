@@ -1,7 +1,7 @@
 // Sản phẩm
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ConfirmModal from '../../components/Admin/ConfirmModal';
+import ConfirmModal from '../../components/shop-owner/ConfirmModal';
 import {
   FiBox, FiPlus, FiSearch, FiFilter, FiMoreVertical,
   FiEdit2, FiEye, FiTrash2, FiChevronLeft, FiChevronRight,
@@ -132,16 +132,14 @@ const Products = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2">
-            <span>Dashboard</span>
+            <span>Trang chủ</span>
             <span className="text-slate-300">/</span>
-            <span>Sản phẩm</span>
-            <span className="text-slate-300">/</span>
-            <span className="font-medium text-blue-600">Danh sách sản phẩm</span>
+            <span className="font-medium text-blue-600">Cửa hàng</span>
           </nav>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Danh sách sản phẩm</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quản lý cửa hàng</h1>
         </div>
         <button
-          onClick={() => navigate('/admin/products/add')}
+          onClick={() => navigate('/shop-owner/products/add')}
           className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95"
         >
           <FiPlus className="text-xl" />
@@ -356,7 +354,7 @@ const Products = () => {
                   <td className="px-6 py-5">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                        onClick={() => navigate(`/shop-owner/products/edit/${product.id}`)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
                         <FiEdit2 size={18} />
@@ -535,7 +533,7 @@ const Products = () => {
                <button 
                   onClick={() => {
                     setIsViewModalOpen(false);
-                    navigate(`/admin/products/edit/${productToView.id}`);
+                    navigate(`/shop-owner/products/edit/${productToView.id}`);
                   }}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all active:scale-95"
                >

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 import './Login.css';
 
-const API_BASE = 'http://localhost:8080/api';
+
+const API_BASE = '/api';
 
 function GoogleCallback() {
   const navigate = useNavigate();
@@ -30,8 +32,28 @@ function GoogleCallback() {
         const token = data.accessToken || data.token || data.access_token;
         if (token) {
           localStorage.setItem('token', token);
+          
+          try {
+            const decoded = jwtDecode(token);
+            const userRole = decoded.role || data.role || (data.user && data.user.role);
+            if (userRole) {
+              localStorage.setItem('userRole', userRole);
+
+              if (userRole === 'ShopOwner') {
+                navigate('/shop-owner/dashboard');
+              } else {
+                navigate('/');
+              }
+              return;
+            }
+          } catch (decodeErr) {
+            console.error('Lỗi giải mã token Google:', decodeErr);
+          }
         }
-        navigate('/admin/dashboard');
+
+        // Chuyển hướng mặc định
+        navigate('/');
+
       } catch (err) {
         setError(err.message);
       }

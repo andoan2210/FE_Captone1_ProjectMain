@@ -10,12 +10,12 @@ import { jwtDecode } from 'jwt-decode';
 import api from '../../services/api';
 
 const menuItems = [
-  { name: 'Dashboard', path: '/admin/dashboard', icon: FiGrid },
-  { name: 'Sản phẩm', path: '/admin/products', icon: FiBox },
-  { name: 'Đơn hàng', path: '/admin/orders', icon: FiShoppingCart },
-  { name: 'Vouchers', path: '/admin/vouchers', icon: FiTag },
-  { name: 'Cửa hàng', path: '/admin/store', icon: FiBriefcase },
-  { name: 'Cài đặt', path: '/admin/settings', icon: FiSettings },
+  { name: 'Dashboard', path: '/shop-owner/dashboard', icon: FiGrid },
+  { name: 'Sản phẩm', path: '/shop-owner/products', icon: FiBox },
+  { name: 'Đơn hàng', path: '/shop-owner/orders', icon: FiShoppingCart },
+  { name: 'Vouchers', path: '/shop-owner/vouchers', icon: FiTag },
+  { name: 'Cửa hàng', path: '/shop-owner/store', icon: FiBriefcase },
+  { name: 'Cài đặt', path: '/shop-owner/settings', icon: FiSettings },
 ];
 
 export default function Sidebar() {
@@ -60,7 +60,7 @@ export default function Sidebar() {
     <div className="w-64 bg-white border-r border-slate-100/80 h-screen flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] sticky top-0 z-20 text-left">
       <div className="h-20 flex items-center px-6 border-b border-slate-100/50 mb-6">
         <div className="text-2xl font-extrabold tracking-tight text-slate-800">
-          AdminPanel<span className="text-blue-600">.</span>
+          ShopOwnerPanel<span className="text-blue-600">.</span>
         </div>
       </div>
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">

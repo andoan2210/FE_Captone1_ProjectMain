@@ -6,9 +6,9 @@
  * xuống cho FormCuaHang và ThongTinHeThong để đảm bảo đồng nhất nội dung, tiết kiệm network.
  */
 import React, { useEffect, useState } from 'react';
-import TheThongKe from '@/components/Admin/TheThongKe';
-import FormCuaHang from '@/components/Admin/FormCuaHang';
-import ThongTinHeThong from '@/components/Admin/ThongTinHeThong';
+import TheThongKe from '@/components/shop-owner/TheThongKe';
+import FormCuaHang from '@/components/shop-owner/FormCuaHang';
+import ThongTinHeThong from '@/components/shop-owner/ThongTinHeThong';
 import { CuahangService } from '@/services/CuahangService';
 
 export default function QuanLyCuaHang() {
@@ -31,7 +31,7 @@ export default function QuanLyCuaHang() {
           description: 'Chuyên cung cấp các sản phẩm công nghệ chính hãng với giá cả hợp lý nhất thị trường.',
           isActive: true,
           logoUrl: '',
-          ownerName: 'Nguyễn Văn Admin',
+          ownerName: 'Chủ cửa hàng',
           createdAt: new Date().toISOString()
         });
       } finally {

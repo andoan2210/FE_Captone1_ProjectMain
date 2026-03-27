@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const API_PREFIX = '/api/admin/products';
+const API_PREFIX = '/api/shop-owner/products';
 
 // Tạo một instance axios với interceptor để tự động chèn token (Giống CuahangService)
 const api = axios.create({

@@ -1,7 +1,7 @@
 // Sản phẩm
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  FiArrowLeft, FiUpload, FiPlus, FiSave, FiX, 
+import {
+  FiArrowLeft, FiUpload, FiPlus, FiSave, FiX,
   FiBold, FiItalic, FiList, FiLink, FiInfo, FiImage, FiGrid, FiCheck, FiTrash2, FiDollarSign
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +45,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       setShowDeleteModal(false);
       setTimeout(() => {
         setSuccessMessage('');
-        navigate('/admin/products');
+        navigate('/shop-owner/products');
       }, 1500);
     } catch (error) {
       console.error("Delete failed", error);
@@ -63,10 +63,10 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     }
     if (!isDraft) {
       if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
-      
+
       if (formData.price === '' || formData.price === null) newErrors.price = 'Giá bán không được để trống';
       else if (Number(formData.price) <= 0) newErrors.price = 'Giá bán phải lớn hơn 0';
-      
+
       if (formData.stock === '' || formData.stock === null) newErrors.stock = 'Số lượng không được để trống';
       else if (Number(formData.stock) < 0) newErrors.stock = 'Số lượng không được âm';
 
@@ -120,11 +120,11 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   // Xử lý LƯU SẢN PHẨM (Add hoặc Update)
   const handleSave = async (isDraft = false) => {
     if (!validateForm(isDraft)) return;
-    
+
     setLoading(true);
     try {
       let finalImages = [...formData.images];
-      
+
       // 1. Tải các ảnh mới lên Server (nếu có)
       if (pendingFiles.length > 0) {
         try {
@@ -140,14 +140,14 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       // 2. Lưu sản phẩm với danh sách ảnh cuối cùng
       const updatedData = { ...formData, images: finalImages };
       await ProductService.saveProduct(updatedData, isEdit);
-      
+
       setSuccessMessage(isDraft ? 'Đã lưu bản nháp thành công!' : (isEdit ? 'Đã cập nhật sản phẩm thành công!' : 'Đã thêm sản phẩm mới thành công!'));
       setIsDirty(false);
       setPendingFiles([]);
-      
+
       setTimeout(() => {
         setSuccessMessage('');
-        navigate('/admin/products');
+        navigate('/shop-owner/products');
       }, 2000);
     } catch (error) {
       console.error("Save failed", error);
@@ -190,9 +190,9 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2 font-medium">
-            <span>Dashboard</span>
+            <span>Trang chủ</span>
             <span className="text-slate-300">/</span>
-            <span>Sản phẩm</span>
+            <span>Cửa hàng</span>
             <span className="text-slate-300">/</span>
             <span className="text-blue-600">{isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm'}</span>
           </nav>
@@ -203,8 +203,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
             {isEdit ? 'Cập nhật chi tiết sản phẩm và quản lý tồn kho của bạn.' : 'Tạo sản phẩm mới để hiển thị trên cửa hàng của bạn.'}
           </p>
         </div>
-        <button 
-          onClick={() => navigate('/admin/products')}
+        <button
+          onClick={() => navigate('/shop-owner/products')}
           className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95"
         >
           <FiArrowLeft size={18} />
@@ -217,10 +217,10 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         <div className="lg:col-span-2 space-y-8">
           {successMessage && (
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3 text-emerald-700 font-bold animate-in fade-in zoom-in duration-300">
-               <div className="bg-emerald-500 text-white p-1 rounded-full">
-                  <FiCheck size={16} />
-               </div>
-               {successMessage}
+              <div className="bg-emerald-500 text-white p-1 rounded-full">
+                <FiCheck size={16} />
+              </div>
+              {successMessage}
             </div>
           )}
           {/* Thông tin chung */}
@@ -231,12 +231,12 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               </div>
               <h2 className="text-lg font-bold text-slate-800">Thông tin chung</h2>
             </div>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 ml-1">Tên sản phẩm</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
@@ -249,7 +249,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">Danh mục</label>
-                  <select 
+                  <select
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
@@ -257,7 +257,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                   >
                     <option value="">Chọn danh mục</option>
                     <option value="Thời trang">Thời trang</option>
-                    
+
                   </select>
                   {errors.category && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.category}</p>}
                 </div>
@@ -267,7 +267,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     <span className={`text-sm font-bold ${formData.status === 'Đang hoạt động' ? 'text-emerald-600' : 'text-slate-400'}`}>
                       {formData.status}
                     </span>
-                    <button 
+                    <button
                       onClick={toggleStatus}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.status === 'Đang hoạt động' ? 'bg-blue-600' : 'bg-slate-300'}`}
                     >
@@ -287,7 +287,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                       </button>
                     ))}
                   </div>
-                  <textarea 
+                  <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
@@ -308,13 +308,13 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               </div>
               <h2 className="text-lg font-bold text-slate-800">Giá & Kho hàng</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 ml-1">Giá bán (VND)</label>
                 <div className="relative">
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     name="price"
                     value={formData.price}
                     onChange={handleChange}
@@ -327,8 +327,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 ml-1">Số lượng tồn kho</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   name="stock"
                   value={formData.stock}
                   onChange={handleChange}
@@ -346,7 +346,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 <h3 className="text-lg font-bold text-rose-600">Xóa sản phẩm</h3>
                 <p className="text-sm text-slate-500">Hành động này không thể hoàn tác. Mọi dữ liệu liên quan sẽ biến mất.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowDeleteModal(true)}
                 className="flex items-center gap-2 bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl font-bold hover:bg-rose-100 transition-all active:scale-95"
               >
@@ -365,9 +365,9 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               <FiImage className="text-blue-600" />
               <h2 className="text-lg font-bold text-slate-800">Hình ảnh</h2>
             </div>
-            
-            <input 
-              type="file" 
+
+            <input
+              type="file"
               ref={fileInputRef}
               onChange={handleImageUpload}
               multiple
@@ -375,7 +375,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               className="hidden"
             />
 
-            <div 
+            <div
               onClick={() => fileInputRef.current.click()}
               className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group ${errors.images ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'}`}
             >
@@ -394,7 +394,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               {(formData.images || []).map((img, idx) => (
                 <div key={idx} className="aspect-square rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden relative group animate-in zoom-in duration-300">
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
+                    <button
                       onClick={() => removeImage(idx)}
                       className="p-2 bg-white text-rose-600 rounded-xl hover:bg-rose-50 transition-all"
                     >
@@ -405,7 +405,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 </div>
               ))}
               {formData.images.length < 6 && (
-                <div 
+                <div
                   onClick={() => fileInputRef.current.click()}
                   className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-blue-300 hover:text-blue-400 cursor-pointer transition-all"
                 >
@@ -426,51 +426,51 @@ const ProductForm = ({ initialData, isEdit = false }) => {
             </div>
 
             <div className="bg-slate-50 rounded-2xl p-4 space-y-4 border border-slate-100">
-               <div className="aspect-square rounded-xl bg-white shadow-sm border border-slate-200/50 overflow-hidden relative">
-                  {formData.images.length > 0 ? (
-                    <img src={formData.images[0]} className="w-full h-full object-cover animate-in fade-in duration-500" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2">
-                       <FiImage size={48} className="opacity-20" />
-                       <span className="text-[10px] uppercase font-black tracking-widest opacity-40">Chưa có ảnh</span>
-                    </div>
-                  )}
-               </div>
-               <div className="space-y-2">
-                  <div className="text-[10px] text-emerald-600 font-bold uppercase bg-emerald-50 px-1.5 py-0.5 rounded w-fit">CÒN HÀNG</div>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{formData.category || 'DANH MỤC'}</p>
-                  <h4 className="font-extrabold text-slate-800 leading-tight">{formData.name || 'Tên sản phẩm sẽ hiển thị ở đây'}</h4>
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-blue-600 font-black">{formData.price ? Number(formData.price).toLocaleString('vi-VN') + 'đ' : '0đ'}</p>
-                    <p className="text-[10px] text-slate-400 font-bold italic">Còn {formData.stock || 0} sản phẩm</p>
+              <div className="aspect-square rounded-xl bg-white shadow-sm border border-slate-200/50 overflow-hidden relative">
+                {formData.images.length > 0 ? (
+                  <img src={formData.images[0]} className="w-full h-full object-cover animate-in fade-in duration-500" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2">
+                    <FiImage size={48} className="opacity-20" />
+                    <span className="text-[10px] uppercase font-black tracking-widest opacity-40">Chưa có ảnh</span>
                   </div>
-               </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="text-[10px] text-emerald-600 font-bold uppercase bg-emerald-50 px-1.5 py-0.5 rounded w-fit">CÒN HÀNG</div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{formData.category || 'DANH MỤC'}</p>
+                <h4 className="font-extrabold text-slate-800 leading-tight">{formData.name || 'Tên sản phẩm sẽ hiển thị ở đây'}</h4>
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-blue-600 font-black">{formData.price ? Number(formData.price).toLocaleString('vi-VN') + 'đ' : '0đ'}</p>
+                  <p className="text-[10px] text-slate-400 font-bold italic">Còn {formData.stock || 0} sản phẩm</p>
+                </div>
+              </div>
             </div>
           </div>
-          
+
           {isEdit && (
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
-                <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                  <FiInfo /> Thông tin hệ thống
-                </h3>
-                <div className="space-y-3 text-xs font-bold">
-                   <div className="flex justify-between py-2 border-b border-slate-200/50">
-                      <span className="text-slate-400">Product ID:</span>
-                      <span className="text-slate-800">PROD-12345</span>
-                   </div>
-                   <div className="flex justify-between py-2 border-b border-slate-200/50">
-                      <span className="text-slate-400">Store ID:</span>
-                      <span className="text-slate-800">STORE-88</span>
-                   </div>
-                   <div className="flex justify-between py-2 border-b border-slate-200/50">
-                      <span className="text-slate-400">Ngày tạo:</span>
-                      <span className="text-slate-800">12/05/2023</span>
-                   </div>
-                   <div className="flex justify-between py-2">
-                      <span className="text-slate-400">Cập nhật:</span>
-                      <span className="text-slate-800 uppercase tracking-tighter">Vừa mới đây</span>
-                   </div>
+              <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                <FiInfo /> Thông tin hệ thống
+              </h3>
+              <div className="space-y-3 text-xs font-bold">
+                <div className="flex justify-between py-2 border-b border-slate-200/50">
+                  <span className="text-slate-400">Product ID:</span>
+                  <span className="text-slate-800">PROD-12345</span>
                 </div>
+                <div className="flex justify-between py-2 border-b border-slate-200/50">
+                  <span className="text-slate-400">Store ID:</span>
+                  <span className="text-slate-800">STORE-88</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-200/50">
+                  <span className="text-slate-400">Ngày tạo:</span>
+                  <span className="text-slate-800">12/05/2023</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-slate-400">Cập nhật:</span>
+                  <span className="text-slate-800 uppercase tracking-tighter">Vừa mới đây</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -478,41 +478,41 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
       {/* 3.5 THANH CÔNG CỤ NỔI (ACTION BAR) */}
       <div className="fixed bottom-8 right-8 z-30 flex gap-3 animate-in slide-in-from-right-10 duration-700">
-         <button 
-           onClick={handleCancel}
-           className="bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-50 transition-all active:scale-95"
-         >
-           Hủy
-         </button>
-         {!isEdit && (
-           <button 
-             onClick={handleSaveDraft}
-             className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-900 transition-all active:scale-95"
-           >
-             Lưu nháp
-           </button>
-         )}
-         <button 
-           onClick={handleSubmit}
-           disabled={loading}
-           className={`bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-         >
-           {loading ? (
-             <div className="flex items-center gap-2">
-               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-               Đang xử lý...
-             </div>
-           ) : (
-             <>
-               <FiCheck size={20} />
-               {isEdit ? 'Lưu thay đổi' : 'Lưu sản phẩm'}
-             </>
-           )}
-         </button>
+        <button
+          onClick={handleCancel}
+          className="bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-50 transition-all active:scale-95"
+        >
+          Hủy
+        </button>
+        {!isEdit && (
+          <button
+            onClick={handleSaveDraft}
+            className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold shadow-xl hover:bg-slate-900 transition-all active:scale-95"
+          >
+            Lưu nháp
+          </button>
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className={`bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+        >
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Đang xử lý...
+            </div>
+          ) : (
+            <>
+              <FiCheck size={20} />
+              {isEdit ? 'Lưu thay đổi' : 'Lưu sản phẩm'}
+            </>
+          )}
+        </button>
       </div>
 
       {/* Cancel Confirmation Modal */}
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={() => navigate('/admin/products')}
@@ -522,7 +522,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         cancelText="Tiếp tục chỉnh sửa"
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirmed}
