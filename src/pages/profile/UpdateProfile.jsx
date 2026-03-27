@@ -74,6 +74,8 @@ const TwitterIcon = () => (
 const UpdateProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Dữ liệu hiển thị header/sidebar — được đồng bộ với form khi lưu thành công
+  const [profileData, setProfileData] = useState({ fullName: '', avatarUrl: '' });
   
   const [formData, setFormData] = useState({
     fullName: 'Nguyễn Minh',
@@ -102,22 +104,32 @@ const UpdateProfile = () => {
   const [avatarUrl, setAvatarUrl] = useState('https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Load profile data on mount
+  // Load profile data on mount — gọi 3 API song song
   useEffect(() => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const profile = await userService.getUserProfile();
-        if (profile) {
-          setFormData(profile.basicInfo || formData);
-          setAddresses(profile.addresses || addresses);
-          setPayments(profile.payments || payments);
-          setAvatarUrl(profile.avatar || avatarUrl);
-        }
+        const [profile, addrList, payList] = await Promise.all([
+          userService.getUserProfile(),
+          userService.getAddresses(),
+          userService.getPaymentMethods(),
+        ]);
+        setFormData({
+          fullName: profile.fullName || '',
+          birthDate: profile.birthDate || '',
+          gender: profile.gender || 'Nam',
+          email: profile.email || '',
+          phone: profile.phone || '',
+        });
+        // Cập nhật hiển thị header/sidebar
+        setProfileData({ fullName: profile.fullName || '', avatarUrl: profile.avatarUrl || '' });
+        setAddresses(addrList);
+        setPayments(payList);
+        setAvatarUrl(profile.avatarUrl || avatarUrl);
         setError(null);
       } catch (err) {
-        console.log('[v0] Profile load error:', err.message);
-        setError(err.message);
+        console.error('[UpdateProfile] Load error:', err);
+        setError('Không thể tải thông tin. Vui lòng thử lại.');
       } finally {
         setLoading(false);
       }
@@ -139,10 +151,9 @@ const UpdateProfile = () => {
     try {
       await userService.deleteAddress(id);
       setAddresses(addresses.filter(addr => addr.id !== id));
-      console.log('[v0] Address deleted:', id);
     } catch (err) {
-      console.error('[v0] Delete address error:', err.message);
-      setError(err.message);
+      console.error('[UpdateProfile] Delete address error:', err);
+      setError('Xóa địa chỉ thất bại.');
     }
   };
 
@@ -150,43 +161,45 @@ const UpdateProfile = () => {
     try {
       await userService.deletePayment(id);
       setPayments(payments.filter(pay => pay.id !== id));
-      console.log('[v0] Payment deleted:', id);
     } catch (err) {
-      console.error('[v0] Delete payment error:', err.message);
-      setError(err.message);
+      console.error('[UpdateProfile] Delete payment error:', err);
+      setError('Xóa phương thức thanh toán thất bại.');
     }
   };
 
   const handleSaveChanges = async () => {
     try {
-      await userService.updateUserProfile(formData);
+      // Gọi PATCH /api/users/profile với các field đã thay đổi
+      await userService.updateUserProfile({
+        fullName: formData.fullName,
+        phone: formData.phone,
+        gender: formData.gender,
+        birthDate: formData.birthDate,
+      });
       setSuccessMessage('Cập nhật thành công!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      console.log('[v0] Profile saved:', formData);
+      // Cập nhật tên hiển thị header/sidebar ngay lập tức
+      setProfileData(prev => ({ ...prev, fullName: formData.fullName }));
     } catch (err) {
-      console.error('[v0] Save profile error:', err.message);
-      setError(err.message);
+      console.error('[UpdateProfile] Save error:', err);
+      setError('Lưu thất bại. Vui lòng thử lại.');
     }
   };
 
+  // Upload avatar thật lên server qua PATCH /api/users/profile (multipart)
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const newAvatarUrl = event.target.result;
-          setAvatarUrl(newAvatarUrl);
-          await userService.updateUserProfile({ avatar: newAvatarUrl });
-          setSuccessMessage('Ảnh đại diện đã được cập nhật!');
-          setTimeout(() => setSuccessMessage(''), 3000);
-          console.log('[v0] Avatar changed successfully');
-        } catch (err) {
-          console.error('[v0] Update avatar error:', err.message);
-          setError(err.message);
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      setAvatarUrl(URL.createObjectURL(file));
+      await userService.updateUserProfile({}, file);
+      setSuccessMessage('Ảnh đại diện đã được cập nhật!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      // Cập nhật avatar sidebar/header
+      setProfileData(prev => ({ ...prev, avatarUrl: URL.createObjectURL(file) }));
+    } catch (err) {
+      console.error('[UpdateProfile] Avatar error:', err);
+      setError('Cập nhật ảnh đại diện thất bại.');
     }
   };
 
@@ -225,8 +238,13 @@ const UpdateProfile = () => {
               <BellIcon />
             </button>
             <div className="user-menu">
-              <img src="https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg" alt="Avatar" className="user-avatar-small" loading="eager" />
-              <span>Nguyễn Minh</span>
+              <img
+                src={profileData.avatarUrl || avatarUrl}
+                alt="Avatar"
+                className="user-avatar-small"
+                loading="eager"
+              />
+              <span>{profileData.fullName || 'Người dùng'}</span>
               <ChevronDownIcon />
             </div>
           </div>
@@ -265,13 +283,13 @@ const UpdateProfile = () => {
           {/* Sidebar with Avatar */}
           <aside className="update-sidebar">
             <div className="avatar-section">
-              <img 
-                src={avatarUrl}
-                alt="Avatar" 
+              <img
+                src={profileData.avatarUrl || avatarUrl}
+                alt="Avatar"
                 className="profile-avatar"
                 loading="eager"
               />
-              <h2 className="sidebar-name">Nguyễn Minh</h2>
+              <h2 className="sidebar-name">{profileData.fullName || formData.fullName || '...'}</h2>
               <input 
                 type="file"
                 id="avatar-input"

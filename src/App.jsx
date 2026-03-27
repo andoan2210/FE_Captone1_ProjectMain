@@ -25,11 +25,11 @@ import QuanLyCuaHang from './pages/shop-owner/ShopOwner';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Admin components (if needed separately)
-import AdminLayout from './components/Admin/AdminLayout';
-import AdminProducts from './pages/admin/Products';
-import AdminAddProduct from './pages/admin/AddProduct';
-import AdminEditProduct from './pages/admin/EditProduct';
-import AdminQuanLyCuaHang from './pages/admin/ShopOwner';
+// import AdminLayout from './components/Admin/AdminLayout';
+// import AdminProducts from './pages/admin/Products';
+// import AdminAddProduct from './pages/admin/AddProduct';
+// import AdminEditProduct from './pages/admin/EditProduct';
+// import AdminQuanLyCuaHang from './pages/admin/ShopOwner';
 
 function App() {
   return (
@@ -68,14 +68,14 @@ function App() {
       </Route>
 
       {/* Admin Routes - (Kept from user's attempt if they wanted it, otherwise focus on ShopOwner) */}
-      <Route path="/admin" element={<AdminLayout />}>
+      {/* <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="store" replace />} />
         <Route path="store" element={<AdminQuanLyCuaHang />} />
         <Route path="dashboard" element={<div className="p-6">Trang Dashboard Admin</div>} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="products/add" element={<AdminAddProduct />} />
         <Route path="products/edit/:id" element={<AdminEditProduct />} />
-      </Route>
+      </Route> */}
 
       {/* Catch-all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

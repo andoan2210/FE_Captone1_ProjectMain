@@ -91,32 +91,18 @@ export default function FormCuaHang({ initialData, onUpdateSuccess }) {
     let finalLogoUrl = formData.logoUrl;
 
     try {
-      // Nếu có ảnh mới, tiến hành gọi API upload ảnh trước
-      if (selectedFile) {
-        try {
-          const uploadRes = await CuahangService.uploadStoreLogo(selectedFile);
-          finalLogoUrl = uploadRes.logoUrl || uploadRes.url || finalLogoUrl;
-        } catch (uploadErr) {
-          console.error("Upload API error:", uploadErr);
-          // Ghi đè hoặc bỏ qua lỗi tuỳ ý bạn, ở đây tạm thời dùng ảnh base64/blob để demo nếu API lỗi
-          finalLogoUrl = previewUrl;
-        }
-      }
-
-      const finalDataToSave = { ...formData, logoUrl: finalLogoUrl };
-
-      // Gọi API cập nhật thông tin cửa hàng
-      await CuahangService.updateStoreInfo(finalDataToSave);
+      // Gọi PATCH /store/me với multipart/form-data (storeName, description, logo)
+      const dto = { storeName: formData.name, description: formData.description };
+      await CuahangService.updateMyStore(dto, selectedFile || undefined);
 
       setMessage({ type: 'success', text: 'Đã lưu thay đổi thành công!' });
-      setFormData(finalDataToSave);
       setSelectedFile(null);
       setPreviewUrl('');
 
-      if (onUpdateSuccess) onUpdateSuccess(finalDataToSave);
+      if (onUpdateSuccess) onUpdateSuccess({ name: formData.name, description: formData.description, isActive: formData.isActive, logoUrl: previewUrl || formData.logoUrl });
     } catch (error) {
       console.error('Save error:', error);
-      setMessage({ type: 'error', text: 'Lưu thất bại. API đang gặp lỗi kết nối.' });
+      setMessage({ type: 'error', text: 'Lưu thất bại. Vui lòng thử lại.' });
     } finally {
       setIsSaving(false);
     }

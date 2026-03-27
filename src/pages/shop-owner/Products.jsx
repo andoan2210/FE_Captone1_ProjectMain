@@ -203,7 +203,7 @@ const Products = () => {
                   <option>Thời trang</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-blue-500 transition-colors">
-                   <FiFilter size={14} />
+                  <FiFilter size={14} />
                 </div>
               </div>
             </div>
@@ -310,6 +310,13 @@ const Products = () => {
                       <div>
                         <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer">{product.name}</div>
                         <div className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-wide">SKU: {product.sku}</div>
+                        {product.variants && product.variants.length > 0 && (
+                          <div className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                            Phân loại: {Array.from(new Set(product.variants.map(v => v.size))).filter(Boolean).join(', ')} 
+                            {Array.from(new Set(product.variants.map(v => v.color))).filter(Boolean).length > 0 && ' | '}
+                            {Array.from(new Set(product.variants.map(v => v.color))).filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -317,23 +324,41 @@ const Products = () => {
                     <span className="text-sm font-semibold text-slate-600">{product.category}</span>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm font-bold text-slate-900">
-                      {isNaN(product.price) ? product.price : `${Number(product.price).toLocaleString('vi-VN')}đ`}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-900">
+                        {product.variants && product.variants.length > 0
+                          ? (() => {
+                              const prices = product.variants.map(v => Number(v.price));
+                              const min = Math.min(...prices);
+                              const max = Math.max(...prices);
+                              return min === max 
+                                ? `${min.toLocaleString('vi-VN')}đ` 
+                                : `${min.toLocaleString('vi-VN')}đ - ${max.toLocaleString('vi-VN')}đ`;
+                            })()
+                          : isNaN(product.price) ? product.price : `${Number(product.price).toLocaleString('vi-VN')}đ`
+                        }
+                      </span>
+                      {product.variants && product.variants.length > 1 && (
+                        <span className="text-[10px] text-slate-400 font-medium italic">
+                          ({product.variants.length} bản phối)
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col gap-2 min-w-[100px]">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className={product.stock < 10 ? 'text-rose-500' : 'text-slate-600'}>
-                          {product.stock} {product.stock < 10 && <FiAlertTriangle className="inline-block ml-1" />}
+                        <span className={(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 ? 'text-rose-500' : 'text-slate-600'}>
+                          {product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock} 
+                          {(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 && <FiAlertTriangle className="inline-block ml-1" />}
                         </span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${product.stock < 10 ? 'bg-rose-500' :
-                              product.stock < 50 ? 'bg-amber-500' : 'bg-blue-500'
+                          className={`h-full rounded-full transition-all duration-500 ${(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 ? 'bg-rose-500' :
+                            (product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 50 ? 'bg-amber-500' : 'bg-blue-500'
                             }`}
-                          style={{ width: `${Math.min(product.stock, 100)}%` }}
+                          style={{ width: `${Math.min(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock, 100)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -341,8 +366,8 @@ const Products = () => {
                   <td className="px-6 py-5">
                     <div className="flex justify-center">
                       <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${product.status === 'Đang hoạt động'
-                          ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
-                          : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
+                        ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
+                        : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                         }`}>
                         {product.status}
                       </span>
@@ -359,7 +384,7 @@ const Products = () => {
                       >
                         <FiEdit2 size={18} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleViewClick(product)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
@@ -407,8 +432,8 @@ const Products = () => {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`min-w-[40px] h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${page === currentPage
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
                     }`}
                 >
                   {page}
@@ -449,96 +474,128 @@ const Products = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white z-10">
               <h3 className="text-xl font-extrabold text-slate-800">Chi tiết sản phẩm</h3>
-              <button 
-                onClick={() => setIsViewModalOpen(false)} 
+              <button
+                onClick={() => setIsViewModalOpen(false)}
                 className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
                 title="Đóng"
               >
                 <FiX size={20} />
               </button>
             </div>
-            
+
             {/* Body */}
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 pb-10 text-left">
               <div className="flex flex-col md:flex-row gap-8 items-start mb-8">
                 {/* Product Image */}
                 <div className="w-full md:w-56 aspect-square rounded-2xl border border-slate-100 overflow-hidden shrink-0 bg-slate-50 relative group">
-                   <img 
-                      src={productToView.images && productToView.images.length > 0 ? productToView.images[0] : (productToView.image || 'https://via.placeholder.com/300')} 
-                      alt={productToView.name} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                   />
+                  <img
+                    src={productToView.images && productToView.images.length > 0 ? productToView.images[0] : (productToView.image || 'https://via.placeholder.com/300')}
+                    alt={productToView.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
                 </div>
-                
+
                 {/* Summary Info */}
                 <div className="flex-1 space-y-4 w-full">
-                   <div>
-                     <div className="flex items-center gap-2 mb-2">
-                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          productToView.status === 'Đang hoạt động' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'
-                       }`}>
-                         {productToView.status}
-                       </span>
-                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                         {productToView.category}
-                       </span>
-                     </div>
-                     <h2 className="text-2xl font-bold text-slate-800 leading-tight">{productToView.name}</h2>
-                     <p className="text-sm font-medium text-slate-400 mt-1 uppercase tracking-wide">SKU: {productToView.sku}</p>
-                   </div>
-                   
-                   <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100">
-                      <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Giá bán</p>
-                         <p className="text-2xl font-bold text-blue-600">
-                            {isNaN(productToView.price) ? productToView.price : `${Number(productToView.price).toLocaleString('vi-VN')}đ`}
-                         </p>
-                      </div>
-                      <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tồn kho</p>
-                         <p className={`text-2xl font-bold ${productToView.stock < 10 ? 'text-rose-500' : 'text-slate-800'}`}>
-                            {productToView.stock} <span className="text-sm font-medium text-slate-500">sp</span>
-                         </p>
-                      </div>
-                   </div>
-                   
-                   <div>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cập nhật lần cuối</p>
-                     <p className="text-sm font-bold text-slate-700">{productToView.updatedAt || 'Không xác định'}</p>
-                   </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${productToView.status === 'Đang hoạt động' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'
+                        }`}>
+                        {productToView.status}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+                        {productToView.category}
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800 leading-tight">{productToView.name}</h2>
+                    <p className="text-sm font-medium text-slate-400 mt-1 uppercase tracking-wide">SKU: {productToView.sku}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Giá bán</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {isNaN(productToView.price) ? productToView.price : `${Number(productToView.price).toLocaleString('vi-VN')}đ`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tồn kho</p>
+                      <p className={`text-2xl font-bold ${productToView.stock < 10 ? 'text-rose-500' : 'text-slate-800'}`}>
+                        {productToView.stock} <span className="text-sm font-medium text-slate-500">sp</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cập nhật lần cuối</p>
+                    <p className="text-sm font-bold text-slate-700">{productToView.updatedAt || 'Không xác định'}</p>
+                  </div>
                 </div>
               </div>
 
+              {/* Variants Table in Modal */}
+              {productToView.variants && productToView.variants.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <FiGrid className="text-indigo-500" /> Phân loại & Tồn kho
+                  </h4>
+                  <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50/80 border-b border-slate-100">
+                          <th className="px-4 py-3 text-left font-bold text-slate-500">Phân loại (Size/Màu)</th>
+                          <th className="px-4 py-3 text-right font-bold text-slate-500">Tồn kho</th>
+                          <th className="px-4 py-3 text-right font-bold text-slate-500">Giá bán</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {productToView.variants.map((v, idx) => (
+                          <tr key={idx} className="hover:bg-blue-50/20 transition-colors">
+                            <td className="px-4 py-3 font-bold text-slate-700">
+                              {v.size} {v.color && <span className="text-slate-300 mx-1">|</span>} {v.color}
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-600">{v.stock}</td>
+                            <td className="px-4 py-3 text-right font-bold text-blue-600">
+                              {Number(v.price).toLocaleString('vi-VN')}đ
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div className="space-y-3">
-                 <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                    <FiBox className="text-blue-500" /> Mô tả chi tiết
-                 </h4>
-                 <div className="bg-slate-50/80 rounded-2xl p-6 border border-slate-100">
-                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {productToView.description || 'Sản phẩm này hiện chưa có mô tả chi tiết.'}
-                    </p>
-                 </div>
+                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                  <FiBox className="text-blue-500" /> Mô tả chi tiết
+                </h4>
+                <div className="bg-slate-50/80 rounded-2xl p-6 border border-slate-100">
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {productToView.description || 'Sản phẩm này hiện chưa có mô tả chi tiết.'}
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Footer Actions */}
             <div className="p-6 border-t border-slate-200/60 bg-white flex justify-end gap-3 z-10 rounded-b-3xl">
-               <button 
-                  onClick={() => setIsViewModalOpen(false)}
-                  className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-700 transition-colors border border-slate-100 shadow-sm"
-               >
-                  Đóng lại
-               </button>
-               <button 
-                  onClick={() => {
-                    setIsViewModalOpen(false);
-                    navigate(`/shop-owner/products/edit/${productToView.id}`);
-                  }}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all active:scale-95"
-               >
-                  <FiEdit2 size={16} /> Chỉnh sửa sản phẩm
-               </button>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-700 transition-colors border border-slate-100 shadow-sm"
+              >
+                Đóng lại
+              </button>
+              <button
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  navigate(`/shop-owner/products/edit/${productToView.id}`);
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all active:scale-95"
+              >
+                <FiEdit2 size={16} /> Chỉnh sửa sản phẩm
+              </button>
             </div>
           </div>
         </div>
