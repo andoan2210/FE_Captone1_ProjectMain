@@ -51,8 +51,10 @@ function GoogleCallback() {
           }
         }
 
+
         // Chuyển hướng mặc định
         navigate('/');
+
 
       } catch (err) {
         setError(err.message);

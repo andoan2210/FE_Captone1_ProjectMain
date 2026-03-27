@@ -24,6 +24,13 @@ import QuanLyCuaHang from './pages/shop-owner/ShopOwner';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
+// Admin components (if needed separately)
+import AdminLayout from './components/Admin/AdminLayout';
+import AdminProducts from './pages/admin/Products';
+import AdminAddProduct from './pages/admin/AddProduct';
+import AdminEditProduct from './pages/admin/EditProduct';
+import AdminQuanLyCuaHang from './pages/admin/ShopOwner';
+
 function App() {
   return (
     <Routes>
@@ -39,7 +46,7 @@ function App() {
       <Route path="/verify-forgot-password-otp" element={<VerifyForgotPasswordOtp />} />
       <Route path="/change-password" element={<ChangePassword />} />
 
-      {/* New functional routes from main branch */}
+      {/* New functional routes */}
       <Route path="/profile/UserProfile" element={<UserProfile />} />
       <Route path="/profile/UpdateProfile" element={<UpdateProfile />} />
       <Route path="/order/Vieworder" element={<Vieworder />} />
@@ -58,6 +65,16 @@ function App() {
           <Route path="vouchers" element={<div className="p-6">Vouchers Preview</div>} />
           <Route path="settings" element={<div className="p-6">Settings Preview</div>} />
         </Route>
+      </Route>
+
+      {/* Admin Routes - (Kept from user's attempt if they wanted it, otherwise focus on ShopOwner) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="store" replace />} />
+        <Route path="store" element={<AdminQuanLyCuaHang />} />
+        <Route path="dashboard" element={<div className="p-6">Trang Dashboard Admin</div>} />
+        <Route path="products" element={<AdminProducts />} />
+        <Route path="products/add" element={<AdminAddProduct />} />
+        <Route path="products/edit/:id" element={<AdminEditProduct />} />
       </Route>
 
       {/* Catch-all route */}
