@@ -19,8 +19,9 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     category: initialData?.category || '',
     status: initialData?.status || 'Đang hoạt động',
     description: initialData?.description || '',
-    price: initialData?.price || '',
-    stock: initialData?.stock || '',
+    variants: initialData?.variants || [
+      { id: Date.now(), size: '', color: '', stock: '', price: '' }
+    ],
     images: initialData?.images || (initialData?.image ? [initialData.image] : [])
   });
 
@@ -63,13 +64,23 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     }
     if (!isDraft) {
       if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
-
-      if (formData.price === '' || formData.price === null) newErrors.price = 'Giá bán không được để trống';
-      else if (Number(formData.price) <= 0) newErrors.price = 'Giá bán phải lớn hơn 0';
-
-      if (formData.stock === '' || formData.stock === null) newErrors.stock = 'Số lượng không được để trống';
-      else if (Number(formData.stock) < 0) newErrors.stock = 'Số lượng không được âm';
-
+  
+      if (!formData.variants || formData.variants.length === 0) {
+        newErrors.variants = 'Vui lòng thêm ít nhất một biến thể sản phẩm';
+      } else {
+        const variantErrors = [];
+        formData.variants.forEach((v, idx) => {
+          if (!v.size.trim() || !v.color.trim() || v.price === '' || v.stock === '') {
+            variantErrors.push(`Biến thể ${idx + 1} chưa nhập đủ thông tin`);
+          } else if (Number(v.price) <= 0) {
+            variantErrors.push(`Biến thể ${idx + 1}: Giá phải lớn hơn 0`);
+          } else if (Number(v.stock) < 0) {
+            variantErrors.push(`Biến thể ${idx + 1}: Kho hàng không được âm`);
+          }
+        });
+        if (variantErrors.length > 0) newErrors.variants = variantErrors[0];
+      }
+  
       if (formData.images.length === 0) newErrors.images = 'Vui lòng tải lên ít nhất một hình ảnh sản phẩm';
     }
 
@@ -116,7 +127,36 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     setFormData(prev => ({ ...prev, images: newImages }));
     setIsDirty(true);
   };
-
+  
+  // --- QUẢN LÝ BIẾN THỂ ---
+  const addVariant = () => {
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, { id: Date.now(), size: '', color: '', stock: '', price: '' }]
+    }));
+    setIsDirty(true);
+  };
+  
+  const removeVariant = (id) => {
+    if (formData.variants.length <= 1) return;
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter(v => v.id !== id)
+    }));
+    setIsDirty(true);
+  };
+  
+  const updateVariant = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map(v => v.id === id ? { ...v, [field]: value } : v)
+    }));
+    setIsDirty(true);
+    if (errors.variants) {
+      setErrors(prev => ({ ...prev, variants: null }));
+    }
+  };
+  
   // Xử lý LƯU SẢN PHẨM (Add hoặc Update)
   const handleSave = async (isDraft = false) => {
     if (!validateForm(isDraft)) return;
@@ -170,7 +210,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (isDirty) {
       setShowCancelModal(true);
     } else {
-      navigate('/admin/products');
+      navigate('/shop-owner/products');
     }
   };
 
@@ -282,7 +322,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-slate-100">
                     {[FiBold, FiItalic, FiList, FiLink].map((Icon, idx) => (
-                      <button key={idx} className="p-2 text-slate-500 hover:bg-white hover:text-blue-600 rounded-lg transition-all">
+                      <button key={idx} className="p-2 text-slate-500 hover:bg-white hover:text-blue-600 rounded-lg transition-all" type="button">
                         <Icon size={16} />
                       </button>
                     ))}
@@ -293,51 +333,111 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     onChange={handleChange}
                     rows="6"
                     placeholder="Nhập mô tả chi tiết sản phẩm..."
-                    className="w-full px-4 py-3 text-sm focus:outline-none resize-none bg-white"
+                    className="w-full px-4 py-3 text-sm focus:outline-none resize-none bg-white font-medium"
                   ></textarea>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 3.2 Nhóm: Giá & Kho hàng */}
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <FiDollarSign size={20} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800">Giá & Kho hàng</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Giá bán (VND)</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="0"
-                    className={`w-full px-4 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 transition-all text-blue-600 ${errors.price ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VND</span>
+          {/* 3.2 Nhóm: Biến thể sản phẩm (THAY CHO GIÁ & KHO HÀNG) */}
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 overflow-hidden">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <FiGrid size={20} />
                 </div>
-                {errors.price && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.price}</p>}
+                <h2 className="text-lg font-bold text-slate-800">Biến thể sản phẩm</h2>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Số lượng tồn kho</label>
-                <input
-                  type="number"
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className={`w-full px-4 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 transition-all ${errors.stock ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
-                />
-                {errors.stock && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.stock}</p>}
-              </div>
+              <button
+                type="button"
+                onClick={addVariant}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+              >
+                <FiPlus size={16} />
+                Thêm biến thể
+              </button>
             </div>
+  
+            <div className="overflow-x-auto -mx-4 px-4 custom-scrollbar">
+              <style>{`
+                .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+              `}</style>
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr className="text-left border-b border-slate-100">
+                    <th className="pb-4 pt-2 text-xs font-black text-slate-400 uppercase tracking-widest px-2">Size</th>
+                    <th className="pb-4 pt-2 text-xs font-black text-slate-400 uppercase tracking-widest px-2">Màu</th>
+                    <th className="pb-4 pt-2 text-xs font-black text-slate-400 uppercase tracking-widest px-2">Kho hàng</th>
+                    <th className="pb-4 pt-2 text-xs font-black text-slate-400 uppercase tracking-widest px-2">Giá bán (VND)</th>
+                    <th className="pb-4 pt-2 text-xs font-black text-slate-400 uppercase tracking-widest px-2 text-center w-16">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {formData.variants.map((v, idx) => (
+                    <tr key={v.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-2">
+                        <input
+                          type="text"
+                          value={v.size}
+                          onChange={(e) => updateVariant(v.id, 'size', e.target.value)}
+                          placeholder="L, XL, 40..."
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        />
+                      </td>
+                      <td className="py-4 px-2">
+                        <input
+                          type="text"
+                          value={v.color}
+                          onChange={(e) => updateVariant(v.id, 'color', e.target.value)}
+                          placeholder="Đỏ, Xanh..."
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        />
+                      </td>
+                      <td className="py-4 px-2">
+                        <input
+                          type="number"
+                          value={v.stock}
+                          onChange={(e) => updateVariant(v.id, 'stock', e.target.value)}
+                          placeholder="0"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        />
+                      </td>
+                      <td className="py-4 px-2">
+                        <input
+                          type="number"
+                          value={v.price}
+                          onChange={(e) => updateVariant(v.id, 'price', e.target.value)}
+                          placeholder="0"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        />
+                      </td>
+                      <td className="py-4 px-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeVariant(v.id)}
+                          className={`p-2 rounded-lg transition-all ${formData.variants.length > 1 ? 'text-slate-300 hover:text-rose-500 hover:bg-rose-50' : 'text-slate-200 cursor-not-allowed'}`}
+                          disabled={formData.variants.length <= 1}
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {errors.variants && (
+              <p className="text-rose-500 text-xs font-bold mt-2 ml-1 flex items-center gap-2">
+                <FiInfo size={14} /> {errors.variants}
+              </p>
+            )}
+            <p className="text-slate-400 text-[11px] font-medium italic mt-2">
+              * Mẹo: Bạn có thể nhập nhiều biến thể khác nhau về kích thước và màu sắc cho cùng một sản phẩm.
+            </p>
           </div>
 
           {isEdit && (
@@ -347,6 +447,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 <p className="text-sm text-slate-500">Hành động này không thể hoàn tác. Mọi dữ liệu liên quan sẽ biến mất.</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowDeleteModal(true)}
                 className="flex items-center gap-2 bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl font-bold hover:bg-rose-100 transition-all active:scale-95"
               >
@@ -355,6 +456,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               </button>
             </div>
           )}
+
         </div>
 
         {/* CỘT PHẢI: Hình ảnh & Xem trước */}
@@ -441,8 +543,16 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{formData.category || 'DANH MỤC'}</p>
                 <h4 className="font-extrabold text-slate-800 leading-tight">{formData.name || 'Tên sản phẩm sẽ hiển thị ở đây'}</h4>
                 <div className="flex items-center justify-between pt-1">
-                  <p className="text-blue-600 font-black">{formData.price ? Number(formData.price).toLocaleString('vi-VN') + 'đ' : '0đ'}</p>
-                  <p className="text-[10px] text-slate-400 font-bold italic">Còn {formData.stock || 0} sản phẩm</p>
+                  <p className="text-blue-600 font-black">
+                    {formData.variants && formData.variants.length > 0 && formData.variants[0].price
+                      ? Number(formData.variants[0].price).toLocaleString('vi-VN') + 'đ'
+                      : '0đ'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-bold italic">
+                    {formData.variants && formData.variants.length > 0
+                      ? `Còn ${formData.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0)} sản phẩm`
+                      : 'Hết hàng'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -515,7 +625,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       <ConfirmModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        onConfirm={() => navigate('/admin/products')}
+        onConfirm={() => navigate('/shop-owner/products')}
         title="Hủy bỏ thay đổi?"
         message="Những thông tin bạn vừa nhập sẽ không được lưu lại. Bạn có chắc chắn muốn rời đi?"
         confirmText="Rời khỏi trang"

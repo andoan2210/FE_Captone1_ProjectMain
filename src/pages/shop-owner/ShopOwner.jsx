@@ -20,7 +20,19 @@ export default function QuanLyCuaHang() {
     const fetchStoreInfo = async () => {
       try {
         setLoading(true);
-        const data = await CuahangService.getStoreInfo();
+        // BE trả về { message, data: { storeId, ownerId, storeName, ... } }
+        const res = await CuahangService.getMyStore();
+        const raw = res.data || {};
+        // Normalize field names cho FE (storeName → name)
+        const data = {
+          storeId: raw.storeId,
+          ownerId: raw.ownerId,
+          name: raw.storeName,
+          description: raw.description,
+          logoUrl: raw.logoUrl,
+          isActive: raw.isActive,
+          createdAt: raw.createdAt,
+        };
         setStoreInfo(data);
       } catch (error) {
         console.error("Lỗi lấy thông tin cửa hàng:", error);
@@ -52,7 +64,7 @@ export default function QuanLyCuaHang() {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <TheThongKe isActive={storeInfo?.isActive} />
+      <TheThongKe stats={storeInfo} isActive={storeInfo?.isActive} />
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {loading ? (
