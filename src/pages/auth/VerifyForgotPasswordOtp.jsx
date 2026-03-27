@@ -4,7 +4,7 @@ import { FaShieldAlt } from 'react-icons/fa';
 import { FaCheck } from 'react-icons/fa6';
 import './Login.css';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 
 const VerifyForgotPasswordOtp = () => {
     const inputRefs = useRef([]);
@@ -31,22 +31,53 @@ const VerifyForgotPasswordOtp = () => {
     }, [email, navigate]);
 
     const handleChange = (e, index) => {
-        const val = e.target.value.replace(/[^0-9]/g, '');
-        if (!val && e.target.value !== '') return; // Bỏ qua nếu nhập không phải số
+        const value = e.target.value;
+        const lastChar = value.substring(value.length - 1);
+        
+        if (!/^\d*$/.test(lastChar)) return;
 
         const newOtp = [...otp];
-        newOtp[index] = val;
+        newOtp[index] = lastChar;
         setOtp(newOtp);
         
-        if (val && index < inputRefs.current.length - 1) {
+        if (lastChar && index < 5) {
             inputRefs.current[index + 1].focus();
         }
     };
 
     const handleKeyDown = (e, index) => {
-        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+        if (e.key === 'Backspace') {
+            if (!otp[index] && index > 0) {
+                const newOtp = [...otp];
+                newOtp[index - 1] = '';
+                setOtp(newOtp);
+                inputRefs.current[index - 1].focus();
+            } else {
+                const newOtp = [...otp];
+                newOtp[index] = '';
+                setOtp(newOtp);
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
             inputRefs.current[index - 1].focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1].focus();
         }
+    };
+
+    const handlePaste = (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').slice(0, 6).split('');
+        const newOtp = [...otp];
+        
+        pasteData.forEach((char, i) => {
+            if (i < 6 && /^\d$/.test(char)) {
+                newOtp[i] = char;
+            }
+        });
+        
+        setOtp(newOtp);
+        const lastIndex = Math.min(pasteData.length, 5);
+        inputRefs.current[lastIndex].focus();
     };
 
     const handleVerify = async (e) => {
@@ -129,18 +160,20 @@ const VerifyForgotPasswordOtp = () => {
                 {successMsg && <p className="login-error" style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#059669' }}>{successMsg}</p>}
 
                 <form className="login-form" onSubmit={handleVerify}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                    <div className="otp-container">
                         {[0, 1, 2, 3, 4, 5].map((index) => (
                             <input
                                 key={index}
                                 ref={(el) => (inputRefs.current[index] = el)}
                                 type="text"
-                                maxLength="1"
+                                inputMode="numeric"
+                                pattern="\d*"
+                                autoComplete="one-time-code"
                                 value={otp[index]}
-                                className="form-input"
-                                style={{ padding: 0, textAlign: 'center', fontSize: '1.25rem', fontWeight: 'bold', height: '3.5rem' }}
+                                className="otp-input"
                                 onChange={(e) => handleChange(e, index)}
                                 onKeyDown={(e) => handleKeyDown(e, index)}
+                                onPaste={handlePaste}
                             />
                         ))}
                     </div>

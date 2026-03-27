@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const API_PREFIX = '/api/admin/store';
+const API_PREFIX = '/api/shop-owner/store';
+
 
 // Tạo một instance axios với interceptor để tự động chèn token
 const api = axios.create({
@@ -43,7 +44,9 @@ export const CuahangService = {
         description: 'Chuyên cung cấp các sản phẩm công nghệ chính hãng với giá cả hợp lý nhất thị trường.',
         isActive: true,
         logoUrl: '',
-        ownerName: 'Nguyễn Văn Admin',
+
+        ownerName: 'Chủ cửa hàng',
+
         createdAt: new Date().toISOString()
       };
     }

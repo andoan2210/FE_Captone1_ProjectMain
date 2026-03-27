@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaFingerprint, FaLock } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
+import { jwtDecode } from 'jwt-decode';
 import './Login.css';
 
-const API_BASE = 'http://localhost:8080/api';
+
+const API_BASE = '/api';
 
 function Login() {
   const navigate = useNavigate();
@@ -33,12 +35,37 @@ function Login() {
       // In ra response để kiểm tra cấu trúc dữ liệu trả về từ backend
       console.log('Login response:', data);
 
-      // Lưu token (có thể backend trả về với key là accessToken hoặc token)
+      // Lưu token
       const token = data.accessToken || data.token || data.access_token;
       if (token) {
         localStorage.setItem('token', token);
+        
+        try {
+          // Giải mã token để lấy thông tin role
+          const decoded = jwtDecode(token);
+          console.log('Decoded token:', decoded);
+          
+          const userRole = decoded.role || data.role || (data.user && data.user.role);
+          if (userRole) {
+            localStorage.setItem('userRole', userRole);
+
+            // Chuyển hướng dựa trên Role
+            if (userRole === 'ShopOwner') {
+              navigate('/shop-owner/dashboard');
+            } else {
+              navigate('/');
+            }
+            return; // Dừng xử lý sau khi đã navigate
+          }
+        } catch (decodeErr) {
+          console.error('Lỗi khi giải mã token:', decodeErr);
+        }
       }
-      navigate('/admin/dashboard');
+
+      // Mặc định quay về trang chủ nếu không xác định được role
+      navigate('/');
+
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,6 +146,10 @@ function Login() {
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             {!loading && <FaArrowRight className="btn-icon" />}
           </button>
+          
+          <div className="resend-otp-container">
+            <Link to="/resend-code" className="resend-otp-link">Xác thực tài khoản ngay?</Link>
+          </div>
         </form>
 
         {/* Divider */}

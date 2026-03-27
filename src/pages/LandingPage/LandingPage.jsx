@@ -283,7 +283,7 @@ export default function LandingPage() {
         // Giả sử: men = 1, women = 2, kids = 3... (Bạn có thể chỉnh theo ID thật trong SQL)
         const categoryMap = { 'all': 1, 'men': 1, 'women': 2, 'kids': 3, 'accessories': 4, 'shoes': 5 };
         const catId = categoryMap[activeCategory] || 1;
-        
+
         const res = await getProductsByCategory(catId, 1, 8); // Lấy 8 sản phẩm
         if (!isMounted) return;
 
@@ -295,7 +295,7 @@ export default function LandingPage() {
           tag: '',
           image: item.thumbnail ?? item.ThumbnailUrl ?? 'https://via.placeholder.com/520x580?text=No+Image'
         }));
-        
+
         setCategoryProductsData(mappedCategory);
       } catch (error) {
         console.error("Lỗi khi tải danh mục:", error);
