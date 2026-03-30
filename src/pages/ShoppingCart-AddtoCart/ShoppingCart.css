@@ -1,0 +1,383 @@
+.cart-page-bg {
+  background-color: #f9fafb;
+  min-height: 100vh;
+  padding: 20px 0 60px 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.cart-container-main {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Breadcrumb */
+.cart-breadcrumb {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+.cart-breadcrumb a {
+  color: #6b7280;
+  text-decoration: none;
+}
+.cart-breadcrumb .bc-sep {
+  margin: 0 8px;
+}
+.cart-breadcrumb .active {
+  color: #111827;
+  font-weight: 500;
+}
+
+/* Layout 2 cột */
+.cart-layout {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+/* CỘT TRÁI */
+.cart-left-col {
+  flex: 2;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.cart-main-title {
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  color: #111827;
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.cart-title-icon {
+  color: #2563eb;
+  margin-right: 10px;
+}
+.cart-count {
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* Sản phẩm */
+.cart-items-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-item-card {
+  display: flex;
+  padding: 24px 0;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+.cart-item-card:last-child {
+  border-bottom: none;
+}
+
+.cart-item-img {
+  width: 100px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #f3f4f6;
+}
+
+.cart-item-details {
+  flex: 1;
+  padding: 0 20px;
+}
+
+.cart-item-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.cart-item-variant {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 12px 0;
+}
+
+/* AI Gợi ý */
+.cart-ai-suggest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+/* Tăng giảm SL */
+.cart-qty-wrapper {
+  display: inline-flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  height: 36px;
+}
+.cart-qty-wrapper button {
+  background: white;
+  border: none;
+  width: 36px;
+  cursor: pointer;
+  color: #4b5563;
+  font-size: 16px;
+}
+.cart-qty-wrapper button:hover {
+  background: #f3f4f6;
+}
+.cart-qty-wrapper input {
+  width: 40px;
+  border: none;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  text-align: center;
+  font-weight: 500;
+  color: #111827;
+  outline: none;
+}
+
+/* Cột phải của 1 sản phẩm (Giá & Xóa) */
+.cart-item-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  min-width: 120px;
+}
+
+.cart-btn-trash {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.cart-btn-trash:hover {
+  color: #ef4444;
+}
+
+.cart-price-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.cart-unit-price {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+.cart-total-line {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Nút tiếp tục mua sắm */
+.cart-continue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.cart-continue-btn:hover {
+  background: #eff6ff;
+}
+
+/* CỘT PHẢI: TÓM TẮT ĐƠN */
+.cart-right-col {
+  flex: 1;
+  min-width: 320px;
+}
+
+.cart-summary-box {
+  background: #fdfdff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  position: sticky;
+  top: 20px;
+}
+
+.summary-title {
+  font-size: 18px;
+  color: #2563eb;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+}
+
+/* Voucher */
+.summary-voucher label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.voucher-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.voucher-input-group input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+.voucher-input-group input:focus {
+  border-color: #2563eb;
+}
+.btn-apply {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Tính toán */
+.summary-calc {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #4b5563;
+  font-size: 14px;
+}
+.calc-row:last-child {
+  margin-bottom: 0;
+}
+.discount-row {
+  color: #ef4444;
+}
+
+/* Tổng cộng */
+.total-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.total-header > span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+.total-price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.total-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2563eb;
+}
+.vat-note {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.btn-checkout-primary {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.btn-checkout-primary:hover {
+  background: #1d4ed8;
+}
+
+.payment-methods-icons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.payment-methods-icons img {
+  height: 20px;
+  opacity: 0.6;
+}
+
+.summary-notice {
+  display: flex;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  border-radius: 8px;
+}
+.notice-icon {
+  font-size: 20px;
+}
+.summary-notice p {
+  margin: 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* Reponsive */
+@media (max-width: 900px) {
+  .cart-layout {
+    flex-direction: column;
+  }
+  .cart-left-col, .cart-right-col {
+    width: 100%;
+  }
+}
+@media (max-width: 500px) {
+  .cart-item-card {
+    flex-direction: column;
+  }
+  .cart-item-img {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 16px;
+  }
+  .cart-item-details {
+    padding: 0;
+    margin-bottom: 16px;
+  }
+  .cart-item-right {
+    flex-direction: row-reverse;
+    align-items: center;
+  }
+}

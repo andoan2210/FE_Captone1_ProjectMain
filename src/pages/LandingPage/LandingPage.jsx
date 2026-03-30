@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaSearch, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
-import { getNewProducts, getBestSellerProducts, getProductsByCategory } from '../../services/LandingPageService';
-import axios from 'axios';
+import {
+  getNewProducts,
+  getBestSellerProducts,
+  getProductsByCategory,
+  getTopStores,
+  getTopVouchers
+} from '../../services/LandingPageService';
+import api from '../../services/api';
+import * as CartService from '../../services/CartService.js';
 import './LandingPage.css';
 
 
@@ -132,73 +139,160 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function StarRating({ value = 4.5 }) {
-  const full = Math.floor(value);
-  const half = value - full >= 0.5;
-  const stars = Array.from({ length: 5 }).map((_, i) => {
-    const idx = i + 1;
-    const isFull = idx <= full;
-    const isHalf = !isFull && half && idx === full + 1;
-    return (
-      <span
-        key={i}
-        className="lp2-star"
-        aria-hidden="true"
-        data-kind={isFull ? 'full' : isHalf ? 'half' : 'empty'}
-      >
-        ★
-      </span>
-    );
-  });
+function ProductCard({ product }) {
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
+  const [cardToast, setCardToast] = useState(null);
+
+  const showCardToast = (type, msg) => {
+    setCardToast({ type, msg });
+    setTimeout(() => setCardToast(null), 2000);
+  };
+
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showCardToast('warn', 'Hãy đăng nhập!');
+      setTimeout(() => navigate('/login'), 1000);
+      return;
+    }
+
+    setAdding(true);
+    try {
+      // 1. Lấy chi tiết để có variantId đầu tiên
+      const res = await api.get(`/api/product/detail/${product.id}`);
+      const data = res.data;
+      const variants = data.variants || [];
+      
+      if (!variants.length) {
+        showCardToast('error', 'Hết hàng!');
+        return;
+      }
+
+      const firstVariant = variants[0];
+      const vId = firstVariant.variantId;
+
+      // 2. Add to cart API
+      await CartService.addToCart(vId, 1);
+
+      // 3. Sync local_cart
+      const localCart = JSON.parse(localStorage.getItem('local_cart') || '[]');
+      const existIdx = localCart.findIndex(item => item.variantId === vId);
+      if (existIdx > -1) {
+        localCart[existIdx].quantity += 1;
+      } else {
+        localCart.push({
+          cartItemId: Date.now(),
+          variantId: vId,
+          name: product.name,
+          price: Number(firstVariant.price || product.price || 0),
+          quantity: 1,
+          size: firstVariant.size || 'M',
+          color: firstVariant.color || 'Mặc định',
+          image: product.image,
+          stock: firstVariant.stock || 50
+        });
+      }
+      localStorage.setItem('local_cart', JSON.stringify(localCart));
+      showCardToast('success', 'Đã thêm!');
+    } catch (err) {
+      showCardToast('error', 'Lỗi!');
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
-    <div className="lp2-rating" aria-label={`${value} sao`}>
-      {stars}
-    </div>
+    <article className="product-card" style={{ position: 'relative' }}>
+      {cardToast && (
+        <div className={`lp-card-toast lp-card-toast--${cardToast.type}`}>
+          {cardToast.msg}
+        </div>
+      )}
+      <Link to={`/products/${product.id}`} className="product-image-link">
+        <div className="product-image-wrapper">
+          {product.tag && (
+            <span className={`product-tag ${product.tag === 'AI Gợi ý' ? 'tag-ai' : 'tag-new'}`}>
+              {product.tag === 'AI Gợi ý' ? '✨ AI Gợi ý' : product.tag}
+            </span>
+          )}
+          <img src={product.image} alt={product.name} loading="lazy" />
+        </div>
+      </Link>
+      <div className="product-info">
+        <p className="product-category">{product.category}</p>
+        <Link to={`/products/${product.id}`} className="product-name-link">
+          <h3 className="product-name">{product.name}</h3>
+        </Link>
+        <p className="product-price">{product.price}</p>
+        <div className="product-actions">
+          <Link className="btn-outline" to={`/products/${product.id}`}>
+            Chi tiết
+          </Link>
+          <button 
+            type="button" 
+            className="btn-primary product-link-btn" 
+            onClick={handleQuickAdd}
+            disabled={adding}
+          >
+            {adding ? '...' : 'Mua'}
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
-const ProductCard = ({ product }) => (
-  <article className="product-card">
-    <div className="product-image-wrapper">
-      <span
-        className={`product-tag ${product.tag === 'AI Gợi ý' ? 'tag-ai' : 'tag-new'}`}
-      >
-        {product.tag === 'AI Gợi ý' ? '✨ AI Gợi ý' : product.tag}
-      </span>
-      <img src={product.image} alt={product.name} loading="lazy" />
-    </div>
-    <div className="product-info">
-      <p className="product-category">{product.category}</p>
-      <h3 className="product-name">{product.name}</h3>
-      <p className="product-price">{product.price}</p>
-      <div className="product-actions">
-        <button type="button" className="btn-outline">
-          Thử đồ
-        </button>
-        <Link className="btn-primary product-link-btn" to={`/products/${product.id}`}>
-          Mua
-        </Link>
-      </div>
-    </div>
-  </article>
-);
 
 export default function LandingPage() {
-  const [activeCategory, setActiveCategory] = useState('men');
+  const location = useLocation();
+  const [activeCategory, setActiveCategory] = useState(location.state?.category || 'all');
+
+  // Tự động cuộn xuống khu vực danh mục nếu được redirect từ header của trang khác
+  useEffect(() => {
+    if (location.state?.category) {
+      setActiveCategory(location.state.category);
+      setTimeout(() => {
+        const section = document.getElementById('category-section-target');
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+      // Xoá state để không bị cuộn lại khi F5
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productError, setProductError] = useState('');
-
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [hasMoreCategory, setHasMoreCategory] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [userLabel, setUserLabel] = useState(null);
 
   useEffect(() => {
     async function loadUser() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Khách vãng lai - không có token, không cần gọi API
+        setUserLabel(null);
+        return;
+      }
+
+      // Trước tiên set từ JWT decode để UX nhanh hơn
+      setUserLabel(getUserDisplayNameFromToken());
+
       try {
-        const response = await api.get('/auth/profile');
+        // Sử dụng instance `api` đã cấu hình thay vì axios thô
+        const response = await api.get('/api/auth/profile');
         const profile = response.data;
         setUserLabel(
           profile.FullName ||
+          profile.fullName ||
           profile.Email ||
           profile.email ||
           profile.UserName ||
@@ -206,7 +300,8 @@ export default function LandingPage() {
           getUserDisplayNameFromToken()
         );
       } catch {
-        setUserLabel(getUserDisplayNameFromToken());
+        // API profile lỗi → giữ nguyên tên từ JWT token, KHÔNG redirect
+        // (interceptor đã được fix để không redirect khi có token hợp lệ nhưng API 404)
       }
     }
 
@@ -218,101 +313,205 @@ export default function LandingPage() {
     window.location.href = '/login';
   };
 
-  // State mới để chứa dữ liệu API
+  // State chứa dữ liệu API
   const [newProductsData, setNewProductsData] = useState([]);
   const [forYouData, setForYouData] = useState([]);
   const [categoryProductsData, setCategoryProductsData] = useState([]);
+  const [topStoresData, setTopStoresData] = useState([]);
+  const [topVouchersData, setTopVouchersData] = useState([]);
 
-  // 1. Tải Sản phẩm mới & Bán chạy lúc khởi tạo trang
+  // 1. Tải dữ liệu lúc khởi tạo trang
   useEffect(() => {
     let isMounted = true;
 
-    async function loadInitialProducts() {
+    async function loadInitialData() {
       setLoadingProducts(true);
       setProductError('');
 
       try {
-        // Gọi đồng thời 2 API
-        const [newRes, bestRes] = await Promise.all([
+        // Dùng Promise.allSettled: dù 1 API lỗi, các API khác vẫn chạy bình thường
+        const results = await Promise.allSettled([
           getNewProducts(4),
-          getBestSellerProducts(4)
+          getBestSellerProducts(4),
+          getTopStores(5),    // Có thể 404 nếu BE chưa code → fallback mock
+          getTopVouchers(4),  // Có thể 404 nếu BE chưa code → fallback mock
         ]);
 
         if (!isMounted) return;
 
-        // Xử lý mapping cho Sản phẩm mới (API trả về ProductId, ProductName...)
-        const mappedNew = (newRes.data || []).map((item) => ({
-          id: item.ProductId ?? item.id,
-          name: item.ProductName ?? item.name,
-          category: item.CategoryName ?? item.categoryName ?? 'MỚI NHẤT',
-          price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.Price ?? item.price ?? 0)),
-          tag: 'MỚI',
-          image: item.ThumbnailUrl ?? item.thumbnail ?? 'https://via.placeholder.com/520x580?text=No+Image',
-        }));
+        // Bóc tách dữ liệu: Thành công lấy data, Lỗi trả về []
+        const newRaw    = results[0].status === 'fulfilled' ? (results[0].value?.data || []) : [];
+        const bestRaw   = results[1].status === 'fulfilled' ? (results[1].value?.data || []) : [];
+        const storesRaw = results[2].status === 'fulfilled' ? (results[2].value?.data || []) : [];
+        const vouchersRaw = results[3].status === 'fulfilled' ? (results[3].value?.data || []) : [];
 
-        // Xử lý mapping cho Sản phẩm bán chạy (AI Gợi ý) (API trả về id, name...)
-        const mappedBest = (bestRes.data || []).map((item) => ({
-          id: item.id ?? item.ProductId,
-          name: item.name ?? item.ProductName,
+        // Map sản phẩm mới nhất — BE trả về: { ProductId, ProductName, Price, ThumbnailUrl, CategoryName }
+        const mappedNew = newRaw.length > 0 ? newRaw.map((item) => ({
+          id:       item.ProductId ?? item.id,
+          name:     item.ProductName ?? item.name,
+          category: item.CategoryName ?? item.categoryName ?? 'MỚI NHẤT',
+          price:    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                      Number(item.Price ?? item.price ?? 0)
+                    ),
+          tag:   'MỚI',
+          image: item.ThumbnailUrl ?? item.thumbnail ?? 'https://via.placeholder.com/520x580?text=No+Image',
+        })) : mockProducts; // fallback mock nếu API lỗi
+
+        // Map sản phẩm bán chạy — BE trả về: { id, name, price, thumbnail, categoryName, sold }
+        const mappedBest = bestRaw.length > 0 ? bestRaw.map((item) => ({
+          id:       item.id ?? item.ProductId,
+          name:     item.name ?? item.ProductName,
           category: item.categoryName ?? item.CategoryName ?? 'BÁN CHẠY',
-          price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.price ?? item.Price ?? 0)),
-          tag: '✨ AI Gợi ý',
+          price:    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                      Number(item.price ?? item.Price ?? 0)
+                    ),
+          tag:   '🔥 HOT',
           image: item.thumbnail ?? item.ThumbnailUrl ?? 'https://via.placeholder.com/520x580?text=No+Image',
-        }));
+        })) : mockPersonalized; // fallback mock nếu API lỗi
+
+        // Map top stores — BE trả về: { StoreId, StoreName, LogoUrl, ... } hoặc chưa có API
+        const mappedStores = storesRaw.length > 0 ? storesRaw.map((store) => ({
+          id:        store.StoreId ?? store.id,
+          name:      store.StoreName ?? store.name,
+          logo:      store.LogoUrl ?? store.logo ?? null,
+          followers: store.followers ?? '100K FOLLOWERS',
+          rating:    store.rating ?? 4.9,
+        })) : mockBrands; // fallback mock nếu BE chưa có API
+
+        // Map vouchers — BE trả về: { VoucherId, Code, DiscountPercent, ... } hoặc chưa có API
+        const mappedVouchers = vouchersRaw.length > 0 ? vouchersRaw.map((voucher) => ({
+          id:       voucher.VoucherId ?? voucher.id,
+          discount: voucher.DiscountPercent
+                      ? `${voucher.DiscountPercent}%`
+                      : (voucher.DiscountAmount ? `${Math.round(voucher.DiscountAmount / 1000)}k` : 'SALE'),
+          code:     voucher.Code ?? voucher.code ?? 'VOUCHER',
+          desc:     voucher.Description ?? `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString('vi-VN')}đ`,
+        })) : offers; // fallback mock nếu BE chưa có API
 
         setNewProductsData(mappedNew);
         setForYouData(mappedBest);
+        setTopStoresData(mappedStores);
+        setTopVouchersData(mappedVouchers);
+
       } catch (err) {
         if (!isMounted) return;
-        setProductError('Không thể tải sản phẩm từ server');
+        console.error('Lỗi tải dữ liệu trang chủ:', err);
+        setProductError('Không thể tải dữ liệu từ server. Đang hiển thị dữ liệu mẫu.');
+        // Fallback toàn bộ sang mock data
+        setNewProductsData(mockProducts);
+        setForYouData(mockPersonalized);
+        setTopStoresData(mockBrands);
+        setTopVouchersData(offers);
       } finally {
         if (isMounted) setLoadingProducts(false);
       }
     }
 
-    loadInitialProducts();
+    loadInitialData();
     return () => { isMounted = false; };
   }, []);
 
   // 2. Tải dữ liệu theo Danh mục khi người dùng bấm tab
+  // 2.1: Khi người dùng đổi Tab danh mục (ví dụ từ Nam sang Nữ), reset lại trang về 1
+  useEffect(() => {
+    setCategoryPage(1);
+    setHasMoreCategory(true);
+    setCategoryProductsData([]); // Xóa sạch list cũ để chuẩn bị render list mới
+  }, [activeCategory]);
+
+  // 2.2: Tải dữ liệu khi categoryPage hoặc activeCategory thay đổi
   useEffect(() => {
     let isMounted = true;
     async function loadCategoryProducts() {
+      setIsLoadingMore(true);
       try {
-        // Map string (men, women...) sang ID danh mục tương ứng trong Database
-        // Giả sử: men = 1, women = 2, kids = 3... (Bạn có thể chỉnh theo ID thật trong SQL)
-        const categoryMap = { 'all': 1, 'men': 1, 'women': 2, 'kids': 3, 'accessories': 4, 'shoes': 5 };
-        const catId = categoryMap[activeCategory] || 1;
 
-        const res = await getProductsByCategory(catId, 1, 8); // Lấy 8 sản phẩm
+        // LƯU Ý QUAN TRỌNG: Bạn hãy mở bảng Categories trong SQL Database ra xem lại ID.
+        // ID ở đây PHẢI KHỚP với ID trong Database thì nó mới không bị lộn xộn.
+        const categoryMap = {
+          'men': 1,        // Nếu trong DB, ID 1 là Thời trang nam
+          'women': 2,      // Nếu ID 2 là Thời trang nữ
+          'kids': 3,       // ...
+          'accessories': 4,
+          'shoes': 5
+        };
+
+        const limitPerLoad = 9; // Tải 9 sản phẩm mỗi lần theo ý bạn
+        let newData = [];
+
+        if (activeCategory === 'all') {
+          // Xử lý riêng cho "Tất cả": BE không có API lấy ALL có phân trang, 
+          // nên ta dùng API lấy sản phẩm mới nhất (sẽ được tự động sếp mới nhất lên đầu).
+          const limit = categoryPage * limitPerLoad;
+          const res = await getNewProducts(limit);
+          newData = res.data || [];
+        } else {
+          // Xử lý cho từng danh mục riêng
+          const catId = categoryMap[activeCategory] || 1;
+          const res = await getProductsByCategory(catId, categoryPage, limitPerLoad);
+          newData = res.data || [];
+        }
+
         if (!isMounted) return;
 
-        const mappedCategory = (res.data || []).map(item => ({
+        const mappedCategory = newData.map(item => ({
           id: item.id ?? item.ProductId,
           name: item.name ?? item.ProductName,
-          category: item.categoryName ?? 'Danh Mục',
+          category: item.categoryName ?? item.CategoryName ?? 'Danh Mục',
           price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.price ?? item.Price ?? 0)),
           tag: '',
           image: item.thumbnail ?? item.ThumbnailUrl ?? 'https://via.placeholder.com/520x580?text=No+Image'
         }));
 
-        setCategoryProductsData(mappedCategory);
+        if (activeCategory === 'all') {
+          // Với 'all', ta thay thế hoàn toàn vì API getNewProducts luôn trả về từ phần tử đầu tiên
+          setCategoryProductsData(mappedCategory);
+          setHasMoreCategory(mappedCategory.length >= categoryPage * limitPerLoad);
+        } else {
+          // Với các danh mục cụ thể, ta cộng dồn mảng cũ với mảng mới
+          if (categoryPage === 1) {
+            setCategoryProductsData(mappedCategory);
+          } else {
+            setCategoryProductsData(prev => [...prev, ...mappedCategory]);
+          }
+          // Nếu mảng mới trả về ít hơn 9 sản phẩm -> đã hết hàng -> ẩn nút Tải thêm
+          setHasMoreCategory(mappedCategory.length === limitPerLoad);
+        }
+
       } catch (error) {
         console.error("Lỗi khi tải danh mục:", error);
+      } finally {
+        if (isMounted) setIsLoadingMore(false);
       }
     }
 
-    loadCategoryProducts();
+    // Tránh gọi API 2 lần liên tiếp do hàm Reset ở trên
+    if (categoryPage > 0) {
+      loadCategoryProducts();
+    }
     return () => { isMounted = false; };
-  }, [activeCategory]);
+  }, [activeCategory, categoryPage]);
 
-  // Fallback (Dùng data thật, nếu rỗng thì dùng mock tạm thời)
-  const categoryGridProducts = categoryProductsData.length > 0 ? categoryProductsData : mockProducts;
-  const newProducts = newProductsData.length > 0 ? newProductsData : mockProducts;
-  const forYouProducts = forYouData.length > 0 ? forYouData : mockPersonalized;
+  // ÉP DÙNG DATA THẬT 100% 
+  const categoryGridProducts = categoryProductsData;
+  const newProducts = newProductsData;
+  const forYouProducts = forYouData;
+
+  // ---> THÊM HÀM NÀY VÀO ĐÂY <---
+  const handleNavClick = (categoryId) => {
+    // 1. Cập nhật state để đổi danh mục
+    setActiveCategory(categoryId);
+
+    // 2. Tìm phần tử section danh mục và cuộn tới đó
+    const section = document.getElementById('category-section-target');
+    if (section) {
+      // Trừ đi 1 khoảng offset nếu bạn có header fixed (top), ở đây dùng mặc định
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+  // --------------------------------
 
   return (
-    // ... (Giữ nguyên phần return của bạn)
     <div className="landing-page-container">
       <a href="#main-content" className="lp-skip-link">
         Bỏ qua điều hướng
@@ -335,9 +534,9 @@ export default function LandingPage() {
             />
           </label>
           <div className="user-actions">
-            <button type="button" className="icon-link" aria-label="Giỏ hàng">
+            <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
-            </button>
+            </Link>
             {userLabel ? (
               <>
                 <span className="user-profile">{userLabel}</span>
@@ -361,12 +560,13 @@ export default function LandingPage() {
 
       <nav className="main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          <span>TẤT CẢ DANH MỤC</span>
-          <span>Thời trang Nam</span>
-          <span>Thời trang Nữ</span>
-          <span>Giày dép</span>
+          {/* Thêm style cursor: pointer để hiện bàn tay khi trỏ chuột */}
+          <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>TẤT CẢ DANH MỤC</span>
+          <span onClick={() => handleNavClick('men')} style={{ cursor: 'pointer' }}>Thời trang Nam</span>
+          <span onClick={() => handleNavClick('women')} style={{ cursor: 'pointer' }}>Thời trang Nữ</span>
+          <span onClick={() => handleNavClick('shoes')} style={{ cursor: 'pointer' }}>Giày dép</span>
           <span>Túi xách</span>
-          <span>Phụ kiện</span>
+          <span onClick={() => handleNavClick('accessories')} style={{ cursor: 'pointer' }}>Phụ kiện</span>
           <span>Đồ thể thao</span>
           <span className="text-red">BST Thu Đông</span>
           <span className="text-red">Đồ hiệu sale</span>
@@ -426,11 +626,11 @@ export default function LandingPage() {
 
         <section className="section-block offers-section" aria-labelledby="offers-heading">
           <div className="section-header">
-            <h2 id="offers-heading">Ưu đãi độc quyền</h2>
+            <h2 id="offers-heading">Voucher mới nhất</h2>
             <p>Săn voucher khủng, mua sắm thả ga không lo về giá</p>
           </div>
           <div className="offers-grid">
-            {offers.map((offer) => (
+            {topVouchersData.map((offer) => (
               <div key={offer.id} className="offer-card">
                 <div className="offer-discount">
                   GIẢM
@@ -499,11 +699,12 @@ export default function LandingPage() {
 
         <section className="section-block" aria-labelledby="for-you-heading">
           <div className="section-header">
-            <h2 id="for-you-heading">Dành riêng cho bạn</h2>
-            <p>Dựa trên phong cách và sở thích cá nhân của bạn được phân tích bởi AI</p>
+            <h2 id="for-you-heading">Sản phẩm bán chạy nhất</h2>
+            <p>Những sản phẩm được khách hàng yêu thích và săn lùng nhiều nhất</p>
           </div>
           <div className="products-grid">
-            {(forYouProducts.length ? forYouProducts : mockPersonalized).map((product) => (
+            {/* ĐÃ SỬA: Đưa forYouProducts (chứa data bán chạy) vào hiển thị */}
+            {forYouProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
@@ -511,18 +712,18 @@ export default function LandingPage() {
 
         <section className="section-block" aria-labelledby="brands-heading">
           <div className="section-header">
-            <h2 id="brands-heading">Thương hiệu nổi bật</h2>
+            <h2 id="brands-heading">Store bán nhiều đơn nhất</h2>
             <p>Mua sắm trực tiếp từ các Official Store uy tín nhất</p>
           </div>
           <div className="brands-grid">
-            {mockBrands.map((brand) => (
+            {topStoresData.map((brand) => (
               <div key={brand.id} className="brand-card">
-                <div className="brand-logo-placeholder" aria-hidden />
+                {brand.logo ? (
+                  <img src={brand.logo} alt={brand.name} className="brand-logo" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 10px', display: 'block' }} />
+                ) : (
+                  <div className="brand-logo-placeholder" aria-hidden />
+                )}
                 <h4>{brand.name}</h4>
-                <div className="brand-rating">
-                  <StarRating value={brand.rating} /> {brand.rating}
-                </div>
-                <p className="brand-followers">{brand.followers}</p>
                 <button type="button" className="btn-outline-small">
                   XEM SHOP
                 </button>
@@ -531,7 +732,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="section-block category-section" aria-labelledby="hot-cat-heading">
+        <section id="category-section-target" className="section-block category-section" aria-labelledby="hot-cat-heading">
           <div className="category-sidebar">
             <h2 id="hot-cat-heading">Danh mục hot</h2>
             <ul className="category-menu">
@@ -561,11 +762,20 @@ export default function LandingPage() {
                 <ProductCard key={`${product.id}-${index}`} product={product} />
               ))}
             </div>
-            <div className="load-more-container">
-              <button type="button" className="btn-outline large">
-                Tải thêm sản phẩm
-              </button>
-            </div>
+
+            {/* Cập nhật khu vực Nút Tải Thêm */}
+            {hasMoreCategory && (
+              <div className="load-more-container">
+                <button
+                  type="button"
+                  className="btn-outline large"
+                  onClick={() => setCategoryPage(prev => prev + 1)}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? 'Đang tải...' : 'Tải thêm sản phẩm'}
+                </button>
+              </div>
+            )}
           </div>
         </section>
       </main>

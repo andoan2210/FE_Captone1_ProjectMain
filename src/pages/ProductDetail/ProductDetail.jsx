@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
 import { jwtDecode } from 'jwt-decode'
 import {
   FaSearch,
@@ -14,11 +13,14 @@ import {
   FaYoutube,
 } from 'react-icons/fa'
 import api from '../../services/api'
-import { ProductDetailService } from '../../services/ProductDetailService'
+import * as ProductDetailService from '../../services/ProductDetailService'
 import '../LandingPage/LandingPage.css'
 import './ProductDetail.css'
+import * as CartService from '../../services/CartService.js'; // Thêm dòng này
+import { Link, useParams, useNavigate } from 'react-router-dom';
 
-const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+// Gỡ mảng Size cứng vì ta sẽ load Size tự động từ Database
+// const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 
 const RELATED_PRODUCTS = [
   {
@@ -116,6 +118,12 @@ function formatVnd(price) {
 }
 
 function PageHeader({ userLabel, onLogout }) {
+  const navigate = useNavigate();
+
+  const handleNavClick = (categoryId) => {
+    navigate('/', { state: { category: categoryId } });
+  };
+
   return (
     <>
       <header className="main-header">
@@ -139,9 +147,9 @@ function PageHeader({ userLabel, onLogout }) {
               <FaBell />
               <span className="pd-nav-dot" aria-hidden />
             </button>
-            <button type="button" className="icon-link pd-icon-badge-wrap" aria-label="Giỏ hàng">
+            <Link to="/cart" className="icon-link pd-icon-badge-wrap" aria-label="Giỏ hàng">
               <FaShoppingCart />
-            </button>
+            </Link>
             {userLabel ? (
               <>
                 <span className="user-profile">{userLabel}</span>
@@ -165,12 +173,12 @@ function PageHeader({ userLabel, onLogout }) {
 
       <nav className="main-nav pd-main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          <span>TẤT CẢ DANH MỤC</span>
-          <span>Thời trang Nam</span>
-          <span>Thời trang Nữ</span>
-          <span>Giày dép</span>
+          <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>TẤT CẢ DANH MỤC</span>
+          <span onClick={() => handleNavClick('men')} style={{ cursor: 'pointer' }}>Thời trang Nam</span>
+          <span onClick={() => handleNavClick('women')} style={{ cursor: 'pointer' }}>Thời trang Nữ</span>
+          <span onClick={() => handleNavClick('shoes')} style={{ cursor: 'pointer' }}>Giày dép</span>
           <span>Túi xách</span>
-          <span>Phụ kiện</span>
+          <span onClick={() => handleNavClick('accessories')} style={{ cursor: 'pointer' }}>Phụ kiện</span>
           <span>Đồ thể thao</span>
           <span className="text-red">BST Thu Đông</span>
           <span className="text-red">Đồ hiệu sale</span>
@@ -273,8 +281,52 @@ export default function ProductDetail() {
   const [notFound, setNotFound] = useState(false)
   const [selectedImage, setSelectedImage] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [selectedSize, setSelectedSize] = useState('M')
+  const [selectedSize, setSelectedSize] = useState('') // Không gán cứng 'M'
+  const [availableSizes, setAvailableSizes] = useState([]) // Chứa size thực tế
+  const [currentVariantStock, setCurrentVariantStock] = useState(0) // Số lượng kho cho size được chọn
+  const [relatedProducts, setRelatedProducts] = useState([]) // Danh sách sp tương tự
   const [wishlisted, setWishlisted] = useState(false)
+
+  const navigate = useNavigate();
+
+  const handleAddToCart = async () => {
+    // Lưu ý: Đảm bảo lúc Login bạn đã setItem đúng tên là 'token'
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+        navigate('/login');
+        return;
+    }
+
+    const selectedVariantObj = product.variants?.find(v => v.size === selectedSize);
+    if (!selectedVariantObj) {
+        alert('Rất tiếc, size này hiện không có sẵn. Vui lòng chọn size khác!');
+        return;
+    }
+
+    // Backend có thể trả về 'variantId', 'VariantId' hoặc 'id'
+    const finalVariantId = selectedVariantObj.variantId ?? selectedVariantObj.VariantId ?? selectedVariantObj.id;
+
+    if (!finalVariantId) {
+        alert('Lỗi dữ liệu: Không tìm thấy Variant ID của biến thể này từ Server.');
+        return;
+    }
+
+    try {
+        // 1. Gọi API để lưu thật vào Database
+        await CartService.addToCart(finalVariantId, quantity); 
+
+        // 2. Thông báo và chuyển hướng (Trang Giỏ hàng sẽ tự tải lại từ DB)
+        alert('Thêm vào giỏ hàng thành công!');
+        navigate('/cart');
+    } catch (error) {
+        if (error.response?.status === 401) {
+            alert('Lỗi xác thực! Bạn hãy kiểm tra lại file Login.jsx xem đã lưu đúng tên biến "token" chưa nhé.');
+        } else {
+            alert('Có lỗi xảy ra: ' + (error.response?.data?.message || 'Không thể lấy VariantId vì Backend trả thiếu! Hãy check console.'));
+        }
+    }
+  };
 
   useEffect(() => {
     let isMounted = true
@@ -285,28 +337,95 @@ export default function ProductDetail() {
       setNotFound(false)
 
       try {
-        // THÊM: Bóc tách .data từ Axios Response
         const response = await ProductDetailService.getProductById(productId)
-        const data = response.data; // <--- CẬP NHẬT Ở ĐÂY
+        const data = response.data; 
 
         if (!isMounted) return
 
+        // --- BẢO VỆ FRONTEND: Xử lý trường hợp Backend chưa code xong (trả về chuỗi text) ---
+        if (typeof data === 'string' || !data) {
+           console.warn("Backend đang trả về chuỗi text hoặc rỗng. Đang dùng dữ liệu giả lập (Mock Data) để hiển thị giao diện.");
+           // Tạo dữ liệu giả lập khớp với cấu trúc mong muốn
+           const mockNormalized = {
+              id: productId,
+              productName: `Sản phẩm mẫu #${productId} (Đợi BE cập nhật)`,
+              category: 'DANH MỤC MẪU',
+              price: 850000,
+              stock: 50, // Cứ cho 50 cái để bấm nút cộng trừ được
+              thumbnailUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=600&q=85&auto=format&fit=crop',
+              images: [
+                'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=600&q=85&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=600&q=85&auto=format&fit=crop'
+              ],
+              description: 'Đây là dữ liệu tạm thời do Backend chưa viết API lấy chi tiết sản phẩm. Vui lòng chờ cập nhật.',
+              store: { storeName: 'SmartAI Fashion Official' }
+           };
+           setProduct(mockNormalized);
+           setSelectedImage(mockNormalized.thumbnailUrl);
+           return; // Dừng tại đây, không xử lý tiếp
+        }
+        // ----------------------------------------------------------------------------------
+
+        // --- NẾU BACKEND TRẢ VỀ DỮ LIỆU THẬT (JSON) ---
+        
+        // Tính toán tồn kho dựa trên Database mới (từ bảng ProductVariants)
+        // Nếu data.ProductVariants tồn tại, tính tổng stock. Nếu không có, cho tạm số 50.
+        let calculatedStock = 50; 
+        if (Array.isArray(data.ProductVariants) && data.ProductVariants.length > 0) {
+            calculatedStock = data.ProductVariants.reduce((sum, variant) => sum + (variant.Stock || 0), 0);
+        }
+
+        // Tính tổng tồn kho từ các biến thể (variants)
+        const totalStock = data.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+
         const normalized = {
-          ...data,
-          id: data.ProductId ?? data.id,
-          // .... (Phần còn lại giữ nguyên)
-          productName: data.ProductName ?? data.productName,
-          category: data.Categories?.CategoryName ?? data.category?.name ?? data.category ?? 'SẢN PHẨM',
-          price: data.Price ?? data.price ?? 0,
-          stock: data.Stock ?? data.stock ?? 0,
-          thumbnailUrl: data.ThumbnailUrl ?? data.thumbnailUrl,
-          images: data.ProductImages?.map((img) => img.ImageUrl) ?? data.images ?? [],
-          description: data.Description ?? data.description ?? '',
-          store: { storeName: data.Stores?.StoreName ?? data.store?.storeName ?? 'SmartAI Fashion Official' },
+          id: data.id,
+          // Đã sửa lại đúng tên biến từ Backend trả về
+          productName: data.name ?? 'Tên sản phẩm',
+          category: data.categoryName ?? 'SẢN PHẨM',
+          price: data.price ?? 0,
+          stock: totalStock, 
+          sold: data.sold ?? 0, 
+          thumbnailUrl: data.thumbnail ?? '',
+          images: data.images ?? [],
+          description: data.description ?? '',
+          store: { storeName: data.storeName ?? 'SmartAI Fashion Official' },
+          variants: data.variants ?? [] 
         }
 
         setProduct(normalized)
         setSelectedImage(normalized.thumbnailUrl || normalized.images?.[0] || '')
+        
+        // --- XỬ LÝ SIZE TỰ ĐỘNG ---
+        const sizes = normalized.variants?.map(v => v.size).filter(Boolean) || [];
+        // Lọc size trùng lặp (vd có nhìu màu cùng 1 size)
+        const uniqueSizes = [...new Set(sizes)];
+        setAvailableSizes(uniqueSizes);
+        if (uniqueSizes.length > 0) {
+            // Tự động chọn size đầu tiên
+            setSelectedSize(uniqueSizes[0]);
+        }
+        
+        // --- TẢI SẢN PHẨM TƯƠNG TỰ (CHỈNH VỪA KHÍT CHO BACKEND) ---
+        // Backend đang trả về categoryName (vd "THỜI TRANG NAM"),
+        // Ta cần gọi lấy toàn bộ Category về để đối chiếu ID
+        try {
+            const catRes = await ProductDetailService.getCategories(100);
+            const categories = catRes.data || [];
+            const matchedCat = categories.find(c => c.name === normalized.categoryName);
+            
+            if (matchedCat) {
+               // Có trùng tên -> Gọi API category-product để tải sp tương tự
+               const relatedRes = await ProductDetailService.getProductsByCategory(matchedCat.id, 1, 6);
+               const relatedList = relatedRes.data || [];
+               // Lọc bỏ sản phẩm hiện tại ra khỏi danh sách recommend
+               const filteredList = relatedList.filter(p => (p.id || p.ProductId) !== normalized.id);
+               setRelatedProducts(filteredList.slice(0, 5)); 
+            }
+        } catch (catError) {
+            console.error("Lỗi khi kết nối lấy sản phẩm tương tự", catError);
+        }
+
       } catch (apiError) {
         if (!isMounted) return
         if (apiError.response?.status === 404 || apiError.status === 404) {
@@ -334,6 +453,18 @@ export default function ProductDetail() {
       isMounted = false
     }
   }, [productId])
+
+  // Lắng nghe sự thay đổi của size đang chọn để cập nhật kho hàng còn lại của riêng size đó
+  useEffect(() => {
+    if (product && product.variants && selectedSize) {
+      // Tìm biến thể tương ứng với size (nếu có nhìu màu cùng size thì đang lấy cái đầu tiên)
+      const variant = product.variants.find(v => v.size === selectedSize);
+      setCurrentVariantStock(variant ? (variant.stock || 0) : 0);
+      setQuantity(1); // Reset lại 1 số lượng mỗi khi đổi size
+    } else {
+      setCurrentVariantStock(product?.stock ?? 0);
+    }
+  }, [product, selectedSize]);
 
   const allImages = useMemo(() => {
     if (!product) return []
@@ -459,7 +590,7 @@ export default function ProductDetail() {
               <span className="pd-sep">|</span>
               <span>1.250 đánh giá</span>
               <span className="pd-sep">|</span>
-              <span>3.400 đã bán</span>
+              <span>{product.sold} đã bán</span>
             </div>
 
             <div className="pd-price-block">
@@ -482,7 +613,7 @@ export default function ProductDetail() {
                 </button>
               </div>
               <div className="pd-options">
-                {SIZES.map((size) => (
+                {availableSizes.length > 0 ? availableSizes.map((size) => (
                   <button
                     key={size}
                     type="button"
@@ -491,7 +622,11 @@ export default function ProductDetail() {
                   >
                     {size}
                   </button>
-                ))}
+                )) : (
+                  <button type="button" className="pd-chip pd-chip-size active">
+                    Free Size / Mặc định
+                  </button>
+                )}
               </div>
             </div>
 
@@ -509,18 +644,18 @@ export default function ProductDetail() {
                   <span>{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => Math.min(Math.max(stock, 1), q + 1))}
+                    onClick={() => setQuantity((q) => Math.min(Math.max(currentVariantStock, 1), q + 1))}
                     aria-label="Tăng"
                   >
                     +
                   </button>
                 </div>
-                <span className="pd-stock">Còn {stock} sản phẩm</span>
+                <span className="pd-stock">Còn {currentVariantStock} sản phẩm (Size {selectedSize})</span>
               </div>
             </div>
 
             <div className="pd-actions">
-              <button type="button" className="pd-btn-outline pd-btn-cart">
+              <button type="button" className="pd-btn-outline pd-btn-cart" onClick={handleAddToCart}>
                 <FaShoppingCart aria-hidden />
                 Thêm vào giỏ hàng
               </button>
@@ -611,7 +746,20 @@ export default function ProductDetail() {
             </Link>
           </div>
           <div className="pd-related-grid">
-            {RELATED_PRODUCTS.map((p) => (
+            {relatedProducts.length > 0 ? relatedProducts.map((p) => (
+              <Link key={p.id} to={`/products/${p.id}`} className="pd-mini-card">
+                <div className="pd-mini-img-wrap">
+                  <img src={p.thumbnail || p.thumbnailUrl || p.image || 'https://via.placeholder.com/300?text=No+Image'} alt={p.name} />
+                </div>
+                <div className="pd-mini-body">
+                  <p className="pd-mini-title">{p.name || p.productName}</p>
+                  <p className="pd-mini-price">{formatVnd(p.price)}</p>
+                  <FaChevronRight className="pd-mini-chevron" aria-hidden />
+                </div>
+              </Link>
+            )) : (
+              // Fallback nếu danh mục này không có sp tương tự
+              RELATED_PRODUCTS.map((p) => (
               <Link key={p.id} to={`/products/${p.id}`} className="pd-mini-card">
                 <div className="pd-mini-img-wrap">
                   <img src={p.image} alt="" />
@@ -622,7 +770,7 @@ export default function ProductDetail() {
                   <FaChevronRight className="pd-mini-chevron" aria-hidden />
                 </div>
               </Link>
-            ))}
+            )))}
           </div>
         </section>
 

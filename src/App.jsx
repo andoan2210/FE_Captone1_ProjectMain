@@ -14,6 +14,8 @@ import UpdateProfile from './pages/profile/UpdateProfile';
 import Vieworder from './pages/order/Vieworder';
 import Manageinvoice from './pages/manage/Manageinvoice';
 import LandingPage from './pages/LandingPage/LandingPage';
+import ProductDetail from './pages/ProductDetail/ProductDetail';
+import ShoppingCart from './pages/ShoppingCart-AddtoCart/ShoppingCart';
 
 // Shop Owner components
 import ShopOwnerLayout from './components/shop-owner/ShopOwnerLayout';
@@ -36,6 +38,8 @@ function App() {
     <Routes>
       {/* Mặc định luôn hiển thị Landing Page */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/products/:id" element={<ProductDetail />} />
+      <Route path="/cart" element={<ShoppingCart />} />
       
       <Route path="/login" element={<Login />} />
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
