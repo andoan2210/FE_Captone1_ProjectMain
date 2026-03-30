@@ -1,169 +1,355 @@
-/**
- * userService.js
- * Gọi API BE theo đúng endpoint:
- *   GET/PATCH /api/users/profile       (multipart cho avatar)
- *   POST /api/users/change-password
- *   GET/POST/PATCH/DELETE /api/address
- *   GET/POST/PATCH/DELETE /api/payment-method
- * Tất cả request đi qua Vite proxy /api → http://localhost:8080 để tránh CORS.
- */
-import axios from 'axios';
+// ========== CONFIG ==========
+// ========== CONFIG ==========
+const API_CONFIG = {
+  USE_MOCK_API: true, // TRUE: Mock API | FALSE: Real API
+  API_BASE_URL: 'http://localhost:8080/api/users/profile', // Thay đổi URL backend
+  TIMEOUT: 5000,
+};
+// ========== MOCK DATA ==========
+const MOCK_USER = {
+  id: 1,
+  fullName: 'Nguyễn Minh',
+  birthDate: '01/01/1990',
+  gender: 'Nam',
+  email: 'nguyenminh@gmail.com',
+  phone: '0123456789',
+  avatar: 'https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg',
+  joinDate: '01/01/2025',
+};
 
-// Instance dùng chung – prefix /api đi qua Vite proxy
-const api = axios.create({ baseURL: '/api' });
-
-// Gắn Bearer token tự động
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// ---------- helper map address từ BE → FE ----------
-const mapAddress = (addr) => ({
-  id: addr.id,
-  fullName: addr.fullName,
-  phone: addr.phone,
-  province: addr.province,
-  district: addr.district,
-  ward: addr.ward,
-  detailAddress: addr.detailAddress,
-  isDefault: addr.isDefault,
-  // Hiển thị tóm tắt cho UI cũ
-  type: addr.isDefault ? 'Nhà (Mặc định)' : 'Địa chỉ',
-  address: [addr.detailAddress, addr.ward, addr.district, addr.province].filter(Boolean).join(', '),
-});
-
-// ---------- helper map payment từ BE → FE ----------
-const mapPayment = (p) => ({
-  id: p.id,
-  type: p.paymentType,
-  number: p.accountNumber || p.cardNumber || '',
-});
-
-const userService = {
-  // ───────────────── PROFILE ─────────────────
-
-  /**
-   * GET /api/users/profile
-   * BE trả về: { message, data: { userId, email, fullName, phone, gender, birthDate, avatarUrl, createdAt } }
-   */
-  getUserProfile: async () => {
-    const res = await api.get('/users/profile');
-    const raw = res.data?.data || {};
-    return {
-      userId: raw.userId,
-      fullName: raw.fullName || '',
-      email: raw.email || '',
-      phone: raw.phone || '',
-      gender: raw.gender || 'Nam',
-      birthDate: raw.birthDate || '',
-      avatarUrl: raw.avatarUrl || '',
-      createdAt: raw.createdAt || '',
-    };
+const MOCK_ADDRESSES = [
+  {
+    id: 1,
+    type: 'Nhà (Mặc định)',
+    address: 'K275/27 Trường Chinh, An Khê, Thanh Khê, Đà Nẵng'
   },
+  {
+    id: 2,
+    type: 'Công ty',
+    address: 'Số 45, Đặng Dung 11, Hoà Minh, Liên Chiểu, Đà Nẵng'
+  }
+];
 
-  /**
-   * PATCH /api/users/profile (multipart/form-data)
-   * Fields: fullName?, phone?, gender?, birthDate?  +  file 'avatar'?
-   */
-  updateUserProfile: async (dto, avatarFile) => {
-    const formData = new FormData();
-    if (dto.fullName !== undefined) formData.append('fullName', dto.fullName);
-    if (dto.phone !== undefined) formData.append('phone', dto.phone);
-    if (dto.gender !== undefined) formData.append('gender', dto.gender);
-    if (dto.birthDate !== undefined) formData.append('birthDate', dto.birthDate);
-    if (avatarFile) formData.append('avatar', avatarFile);
+const MOCK_PAYMENTS = [
+  { id: 1, type: 'VISA', number: 'Visa****1234' },
+  { id: 2, type: 'MOMO', number: 'Momo****1234' }
+];
 
-    const res = await api.patch('/users/profile', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+// ========== MOCK FUNCTIONS ==========
+const mockGetUserProfile = async () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        ...MOCK_USER,
+        addresses: MOCK_ADDRESSES,
+        payments: MOCK_PAYMENTS
+      });
+    }, 500);
+  });
+};
+
+const mockUpdateUserProfile = async (userData) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        ...MOCK_USER,
+        ...userData,
+        addresses: MOCK_ADDRESSES,
+        payments: MOCK_PAYMENTS
+      });
+    }, 500);
+  });
+};
+
+const mockAddAddress = async (address) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        id: Date.now(),
+        ...address
+      });
+    }, 300);
+  });
+};
+
+const mockDeleteAddress = async (addressId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ success: true, id: addressId });
+    }, 300);
+  });
+};
+
+const mockAddPayment = async (payment) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        id: Date.now(),
+        ...payment
+      });
+    }, 300);
+  });
+};
+
+const mockDeletePayment = async (paymentId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ success: true, id: paymentId });
+    }, 300);
+  });
+};
+
+// ========== REAL API FUNCTIONS ==========
+const apiGetUserProfile = async () => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      }
     });
-    return res.data;
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to fetch user profile: ${error.message}`);
+  }
+};
+
+const apiUpdateUserProfile = async (userData) => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      },
+      body: JSON.stringify(userData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to update user profile: ${error.message}`);
+  }
+};
+
+const apiAddAddress = async (address) => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/addresses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      },
+      body: JSON.stringify(address)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to add address: ${error.message}`);
+  }
+};
+
+const apiDeleteAddress = async (addressId) => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/addresses/${addressId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to delete address: ${error.message}`);
+  }
+};
+
+const apiAddPayment = async (payment) => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      },
+      body: JSON.stringify(payment)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to add payment: ${error.message}`);
+  }
+};
+
+const apiDeletePayment = async (paymentId) => {
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/payments/${paymentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to delete payment: ${error.message}`);
+  }
+};
+
+// ========== PUBLIC SERVICE API ==========
+const userService = {
+  // Config Methods
+  setUseMockAPI: (useMock) => {
+    API_CONFIG.USE_MOCK_API = useMock;
   },
 
-  /**
-   * POST /api/users/change-password
-   * Body: { oldPassword, newPassword, confirmPassword }
-   */
-  changePassword: async (body) => {
-    const res = await api.post('/users/change-password', body);
-    return res.data;
+  setAPIBaseURL: (url) => {
+    API_CONFIG.API_BASE_URL = url;
   },
 
-  // ───────────────── ADDRESS ─────────────────
-
-  /**
-   * GET /api/address
-   * BE trả về: { message, data: [ { id, fullName, phone, province, district, ward, detailAddress, isDefault } ] }
-   */
-  getAddresses: async () => {
-    const res = await api.get('/address');
-    const list = res.data?.data || [];
-    return list.map(mapAddress);
+  // User Profile
+  getUserProfile: async () => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Using MOCK user profile');
+        return await mockGetUserProfile();
+      } else {
+        console.log('[v0] Calling REAL API:', `${API_CONFIG.API_BASE_URL}/users/profile`);
+        return await apiGetUserProfile();
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed - NO FALLBACK:', error.message);
+        throw error;
+      }
+    }
   },
 
-  /**
-   * POST /api/address
-   * Body: { fullName, phone, province, district, ward, detailAddress, isDefault }
-   */
-  addAddress: async (dto) => {
-    const res = await api.post('/address', dto);
-    const addr = res.data?.data || {};
-    return mapAddress({ ...dto, id: addr.id, isDefault: addr.isDefault ?? dto.isDefault });
+  updateUserProfile: async (userData) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Updating MOCK user profile');
+        return await mockUpdateUserProfile(userData);
+      } else {
+        console.log('[v0] Calling REAL API to update profile');
+        return await apiUpdateUserProfile(userData);
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed:', error.message);
+        throw error;
+      }
+    }
   },
 
-  /**
-   * PATCH /api/address/:id
-   */
-  updateAddress: async (id, dto) => {
-    const res = await api.patch(`/address/${id}`, dto);
-    return res.data;
+  // Address Management
+  addAddress: async (address) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Adding MOCK address');
+        return await mockAddAddress(address);
+      } else {
+        console.log('[v0] Calling REAL API to add address');
+        return await apiAddAddress(address);
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed:', error.message);
+        throw error;
+      }
+    }
   },
 
-  /**
-   * DELETE /api/address/:id
-   */
-  deleteAddress: async (id) => {
-    const res = await api.delete(`/address/${id}`);
-    return res.data;
+  deleteAddress: async (addressId) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Deleting MOCK address:', addressId);
+        return await mockDeleteAddress(addressId);
+      } else {
+        console.log('[v0] Calling REAL API to delete address');
+        return await apiDeleteAddress(addressId);
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed:', error.message);
+        throw error;
+      }
+    }
   },
 
-  // ───────────────── PAYMENT METHOD ─────────────────
-
-  /**
-   * GET /api/payment-method
-   */
-  getPaymentMethods: async () => {
-    const res = await api.get('/payment-method');
-    const list = res.data?.data || res.data || [];
-    return list.map(mapPayment);
+  // Payment Management
+  addPayment: async (payment) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Adding MOCK payment');
+        return await mockAddPayment(payment);
+      } else {
+        console.log('[v0] Calling REAL API to add payment');
+        return await apiAddPayment(payment);
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed:', error.message);
+        throw error;
+      }
+    }
   },
 
-  /**
-   * POST /api/payment-method
-   * Body: { paymentType, accountNumber/cardNumber, ... }
-   */
-  addPayment: async (dto) => {
-    const res = await api.post('/payment-method', dto);
-    const p = res.data?.data || res.data || {};
-    return mapPayment({ ...dto, id: p.id });
-  },
-
-  /**
-   * PATCH /api/payment-method/:id
-   */
-  updatePayment: async (id, dto) => {
-    const res = await api.patch(`/payment-method/${id}`, dto);
-    return res.data;
-  },
-
-  /**
-   * DELETE /api/payment-method/:id
-   */
-  deletePayment: async (id) => {
-    const res = await api.delete(`/payment-method/${id}`);
-    return res.data;
-  },
+  deletePayment: async (paymentId) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Deleting MOCK payment:', paymentId);
+        return await mockDeletePayment(paymentId);
+      } else {
+        console.log('[v0] Calling REAL API to delete payment');
+        return await apiDeletePayment(paymentId);
+      }
+    } catch (error) {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.warn('[v0] Mock API error:', error.message);
+        throw error;
+      } else {
+        console.error('[v0] REAL API failed:', error.message);
+        throw error;
+      }
+    }
+  }
 };
 
 export default userService;

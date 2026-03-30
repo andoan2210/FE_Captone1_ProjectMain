@@ -11,7 +11,7 @@ import ResendCode from './pages/auth/ResendCode';
 // New routes from main branch
 import UserProfile from "./pages/profile/UserProfile";
 import UpdateProfile from './pages/profile/UpdateProfile';
-import Vieworder from './pages/order/Vieworder';
+import Vieworder from './pages/shop-owner/Vieworder';
 import Manageinvoice from './pages/manage/Manageinvoice';
 import LandingPage from './pages/LandingPage/LandingPage';
 
@@ -49,7 +49,7 @@ function App() {
       {/* New functional routes */}
       <Route path="/profile/UserProfile" element={<UserProfile />} />
       <Route path="/profile/UpdateProfile" element={<UpdateProfile />} />
-      <Route path="/order/Vieworder" element={<Vieworder />} />
+
       <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
 
       {/* Shop Owner Routes - Protected by ShopOwner role */}
@@ -61,7 +61,7 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="products/add" element={<AddProduct />} />
           <Route path="products/edit/:id" element={<EditProduct />} />
-          <Route path="orders" element={<div className="p-6">Orders Preview</div>} />
+          <Route path="orders" element={<Vieworder />} />
           <Route path="vouchers" element={<div className="p-6">Vouchers Preview</div>} />
           <Route path="settings" element={<div className="p-6">Settings Preview</div>} />
         </Route>

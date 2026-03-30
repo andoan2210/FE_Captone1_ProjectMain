@@ -55,28 +55,26 @@ const PlusIcon = () => (
 
 const FacebookIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 const InstagramIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z" />
   </svg>
 );
 
 const TwitterIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
 const UpdateProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Dữ liệu hiển thị header/sidebar — được đồng bộ với form khi lưu thành công
-  const [profileData, setProfileData] = useState({ fullName: '', avatarUrl: '' });
-  
+
   const [formData, setFormData] = useState({
     fullName: 'Nguyễn Minh',
     birthDate: '01/01/1990',
@@ -104,32 +102,22 @@ const UpdateProfile = () => {
   const [avatarUrl, setAvatarUrl] = useState('https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Load profile data on mount — gọi 3 API song song
+  // Load profile data on mount
   useEffect(() => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const [profile, addrList, payList] = await Promise.all([
-          userService.getUserProfile(),
-          userService.getAddresses(),
-          userService.getPaymentMethods(),
-        ]);
-        setFormData({
-          fullName: profile.fullName || '',
-          birthDate: profile.birthDate || '',
-          gender: profile.gender || 'Nam',
-          email: profile.email || '',
-          phone: profile.phone || '',
-        });
-        // Cập nhật hiển thị header/sidebar
-        setProfileData({ fullName: profile.fullName || '', avatarUrl: profile.avatarUrl || '' });
-        setAddresses(addrList);
-        setPayments(payList);
-        setAvatarUrl(profile.avatarUrl || avatarUrl);
+        const profile = await userService.getUserProfile();
+        if (profile) {
+          setFormData(profile.basicInfo || formData);
+          setAddresses(profile.addresses || addresses);
+          setPayments(profile.payments || payments);
+          setAvatarUrl(profile.avatar || avatarUrl);
+        }
         setError(null);
       } catch (err) {
-        console.error('[UpdateProfile] Load error:', err);
-        setError('Không thể tải thông tin. Vui lòng thử lại.');
+        console.log('[v0] Profile load error:', err.message);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -151,9 +139,10 @@ const UpdateProfile = () => {
     try {
       await userService.deleteAddress(id);
       setAddresses(addresses.filter(addr => addr.id !== id));
+      console.log('[v0] Address deleted:', id);
     } catch (err) {
-      console.error('[UpdateProfile] Delete address error:', err);
-      setError('Xóa địa chỉ thất bại.');
+      console.error('[v0] Delete address error:', err.message);
+      setError(err.message);
     }
   };
 
@@ -161,45 +150,43 @@ const UpdateProfile = () => {
     try {
       await userService.deletePayment(id);
       setPayments(payments.filter(pay => pay.id !== id));
+      console.log('[v0] Payment deleted:', id);
     } catch (err) {
-      console.error('[UpdateProfile] Delete payment error:', err);
-      setError('Xóa phương thức thanh toán thất bại.');
+      console.error('[v0] Delete payment error:', err.message);
+      setError(err.message);
     }
   };
 
   const handleSaveChanges = async () => {
     try {
-      // Gọi PATCH /api/users/profile với các field đã thay đổi
-      await userService.updateUserProfile({
-        fullName: formData.fullName,
-        phone: formData.phone,
-        gender: formData.gender,
-        birthDate: formData.birthDate,
-      });
+      await userService.updateUserProfile(formData);
       setSuccessMessage('Cập nhật thành công!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      // Cập nhật tên hiển thị header/sidebar ngay lập tức
-      setProfileData(prev => ({ ...prev, fullName: formData.fullName }));
+      console.log('[v0] Profile saved:', formData);
     } catch (err) {
-      console.error('[UpdateProfile] Save error:', err);
-      setError('Lưu thất bại. Vui lòng thử lại.');
+      console.error('[v0] Save profile error:', err.message);
+      setError(err.message);
     }
   };
 
-  // Upload avatar thật lên server qua PATCH /api/users/profile (multipart)
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    try {
-      setAvatarUrl(URL.createObjectURL(file));
-      await userService.updateUserProfile({}, file);
-      setSuccessMessage('Ảnh đại diện đã được cập nhật!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      // Cập nhật avatar sidebar/header
-      setProfileData(prev => ({ ...prev, avatarUrl: URL.createObjectURL(file) }));
-    } catch (err) {
-      console.error('[UpdateProfile] Avatar error:', err);
-      setError('Cập nhật ảnh đại diện thất bại.');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const newAvatarUrl = event.target.result;
+          setAvatarUrl(newAvatarUrl);
+          await userService.updateUserProfile({ avatar: newAvatarUrl });
+          setSuccessMessage('Ảnh đại diện đã được cập nhật!');
+          setTimeout(() => setSuccessMessage(''), 3000);
+          console.log('[v0] Avatar changed successfully');
+        } catch (err) {
+          console.error('[v0] Update avatar error:', err.message);
+          setError(err.message);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -238,13 +225,8 @@ const UpdateProfile = () => {
               <BellIcon />
             </button>
             <div className="user-menu">
-              <img
-                src={profileData.avatarUrl || avatarUrl}
-                alt="Avatar"
-                className="user-avatar-small"
-                loading="eager"
-              />
-              <span>{profileData.fullName || 'Người dùng'}</span>
+              <img src="https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg" alt="Avatar" className="user-avatar-small" loading="eager" />
+              <span>Nguyễn Minh</span>
               <ChevronDownIcon />
             </div>
           </div>
@@ -270,7 +252,7 @@ const UpdateProfile = () => {
       <main className="update-main-content">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h1 className="page-title">Cập nhật thông tin cá nhân</h1>
-          <a 
+          <a
             href="/profile/UserProfile"
             className="back-btn"
             style={{ padding: '10px 20px', background: '#f3f4f6', color: '#333', border: '1px solid #e5e5e5', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', textDecoration: 'none', display: 'inline-block' }}
@@ -284,20 +266,20 @@ const UpdateProfile = () => {
           <aside className="update-sidebar">
             <div className="avatar-section">
               <img
-                src={profileData.avatarUrl || avatarUrl}
+                src={avatarUrl}
                 alt="Avatar"
                 className="profile-avatar"
                 loading="eager"
               />
-              <h2 className="sidebar-name">{profileData.fullName || formData.fullName || '...'}</h2>
-              <input 
+              <h2 className="sidebar-name">Nguyễn Minh</h2>
+              <input
                 type="file"
                 id="avatar-input"
                 accept="image/*"
                 onChange={handleAvatarChange}
                 style={{ display: 'none' }}
               />
-              <button 
+              <button
                 className="change-avatar-btn"
                 onClick={() => document.getElementById('avatar-input').click()}
               >
@@ -316,8 +298,8 @@ const UpdateProfile = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Họ và Tên:</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
@@ -325,8 +307,8 @@ const UpdateProfile = () => {
                 </div>
                 <div className="form-group">
                   <label>Ngày sinh:</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="birthDate"
                     value={formData.birthDate}
                     onChange={handleInputChange}
@@ -343,8 +325,8 @@ const UpdateProfile = () => {
                 </div>
                 <div className="form-group">
                   <label>Email:</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
@@ -352,8 +334,8 @@ const UpdateProfile = () => {
                 </div>
                 <div className="form-group">
                   <label>SĐT:</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
@@ -376,7 +358,7 @@ const UpdateProfile = () => {
                       <span className="item-text">{addr.address}</span>
                     </div>
                     <button className="edit-btn">Sửa</button>
-                    <button 
+                    <button
                       className="delete-btn"
                       onClick={() => handleDeleteAddress(addr.id)}
                     >
@@ -396,7 +378,7 @@ const UpdateProfile = () => {
                     <span className={`payment-badge ${payment.type.toLowerCase()}`}>{payment.type}</span>
                     <span className="payment-number">{payment.number}</span>
                     <button className="edit-btn">Sửa</button>
-                    <button 
+                    <button
                       className="delete-btn"
                       onClick={() => handleDeletePayment(payment.id)}
                     >
@@ -416,8 +398,8 @@ const UpdateProfile = () => {
               <h3 className="section-title">Thay đổi mật khẩu</h3>
               <div className="form-group">
                 <label>MK hiện tại:</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   name="oldPassword"
                   value={passwordData.oldPassword}
                   onChange={handlePasswordChange}
@@ -426,8 +408,8 @@ const UpdateProfile = () => {
               </div>
               <div className="form-group">
                 <label>MK mới:</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   name="newPassword"
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
@@ -436,8 +418,8 @@ const UpdateProfile = () => {
               </div>
               <div className="form-group">
                 <label>Xác nhận mật khẩu mới:</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   name="confirmPassword"
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
@@ -456,13 +438,13 @@ const UpdateProfile = () => {
       </main>
 
       {/* Footer */}
-     <footer style={{ backgroundColor: '#3488ffff', color: '#e5e7eb', padding: '40px 20px', marginTop: '40px' }}>
+      <footer style={{ backgroundColor: '#3488ffff', color: '#e5e7eb', padding: '40px 20px', marginTop: '40px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '30px' }}>
           <div>
             <h3 style={{ color: '#ecececff', fontSize: '18px', fontWeight: '700', marginBottom: '16px' }}>SmartAI Fashion</h3>
             <p style={{ fontSize: '14px', lineHeight: '1.6', marginBottom: '12px' }}>Nền tảng thương mại điện tử hàng đầu với công nghệ AI tiên tiến, giúp bạn tìm kiếm và mua sắm sản phẩm chất lượng cao.</p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-              
+
             </div>
             <div className="social-icons">
               <a href="#" title="Facebook"><FacebookIcon /></a>
