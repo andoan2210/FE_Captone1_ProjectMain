@@ -32,9 +32,21 @@ const Products = () => {
   // Lấy dữ liệu từ Service
   const fetchProducts = async () => {
     setLoading(true);
-    const data = await ProductService.getAllProducts();
-    setAllProducts(data);
-    setLoading(false);
+    try {
+      const data = await ProductService.getAllProducts();
+      if (Array.isArray(data)) {
+        setAllProducts(data);
+      } else if (data && Array.isArray(data.data)) {
+        setAllProducts(data.data);
+      } else {
+        setAllProducts([]);
+      }
+    } catch (error) {
+      console.error("Lỗi tải danh sách sản phẩm:", error);
+      setAllProducts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   React.useEffect(() => {

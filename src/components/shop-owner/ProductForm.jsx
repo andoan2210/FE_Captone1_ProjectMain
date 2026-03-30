@@ -7,6 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
 import { ProductService } from '../../services/ProductService';
+import { CategoryService } from '../../services/CategoryService';
 
 // =============================================================================
 // [1] KHỞI TẠO COMPONENT & QUẢN LÝ TRẠNG THÁI (STATE)
@@ -32,7 +33,22 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]); // Lưu các File mới chờ upload
+  const [categories, setCategories] = useState([]);
   const fileInputRef = useRef(null);
+
+  // Lấy tải danh mục từ BE
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await CategoryService.getAllCategories();
+        // Giả sử mảng trả về có { CategoryId, CategoryName }
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load categories", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // =============================================================================
   // [2] CÁC HÀM XỬ LÝ SỰ KIỆN (EVENT HANDLERS)
@@ -163,23 +179,14 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
     setLoading(true);
     try {
-      let finalImages = [...formData.images];
-
-      // 1. Tải các ảnh mới lên Server (nếu có)
-      if (pendingFiles.length > 0) {
-        try {
-          const uploadedUrls = await ProductService.uploadProductImages(pendingFiles);
-          // Thay thế các blob URL bằng URL thật từ server
-          finalImages = finalImages.filter(img => !img.startsWith('blob:')).concat(uploadedUrls);
-        } catch (uploadError) {
-          console.error("Image upload failed", uploadError);
-          // Vẫn tiếp tục lưu với ảnh cũ hoặc báo lỗi tùy yêu cầu
-        }
-      }
-
-      // 2. Lưu sản phẩm với danh sách ảnh cuối cùng
-      const updatedData = { ...formData, images: finalImages };
-      await ProductService.saveProduct(updatedData, isEdit);
+      // 1. Lọc ra các ảnh cũ (dạng URL từ server thật, loại bỏ blob local)
+      const existingImages = formData.images.filter(img => typeof img === 'string' && !img.startsWith('blob:'));
+      
+      // 2. Cập nhật data chuẩn bị gửi
+      const updatedData = { ...formData, existingImages };
+      
+      // 3. Gửi tất tần tật (dữ liệu + file) qua 1 lượt gọi API giống như cách sửa Cửa Hàng
+      await ProductService.saveProduct(updatedData, isEdit, pendingFiles);
 
       setSuccessMessage(isDraft ? 'Đã lưu bản nháp thành công!' : (isEdit ? 'Đã cập nhật sản phẩm thành công!' : 'Đã thêm sản phẩm mới thành công!'));
       setIsDirty(false);
@@ -190,8 +197,14 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         navigate('/shop-owner/products');
       }, 2000);
     } catch (error) {
-      console.error("Save failed", error);
-      setErrors(prev => ({ ...prev, submit: "Có lỗi xảy ra khi lưu sản phẩm." }));
+      console.error("Save failed", error.response?.data || error);
+      
+      // Bắt thông báo lỗi thực tế từ Backend (ví dụ: "Store not found", "Category not found")
+      const beError = error.response?.data?.message || "Lỗi cập nhật. Vui lòng thử lại!";
+      const errMsg = Array.isArray(beError) ? beError[0] : beError;
+      
+      alert("Backend từ chối lưu dữ liệu: " + errMsg);
+      setErrors(prev => ({ ...prev, submit: errMsg }));
     } finally {
       setLoading(false);
     }
@@ -296,8 +309,13 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     className={`w-full px-4 py-3.5 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all cursor-pointer appearance-none ${errors.category ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   >
                     <option value="">Chọn danh mục</option>
-                    <option value="Thời trang">Thời trang</option>
-
+                    {categories.length > 0 ? categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    )) : (
+                      <option value="" disabled>-- Chưa có danh mục nào trong hệ thống --</option>
+                    )}
                   </select>
                   {errors.category && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.category}</p>}
                 </div>

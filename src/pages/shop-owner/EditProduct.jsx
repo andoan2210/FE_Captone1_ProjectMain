@@ -15,11 +15,19 @@ const EditProduct = () => {
   React.useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
-      const product = await ProductService.getProductById(id);
-      if (product) {
-        setInitialData(product);
+      try {
+        const product = await ProductService.getProductById(id);
+        if (product) {
+          setInitialData(product.data || product);
+        } else {
+          setInitialData(null);
+        }
+      } catch (error) {
+        console.error("Lỗi khi kết nối đến backend để lấy chi tiết sản phẩm:", error);
+        setInitialData(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchProduct();
   }, [id]);
