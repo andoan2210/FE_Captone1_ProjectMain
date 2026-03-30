@@ -583,7 +583,7 @@
   margin: 0;
 }
 
-.pd-spec-table > div {
+.pd-spec-table>div {
   display: grid;
   grid-template-columns: 120px 1fr;
   gap: 12px;
