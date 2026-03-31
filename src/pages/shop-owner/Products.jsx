@@ -392,21 +392,21 @@ const Products = () => {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => navigate(`/shop-owner/products/edit/${product.id}`)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
-                        <FiEdit2 size={18} />
+                        <FiEdit2 size={14} /> Sửa
                       </button>
                       <button
                         onClick={() => handleViewClick(product)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
-                        <FiEye size={18} />
+                        <FiEye size={14} /> Xem
                       </button>
                       <button
                         onClick={() => handleDeleteClick(product)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                       >
-                        <FiTrash2 size={18} />
+                        <FiTrash2 size={14} /> Xóa
                       </button>
                     </div>
                   </td>
