@@ -3,6 +3,11 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import orderService from "../../services/orderService"
 import "./Vieworder.css"
+import { 
+  FiSearch, FiFilter, FiDownload, FiEye, FiTrash2, FiMoreVertical, 
+  FiCheck, FiX, FiShoppingCart, FiPackage, FiTruck, FiCheckCircle, 
+  FiAlertCircle, FiDollarSign, FiPlus, FiChevronLeft, FiChevronRight, FiTrendingUp, FiEdit2
+} from "react-icons/fi"
 
 // Validation helper functions
 const validateOrderId = (id) => {
@@ -56,30 +61,24 @@ const TEXTS = {
   navCustomers: "Khách hàng",
   navReports: "Báo cáo",
   searchPlaceholder: "Tìm kiếm đơn hàng...",
-  
-  // Breadcrumb
-  breadcrumbHome: "Dashboard",
-  breadcrumbOrders: "Đơn hàng",
-  breadcrumbList: "Danh sách đơn hàng",
-  
+
   // Page header
-  pageTitle: "Danh sách đơn hàng",
-  pageSubtitle: "Quản lý và xử lý tất cả các giao dịch bán hàng từ mọi nền tảng phân phối của bạn tại đây",
+  pageTitle: "Quản lý đơn hàng",
   btnExport: "Xuất dữ liệu",
-  btnCreate: "Tạo đơn hàng",
-  
+  btnCreate: "Thống kê",
+
   // KPIs
   kpiTotal: "Tổng đơn hàng",
   kpiPending: "Chờ xử lý",
   kpiShipping: "Đang giao",
   kpiCompleted: "Đã giao",
   kpiRevenue: "Doanh thu",
-  
+
   // Filters
   filterSearch: "Tìm kiếm theo mã đơn, khách hàng...",
   filterStatus: "Trạng thái đơn",
   filterPayment: "Thanh toán",
-  filterReset: "Đặt lại",
+  filterReset: "Làm mới",
   statusPending: "Chờ xử lý",
   statusShipping: "Đang giao",
   statusCompleted: "Hoàn thành",
@@ -87,702 +86,320 @@ const TEXTS = {
   paymentPaid: "Đã thanh toán",
   paymentUnpaid: "Chưa thanh toán",
   paymentRefunded: "Đã hoàn tiền",
-  
+
   // Table headers
   thOrderId: "Mã đơn",
   thCustomer: "Khách hàng",
   thProduct: "Sản phẩm",
   thAmount: "Tổng tiền",
-  thStatus: "Trạng thái đơn hàng",
+  thStatus: "Trạng thái",
   thPayment: "Thanh toán",
   thDate: "Ngày tạo",
   thActions: "Thao tác",
-  
-  // Actions
-  actionView: "Xem chi tiết",
-  actionEdit: "Sửa",
-  actionDelete: "Xóa",
-  
-  // Selected actions
-  selectedCount: "đã chọn",
-  deleteSelected: "Xóa đã chọn",
-  clearSelection: "Bỏ chọn",
-  
-// Pagination
-  showing: "Hiển thị",
-  of: "trên",
-  results: "kết quả",
-  loadMore: "Tải thêm",
-  loadingMore: "Đang tải...",
-  remainingOrders: "đơn hàng còn lại",
-  paginationMode: "Phân trang",
-  loadMoreMode: "Tải thêm",
-  allLoaded: "Đã tải hết tất cả đơn hàng",
-  
-  // Empty state
-  emptyState: "Không tìm thấy đơn hàng nào phù hợp với bộ lọc",
-  
-  // Footer
-  copyright: "© 2023 Seller Center Inc. Đã đăng ký bản quyền.",
-  footerHelp: "Hỗ trợ",
-  footerPrivacy: "Điều khoản bảo mật",
-  footerTerms: "Chính sách bán hàng",
-  footerVersion: "Phiên bản 2.1.0",
-  
+
   // Modals
   modalCreateTitle: "Tạo đơn hàng mới",
-  modalEditTitle: "Sửa đơn hàng",
+  modalEditTitle: "Chỉnh sửa đơn hàng",
   modalDetailTitle: "Chi tiết đơn hàng",
-  modalDeleteTitle: "Xác nhận xóa",
-  modalExportTitle: "Xuất dữ liệu",
-  
-  // Form labels
+  modalExportTitle: "Xuất dữ liệu đơn hàng",
   formCustomerName: "Tên khách hàng",
   formEmail: "Email",
   formPhone: "Số điện thoại",
   formProduct: "Sản phẩm",
-  formAmount: "Số tiền",
+  formAmount: "Tổng tiền",
+  formStatus: "Trạng thái đơn hàng",
   formAddress: "Địa chỉ giao hàng",
-  formStatus: "Trạng thái",
-  formPaymentStatus: "Thanh toán",
-  
-  // Form placeholders
   placeholderName: "Nhập tên khách hàng",
-  placeholderEmail: "Nhập email",
-  placeholderPhone: "Nhập số điện thoại",
-  placeholderProduct: "Nhập tên sản phẩm",
+  placeholderEmail: "khachhang@example.com",
+  placeholderPhone: "090xxxxxxx",
+  placeholderProduct: "Tên sản phẩm",
   placeholderAmount: "Nhập số tiền",
-  placeholderAddress: "Nhập địa chỉ giao hàng",
-  
-  // Buttons
-  btnCancel: "Hủy",
-  btnSave: "Lưu",
-  btnCreate2: "Tạo đơn",
-  btnClose: "Đóng",
-  btnConfirmDelete: "Xác nhận xóa",
-  
-  // Validation errors
-  errRequired: "không được để trống",
-  errEmail: "Email không hợp lệ",
-  errPhone: "Số điện thoại không hợp lệ (VD: 0901234567)",
-  errAmount: "Số tiền phải lớn hơn 0",
-  errSearch: "Từ khóa tìm kiếm không được vượt quá 100 ký tự",
-  errDateRange: "Ngày bắt đầu phải nhỏ hơn ngày kết thúc",
-  
-  // Toast messages
-  toastCreateSuccess: "Tạo đơn hàng thành công!",
-  toastUpdateSuccess: "Cập nhật đơn hàng thành công!",
-  toastDeleteSuccess: "Xóa đơn hàng thành công!",
-  toastExportSuccess: "Xuất dữ liệu thành công!",
-  
-  // Export modal
-  exportInfo: "Chọn định dạng xuất dữ liệu",
-  exportCSV: "Xuất CSV",
-  exportExcel: "Xuất Excel", 
-  exportJSON: "Xuất JSON",
-  
-  // Delete confirm
-  deleteConfirm: "Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác.",
-  
-  // Detail labels
-  detailOrderId: "Mã đơn hàng",
-  detailCustomer: "Khách hàng",
-  detailEmail: "Email",
-  detailPhone: "Số điện thoại",
-  detailProduct: "Sản phẩm",
-  detailAmount: "Tổng tiền",
-  detailStatus: "Trạng thái",
-  detailPayment: "Thanh toán",
-  detailAddress: "Địa chỉ giao hàng",
-  detailDate: "Ngày tạo",
+  placeholderAddress: "Số nhà, tên đường, quận/huyện...",
+  btnCancel: "Hủy bỏ",
+  btnSave: "Lưu thay đổi",
+  btnCreate2: "Tạo đơn hàng",
+  btnClose: "Đóng lại",
+
+  // Actions
+  actionView: "Xem chi tiết",
+  actionEdit: "Chỉnh sửa",
+  actionDelete: "Xóa đơn hàng",
+  clearSelection: "Bỏ chọn tất cả",
+
+  // Messages
+  emptyState: "Không tìm thấy đơn hàng nào phù hợp",
+  loadingMore: "Đang tải thêm...",
+  loadMore: "Xem thêm",
+  remainingOrders: "đơn hàng còn lại",
+  allLoaded: "Đã hiển thị tất cả đơn hàng",
+  showing: "Hiển thị",
+  of: "trên",
+  results: "kết quả",
+  paginationMode: "Phân trang",
+  loadMoreMode: "Cuộn trang",
 }
 
-// Format currency
-const formatCurrency = (value) => {
-  const num = parseInt(value.replace(/[^\d]/g, ""))
-  if (isNaN(num)) return ""
-  return num.toLocaleString("vi-VN") + "đ"
-}
-
-// Generate order ID
-const generateOrderId = () => {
-  const num = Math.floor(Math.random() * 9000) + 1000
-  return `#ORD-${num}`
-}
-
-// Get current date time
-const getCurrentDateTime = () => {
-  const now = new Date()
-  const day = String(now.getDate()).padStart(2, "0")
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const year = now.getFullYear()
-  const hours = String(now.getHours()).padStart(2, "0")
-  const mins = String(now.getMinutes()).padStart(2, "0")
-  return `${day}/${month}/${year} ${hours}:${mins}`
-}
-
+// Icons mapping for KPI cards
 const Icons = {
-  Logo: () => (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-      <rect width="24" height="24" rx="6" fill="#2563eb" />
-      <path
-        d="M7 11V17H17V11M7 11L12 7L17 11M7 11H17"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  ),
-  Bell: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  ),
-  ShoppingCart: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="21" r="1" />
-      <circle cx="19" cy="21" r="1" />
-      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.56-7.43H5.12" />
-    </svg>
-  ),
-  Package: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16.5 9.4 7.5 4.21" />
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      <polyline points="3.29 7 12 12 20.71 7" />
-      <line x1="12" y1="22" x2="12" y2="12" />
-    </svg>
-  ),
-  Truck: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-      <circle cx="7" cy="18" r="2" />
-      <path d="M9 18h5" />
-      <path d="M16 18h3a1 1 0 0 0 1-1v-3.05a2.5 2.5 0 0 0-.66-1.71l-2.15-2.24A2.5 2.5 0 0 0 15.41 10H14" />
-      <circle cx="18" cy="18" r="2" />
-    </svg>
-  ),
-  CheckCircle: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  ),
-  DollarSign: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="2" x2="12" y2="22" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-  ),
-  Download: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  ),
-  More: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="12" cy="5" r="1" />
-      <circle cx="12" cy="19" r="1" />
-    </svg>
-  ),
-  Close: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  ),
-  Eye: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  Edit: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  ),
-  Trash: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  ),
-  Check: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  ),
-AlertCircle: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-  ),
-  Loader: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin-icon">
-      <line x1="12" y1="2" x2="12" y2="6" />
-      <line x1="12" y1="18" x2="12" y2="22" />
-      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
-      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
-      <line x1="2" y1="12" x2="6" y2="12" />
-      <line x1="18" y1="12" x2="22" y2="12" />
-      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
-      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
-    </svg>
-  ),
+  Download: FiDownload,
+  Eye: FiEye,
+  Search: FiSearch,
+  Plus: FiPlus,
+  Loader: () => <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />,
+  Trash: FiTrash2,
+  Check: FiCheck,
+  Close: FiX,
+  More: FiMoreVertical,
+  AlertCircle: FiAlertCircle,
+  Edit: FiEdit2,
+  ShoppingCart: FiShoppingCart,
+  Package: FiPackage,
+  Truck: FiTruck,
+  CheckCircle: FiCheckCircle,
+  DollarSign: FiDollarSign,
 }
-
-// ===========================================
-// MOCK API - Thay thế bằng orderService.getOrders() của bạn
-// ===========================================
-
-
 
 export default function Vieworder() {
-  // Orders state
-  const initialOrders = []
-  const [orders, setOrders] = useState(initialOrders)
-  
-  // Filter states
+  // State management
+  const [orders, setOrders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [paymentFilter, setPaymentFilter] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [errors, setErrors] = useState([])
-  const [selectedOrders, setSelectedOrders] = useState([])
-  
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
-  const [hasMore, setHasMore] = useState(false)
-  const itemsPerPage = 10
-  
-  // View mode: "pagination" hoặc "loadmore"
-  const [viewMode, setViewMode] = useState("pagination")
-  
-  // Loading states
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  
-  // Debounce ref for search
-  const searchTimeoutRef = useRef(null)
-  
-  // Modal states
+  const [viewMode, setViewMode] = useState("pagination") // "pagination" or "loadmore"
+  const [selectedOrders, setSelectedOrders] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
-  const [showActionMenu, setShowActionMenu] = useState(null)
-  
-  // Form states
- 
-  const [formErrors, setFormErrors] = useState({})
+  const [showStatsModal, setShowStatsModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
-  
-// Toast state
-  const emptyOrderForm = {
-  name: "",
-  email: "",
-  phone: "",
-  product: "",
-  amount: "",
-  address: "",
-  status: "pending",
-  payment: "unpaid",
-}
-   const [orderForm, setOrderForm] = useState(emptyOrderForm)
+  const [orderForm, setOrderForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    product: "",
+    amount: "",
+    status: "pending",
+    address: "",
+  })
+  const [formErrors, setFormErrors] = useState({})
   const [toast, setToast] = useState({ show: false, message: "", type: "success" })
+  const [showActionMenu, setShowActionMenu] = useState(null)
+  const [errors, setErrors] = useState([])
 
-  // ===========================================
-  // LOAD ORDERS FROM API
+  const itemsPerPage = 8
 
-const loadOrders = useCallback(async (page = 1, append = false) => {
-  if (append) {
-    setIsLoadingMore(true)
-  } else {
-    setIsLoading(true)
-  }
-
-  try {
-    const response = await orderService.getOrders({
-      page,
-      limit: itemsPerPage,
-      search: searchQuery,
-      status: statusFilter,
-      payment: paymentFilter,
-    })
-
-    const { data, pagination } = response
-
-    if (append) {
-      setOrders(prev => [...prev, ...data])
-    } else {
-      setOrders(data)
-    }
-
-    setCurrentPage(pagination.page)
-    setTotalOrders(pagination.total)
-    setTotalPages(pagination.totalPages)
-    setHasMore(pagination.hasMore)
-
-  } catch (error) {
-    console.error("Lỗi load orders:", error)
-    // Service đã có fallback về mock data, không cần MOCK_ORDERS
-    // UI sẽ show empty hoặc retry logic
-
-  } finally {
-    setIsLoading(false)
-    setIsLoadingMore(false)
-  }
-}, [searchQuery, statusFilter, paymentFilter, itemsPerPage])
-  
-  // Initial load
-  useEffect(() => {
-    loadOrders(1, false)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  
-  // Reload khi filter thay đổi (với debounce cho search)
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
-    
-    searchTimeoutRef.current = setTimeout(() => {
-      setCurrentPage(1)
-      loadOrders(1, false)
-    }, 500)
-    
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
-    }
-  }, [searchQuery, statusFilter, paymentFilter]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Handle page change (Pagination mode)
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      loadOrders(page, false)
-      setSelectedOrders([])
-    }
-  }
-
-  // Handle load more (Load More mode)
-  const handleLoadMore = () => {
-    if (hasMore && !isLoadingMore) {
-      loadOrders(currentPage + 1, true)
-    }
-  }
-
-  // Switch view mode
-  const handleSwitchMode = (mode) => {
-    setViewMode(mode)
-    setCurrentPage(1)
-    loadOrders(1, false)
-    setSelectedOrders([])
-  }
-  
-  // ===========================================
-  // END LOAD ORDERS
-  // ===========================================
-
-  // Show toast notification
-  const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type })
-    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000)
-  }
-
-  // Validation handlers
-  const handleSearchChange = useCallback((e) => {
-    const { isValid, sanitized } = validateSearchQuery(e.target.value)
-    if (isValid) {
-      setSearchQuery(sanitized)
-      setErrors((prev) => prev.filter((err) => err.field !== "search"))
-    } else {
-      setErrors((prev) => [
-        ...prev.filter((err) => err.field !== "search"),
-        { field: "search", message: TEXTS.errSearch },
-      ])
-    }
-    setCurrentPage(1)
-  }, [])
-
-  const handleDateChange = useCallback(
-    (field, value) => {
-      if (field === "start") {
-        setStartDate(value)
-        if (endDate && !validateDateRange(value, endDate)) {
-          setErrors((prev) => [
-            ...prev.filter((err) => err.field !== "dateRange"),
-            { field: "dateRange", message: TEXTS.errDateRange },
-          ])
-        } else {
-          setErrors((prev) => prev.filter((err) => err.field !== "dateRange"))
-        }
-      } else {
-        setEndDate(value)
-        if (startDate && !validateDateRange(startDate, value)) {
-          setErrors((prev) => [
-            ...prev.filter((err) => err.field !== "dateRange"),
-            { field: "dateRange", message: "Ngày kết thúc phải lớn hơn ngày bắt đầu" },
-          ])
-        } else {
-          setErrors((prev) => prev.filter((err) => err.field !== "dateRange"))
-        }
-      }
-      setCurrentPage(1)
-    },
-    [startDate, endDate]
-  )
-
-  const handleSelectOrder = useCallback((orderId) => {
-    setSelectedOrders((prev) =>
-      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
-    )
-  }, [])
-
-  const handleSelectAll = useCallback(
-    (ordersList) => {
-      if (selectedOrders.length === ordersList.length) {
-        setSelectedOrders([])
-      } else {
-        setSelectedOrders(ordersList.map((o) => o.id))
-      }
-    },
-    [selectedOrders]
-  )
-
-  const handleReset = useCallback(() => {
-    setSearchQuery("")
-    setStatusFilter("")
-    setPaymentFilter("")
-    setStartDate("")
-    setEndDate("")
-    setErrors([])
-    setSelectedOrders([])
-    setCurrentPage(1)
-  }, [])
-
-  const getErrorMessage = (field) => {
-    const error = errors.find((err) => err.field === field)
-    return error ? error.message : undefined
-  }
-
-// KPIs calculations (giữ nguyên để tính từ orders đã load)
-  const kpis = useMemo(() => {
-    const totalOrders = orders.length
-    const pendingOrders = orders.filter(o => o.type === "pending").length
-    const shippingOrders = orders.filter(o => o.type === "shipping").length
-    const completedOrders = orders.filter(o => o.type === "completed").length
-    const totalRevenue = orders
-      .filter(o => o.type === "completed")
-      .reduce((sum, o) => {
-        const num = parseInt(o.amount.replace(/[^\d]/g, ""))
-        return sum + (isNaN(num) ? 0 : num)
-      }, 0)
-
-    return [
-      { label: TEXTS.kpiTotal, value: totalOrders.toLocaleString(), trend: "+12.5%", icon: <Icons.ShoppingCart />, color: "#3b82f6", bg: "#eff6ff" },
-      { label: TEXTS.kpiPending, value: pendingOrders.toString(), trend: "+5.2%", icon: <Icons.Package />, color: "#f97316", bg: "#fff7ed" },
-      { label: TEXTS.kpiShipping, value: shippingOrders.toString(), trend: "+8.1%", icon: <Icons.Truck />, color: "#a855f7", bg: "#faf5ff" },
-      { label: TEXTS.kpiCompleted, value: completedOrders.toString(), trend: "+10.4%", icon: <Icons.CheckCircle />, color: "#22c55e", bg: "#f0fdf4" },
-      { label: TEXTS.kpiRevenue, value: (totalRevenue / 1000000).toFixed(0) + "M đ", trend: "+15.3%", icon: <Icons.DollarSign />, color: "#2563eb", bg: "#eff6ff" },
-    ]
-  }, [orders])
-
-  // Form validation
-  const validateForm = () => {
+  // Validation methods
+  const validateOrderForm = () => {
     const newErrors = {}
     
-    const nameValid = validateRequired(orderForm.name, TEXTS.formCustomerName)
-    if (!nameValid.isValid) newErrors.name = nameValid.message
+    // Required fields
+    const nameCheck = validateRequired(orderForm.name, "Tên khách hàng")
+    if (!nameCheck.isValid) newErrors.name = nameCheck.message
 
-    if (!validateEmail(orderForm.email)) {
-      newErrors.email = TEXTS.errEmail
+    const emailCheck = validateRequired(orderForm.email, "Email")
+    if (!emailCheck.isValid) {
+      newErrors.email = emailCheck.message
+    } else if (!validateEmail(orderForm.email)) {
+      newErrors.email = "Email không hợp lệ"
     }
 
-    if (!validatePhoneNumber(orderForm.phone)) {
-      newErrors.phone = TEXTS.errPhone
+    const phoneCheck = validateRequired(orderForm.phone, "Số điện thoại")
+    if (!phoneCheck.isValid) {
+      newErrors.phone = phoneCheck.message
+    } else if (!validatePhoneNumber(orderForm.phone)) {
+      newErrors.phone = "Số điện thoại không hợp lệ"
     }
 
-    const productValid = validateRequired(orderForm.product, TEXTS.formProduct)
-    if (!productValid.isValid) newErrors.product = productValid.message
-
-    if (!validateAmount(orderForm.amount)) {
-      newErrors.amount = TEXTS.errAmount
+    const amountCheck = validateRequired(orderForm.amount, "Tổng tiền")
+    if (!amountCheck.isValid) {
+      newErrors.amount = amountCheck.message
+    } else if (!validateAmount(orderForm.amount)) {
+      newErrors.amount = "Số tiền phải lớn hơn 0"
     }
 
-    const addressValid = validateRequired(orderForm.address, TEXTS.formAddress)
-    if (!addressValid.isValid) newErrors.address = addressValid.message
+    const addressCheck = validateRequired(orderForm.address, "Địa chỉ")
+    if (!addressCheck.isValid) newErrors.address = addressCheck.message
+
+    const productCheck = validateRequired(orderForm.product, "Sản phẩm")
+    if (!productCheck.isValid) newErrors.product = productCheck.message
 
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  // Handle form input change
+  const showToastNotification = (message, type = "success") => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000)
+  }
+
+  const getErrorMessage = (field) => {
+    const error = errors.find((e) => e.field === field)
+    return error ? error.message : ""
+  }
+
+  // Fetch orders based on current filters and page
+  const fetchOrders = useCallback(async (page = 1, isLoadMore = false) => {
+    if (isLoadMore) setIsLoadingMore(true)
+    else setIsLoading(true)
+
+    try {
+      // Input validation for performance and security
+      const { sanitized: cleanSearch } = validateSearchQuery(searchQuery)
+      
+      const params = {
+        page,
+        limit: itemsPerPage,
+        search: cleanSearch,
+        status: statusFilter,
+        payment: paymentFilter,
+        startDate,
+        endDate,
+      }
+
+      const response = await orderService.getOrders(params)
+      
+      const newOrders = response.data || []
+      const total = response.pagination?.total || 0
+
+      if (isLoadMore) {
+        setOrders(prev => [...prev, ...newOrders])
+      } else {
+        setOrders(newOrders)
+      }
+      setTotalOrders(total)
+      setErrors([])
+    } catch (error) {
+      console.error("Failed to fetch orders:", error)
+      setErrors([{ field: "general", message: "Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại." }])
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }, [searchQuery, statusFilter, paymentFilter, startDate, endDate])
+
+  // Effects
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setCurrentPage(1)
+      fetchOrders(1, false)
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery, statusFilter, paymentFilter, startDate, endDate, fetchOrders])
+
+  // Actions
+  const handleSearchChange = (e) => {
+    const val = e.target.value
+    const { isValid, sanitized } = validateSearchQuery(val)
+    if (isValid) {
+      setSearchQuery(val)
+      setErrors(errors.filter(e => e.field !== "search"))
+    } else {
+      setErrors(prev => [...prev, { field: "search", message: "Từ khóa quá dài (tối đa 100 ký tự)" }])
+    }
+  }
+
+  const handleDateChange = (type, value) => {
+    if (type === "start") {
+      if (validateDateRange(value, endDate)) {
+        setStartDate(value)
+        setErrors(errors.filter(e => e.field !== "dateRange"))
+      } else {
+        setErrors(prev => [...prev, { field: "dateRange", message: "Ngày bắt đầu không được lớn hơn ngày kết thúc" }])
+      }
+    } else {
+      if (validateDateRange(startDate, value)) {
+        setEndDate(value)
+        setErrors(errors.filter(e => e.field !== "dateRange"))
+      } else {
+        setErrors(prev => [...prev, { field: "dateRange", message: "Ngày kết thúc không được nhỏ hơn ngày bắt đầu" }])
+      }
+    }
+  }
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      fetchOrders(page, false)
+    }
+  }
+
+  const handleLoadMore = () => {
+    if (orders.length < totalOrders) {
+      const nextPage = currentPage + 1
+      setCurrentPage(nextPage)
+      fetchOrders(nextPage, true)
+    }
+  }
+
+  const handleSwitchMode = (mode) => {
+    setViewMode(mode)
+    setCurrentPage(1)
+    fetchOrders(1, false)
+  }
+
+  const handleSelectOrder = (id) => {
+    setSelectedOrders(prev => 
+      prev.includes(id) ? prev.filter(oid => oid !== id) : [...prev, id]
+    )
+  }
+
+  const handleSelectAll = (filteredOrders) => {
+    if (selectedOrders.length === filteredOrders.length) {
+      setSelectedOrders([])
+    } else {
+      setSelectedOrders(filteredOrders.map(o => o.id))
+    }
+  }
+
+  const handleReset = () => {
+    setSearchQuery("")
+    setStatusFilter("")
+    setPaymentFilter("")
+    setStartDate("")
+    setEndDate("")
+    setCurrentPage(1)
+    setErrors([])
+    showToastNotification("Đã đặt lại tất cả bộ lọc", "info")
+  }
+
   const handleFormChange = (field, value) => {
     setOrderForm(prev => ({ ...prev, [field]: value }))
     if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }))
+      const newErrors = { ...formErrors }
+      delete newErrors[field]
+      setFormErrors(newErrors)
     }
   }
 
-  // Create/Update order
   const handleSubmitOrder = async () => {
-    if (!validateForm()) return
+    if (!validateOrderForm()) return
 
-    const statusMap = {
-      pending: { status: TEXTS.statusPending, payment: orderForm.payment === "paid" ? TEXTS.paymentPaid : TEXTS.paymentUnpaid },
-      shipping: { status: TEXTS.statusShipping, payment: TEXTS.paymentPaid },
-      completed: { status: TEXTS.statusCompleted, payment: TEXTS.paymentPaid },
-      cancelled: { status: TEXTS.statusCancelled, payment: TEXTS.paymentRefunded },
-    }
-
-    if (isEditing && selectedOrder) {
-      // Update existing order
-      setOrders(prev => prev.map(o => {
-        if (o.id === selectedOrder.id) {
-        return {
-  ...o,
-  name: orderForm.name,
-  email: orderForm.email,
-  phone: orderForm.phone,
-  product: orderForm.product,
-  amount: formatCurrency(orderForm.amount),
-  address: orderForm.address,
-  type: orderForm.status,
-}
-        }
-        return o
-      }))
-      showToast(TEXTS.toastUpdateSuccess)
-    } else {
-      // Create new order
-      const newOrder = {
-        id: generateOrderId(),
-        name: orderForm.name,
-        email: orderForm.email,
-        phone: orderForm.phone,
-        product: orderForm.product,
-        amount: formatCurrency(orderForm.amount),
-        address: orderForm.address,
-        date: getCurrentDateTime(),
-        type: orderForm.status,
-        status: statusMap[orderForm.status].status,
-        payment: statusMap[orderForm.status].payment,
+    try {
+      if (isEditing) {
+        await orderService.updateOrder(selectedOrder.id, orderForm)
+        showToastNotification(`Đã cập nhật đơn hàng ${selectedOrder.id} thành công`)
+      } else {
+        await orderService.createOrder(orderForm)
+        showToastNotification("Tạo đơn hàng mới thành công")
       }
-     await orderService.createOrder(orderForm)
-await loadOrders(1, false)
-
-showToast(TEXTS.toastCreateSuccess)
+      setShowCreateModal(false)
+      fetchOrders(currentPage, false)
+    } catch (error) {
+      showToastNotification("Không thể thực hiện tác vụ. Vui lòng thử lại.", "error")
     }
-
-    setShowCreateModal(false)
-    setOrderForm(emptyOrderForm)
-    setFormErrors({})
-    setIsEditing(false)
-    setSelectedOrder(null)
   }
 
-  // Delete order
-  const handleDeleteOrder = () => {
-    if (selectedOrder) {
-      setOrders(prev => prev.filter(o => o.id !== selectedOrder.id))
-      setSelectedOrders(prev => prev.filter(id => id !== selectedOrder.id))
-      showToast(TEXTS.toastDeleteSuccess)
-    }
-    setShowDeleteModal(false)
-    setSelectedOrder(null)
-  }
-
-  // Delete selected orders
-  const handleDeleteSelected = () => {
-    setOrders(prev => prev.filter(o => !selectedOrders.includes(o.id)))
-    setSelectedOrders([])
-    showToast(`Xóa ${selectedOrders.length} đơn hàng thành công!`)
-  }
-
-  // Export data
-  const handleExport = (format) => {
-  const dataToExport = selectedOrders.length > 0 
-  ? orders.filter(o => selectedOrders.includes(o.id))
-  : orders
-
-    if (format === "csv") {
-      const headers = [TEXTS.thOrderId, TEXTS.thCustomer, TEXTS.formEmail, TEXTS.thProduct, TEXTS.thAmount, TEXTS.thStatus, TEXTS.thPayment, TEXTS.thDate]
-      const rows = dataToExport.map(o => [o.id, o.name, o.email, o.product, o.amount, o.status, o.payment, o.date])
-      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n")
-      
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-      const link = document.createElement("a")
-      link.href = URL.createObjectURL(blob)
-      link.download = `orders_${new Date().toISOString().split("T")[0]}.csv`
-      link.click()
-      showToast(`Xuất ${dataToExport.length} đơn hàng thành công (CSV)!`)
-    } else if (format === "json") {
-      const json = JSON.stringify(dataToExport, null, 2)
-      const blob = new Blob([json], { type: "application/json" })
-      const link = document.createElement("a")
-      link.href = URL.createObjectURL(blob)
-      link.download = `orders_${new Date().toISOString().split("T")[0]}.json`
-      link.click()
-      showToast(`Xuất ${dataToExport.length} đơn hàng thành công (JSON)!`)
-    } else if (format === "excel") {
-      // Simple Excel XML format
-      const headers = [TEXTS.thOrderId, TEXTS.thCustomer, TEXTS.formEmail, TEXTS.thProduct, TEXTS.thAmount, TEXTS.thStatus, TEXTS.thPayment, TEXTS.thDate]
-      let xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>'
-      xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet">'
-      xml += '<Worksheet ss:Name="Orders"><Table>'
-      xml += '<Row>' + headers.map(h => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join("") + '</Row>'
-      dataToExport.forEach(o => {
-        xml += '<Row>'
-        xml += `<Cell><Data ss:Type="String">${o.id}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.name}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.email}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.product}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.amount}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.status}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.payment}</Data></Cell>`
-        xml += `<Cell><Data ss:Type="String">${o.date}</Data></Cell>`
-        xml += '</Row>'
-      })
-      xml += '</Table></Worksheet></Workbook>'
-      
-      const blob = new Blob([xml], { type: "application/vnd.ms-excel" })
-      const link = document.createElement("a")
-      link.href = URL.createObjectURL(blob)
-      link.download = `orders_${new Date().toISOString().split("T")[0]}.xls`
-      link.click()
-      showToast(`Xuất ${dataToExport.length} đơn hàng thành công (Excel)!`)
-    }
-    setShowExportModal(false)
-  }
-
-  // Open edit modal
   const handleEdit = (order) => {
+    setIsEditing(true)
     setSelectedOrder(order)
     setOrderForm({
       name: order.name,
@@ -790,612 +407,821 @@ showToast(TEXTS.toastCreateSuccess)
       phone: order.phone || "",
       product: order.product,
       amount: order.amount.replace(/[^\d]/g, ""),
-      address: order.address || "",
       status: order.type,
-      payment: order.payment === "Đã thanh toán" ? "paid" : "unpaid",
+      address: order.address || "",
     })
-    setIsEditing(true)
     setShowCreateModal(true)
     setShowActionMenu(null)
   }
 
-  // Open view modal
   const handleView = (order) => {
     setSelectedOrder(order)
     setShowDetailModal(true)
     setShowActionMenu(null)
   }
 
-  // Open delete modal
   const handleDelete = (order) => {
     setSelectedOrder(order)
     setShowDeleteModal(true)
     setShowActionMenu(null)
   }
 
-// Pagination handlers - Tạo mảng số trang với ellipsis
-  const getPageNumbers = () => {
-    const pages = []
-    const maxVisible = 5
-    
-    if (totalPages <= maxVisible + 2) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i)
-      }
-    } else {
-      pages.push(1)
-      if (currentPage > 3) pages.push("...")
-      
-      const start = Math.max(2, currentPage - 1)
-      const end = Math.min(totalPages - 1, currentPage + 1)
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i)
-      }
-      
-      if (currentPage < totalPages - 2) pages.push("...")
-      pages.push(totalPages)
+  const handleDeleteOrder = async () => {
+    try {
+      await orderService.deleteOrder(selectedOrder.id)
+      showToastNotification(`Đã xóa đơn hàng ${selectedOrder.id}`)
+      setShowDeleteModal(false)
+      fetchOrders(currentPage, false)
+    } catch (error) {
+      showToastNotification("Hành động xóa thất bại", "error")
     }
-    
-    return pages
   }
-  
-  // Số đơn hàng còn lại cho load more
+
+  const handleDeleteSelected = async () => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedOrders.length} đơn hàng đã chọn?`)) {
+      try {
+        await Promise.all(selectedOrders.map(id => orderService.deleteOrder(id)))
+        showToastNotification(`Đã xóa ${selectedOrders.length} đơn hàng`)
+        setSelectedOrders([])
+        fetchOrders(1, false)
+      } catch (error) {
+        showToastNotification("Xóa thất bại", "error")
+      }
+    }
+  }
+
+  const handleExport = (format) => {
+    if (orders.length === 0) {
+      showToastNotification("Không có dữ liệu để xuất!", "error")
+      return
+    }
+
+    showToastNotification(`Đang chuẩn bị file ${format.toUpperCase()}...`, "info")
+    
+    setTimeout(() => {
+      let content = ""
+      let fileName = `Order_Export_${new Date().toLocaleDateString("vi-VN").replace(/\//g, "-")}`
+      let mimeType = ""
+
+      const dataToExport = selectedOrders.length > 0 
+        ? orders.filter(o => selectedOrders.includes(o.id))
+        : orders
+
+      if (format === "json") {
+        content = JSON.stringify(dataToExport, null, 2)
+        fileName += ".json"
+        mimeType = "application/json"
+      } else {
+        // CSV & Basic Excel (also CSV)
+        const headers = ["Mã đơn", "Khách hàng", "Email", "Sản phẩm", "Tổng tiền", "Trạng thái", "Thanh toán", "Ngày tạo"]
+        const rows = dataToExport.map(o => [
+          o.id, 
+          o.name, 
+          o.email, 
+          o.product.replace(/,/g, ";"), 
+          o.amount.replace(/[^\d]/g, ""), 
+          o.status, 
+          o.payment, 
+          o.date
+        ])
+        
+        content = "\uFEFF" + [headers, ...rows].map(r => r.join(",")).join("\n")
+        fileName += format === "csv" ? ".csv" : ".xlsx"
+        mimeType = format === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      }
+
+      try {
+        const blob = new Blob([content], { type: mimeType })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", fileName)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        showToastNotification(`Đã tải file ${format.toUpperCase()} thành công!`)
+      } catch (err) {
+        showToastNotification("Lỗi khi xuất file!", "error")
+      }
+    }, 1000)
+
+    setShowExportModal(false)
+  }
+
+  const formatCurrency = (val) => {
+    if (!val) return "0đ"
+    return parseInt(val).toLocaleString("vi-VN") + "đ"
+  }
+
+  // Memoized calculations
+  const totalPages = useMemo(() => Math.ceil(totalOrders / itemsPerPage), [totalOrders])
+  const hasMore = orders.length < totalOrders
   const remainingOrders = totalOrders - orders.length
 
+  const getPageNumbers = () => {
+    const pages = []
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, 4, "...", totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+      } else {
+        pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages)
+      }
+    }
+    return pages
+  }
+
+  // Statistics data
+  const stats = [
+    { 
+      title: TEXTS.kpiTotal, 
+      value: totalOrders, 
+      trend: '+5% tháng này', 
+      icon: FiShoppingCart, 
+      color: 'text-blue-600', 
+      bg: 'bg-blue-50' 
+    },
+    { 
+      title: TEXTS.kpiPending, 
+      value: orders.filter(o => o.type === "pending").length, 
+      trend: '+2 mới', 
+      icon: FiPackage, 
+      color: 'text-amber-600', 
+      bg: 'bg-amber-50' 
+    },
+    { 
+      title: TEXTS.kpiShipping, 
+      value: orders.filter(o => o.type === "shipping").length, 
+      trend: 'Đang giao', 
+      icon: FiTruck, 
+      color: 'text-indigo-600', 
+      bg: 'bg-indigo-50' 
+    },
+    { 
+      title: TEXTS.kpiCompleted, 
+      value: orders.filter(o => o.type === "completed").length, 
+      trend: 'Hoàn thành', 
+      icon: FiCheckCircle, 
+      color: 'text-emerald-600', 
+      bg: 'bg-emerald-50' 
+    },
+    { 
+      title: TEXTS.kpiRevenue, 
+      value: formatCurrency(orders
+        .filter(o => o.type === "completed")
+        .reduce((sum, o) => {
+          const num = parseInt(o.amount.replace(/[^\d]/g, ""))
+          return sum + (isNaN(num) ? 0 : num)
+        }, 0).toString()), 
+      trend: '+12% so với tháng trước', 
+      icon: FiDollarSign, 
+      color: 'text-emerald-600', 
+      bg: 'bg-emerald-50' 
+    },
+  ];
+
   return (
-    <div className="order-page">
+    <div className="space-y-8 text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <style>{`
+        .custom-scrollbar-mini::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar-mini::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar-mini::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar-mini::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+      `}</style>
+
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`toast toast-${toast.type}`}>
-          {toast.type === "success" ? <Icons.Check /> : <Icons.AlertCircle />}
-          {toast.message}
+        <div className={`fixed top-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right duration-300 ${
+          toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 
+          toast.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+        }`}>
+          {toast.type === "success" ? <FiCheckCircle size={20} /> : <FiAlertCircle size={20} />}
+          <span className="font-bold">{toast.message}</span>
         </div>
       )}
 
-      {/* HEADER */}
-      <header className="main-header">
-        <div className="header-left">
-          <div className="logo-box">
-            <Icons.Logo /> <span>Seller Center</span>
-          </div>
-          <nav className="main-nav">
-            <a href="#">{TEXTS.navDashboard}</a>
-            <a href="#" className="active">{TEXTS.navOrders}</a>
-            <a href="#">{TEXTS.navProducts}</a>
-            <a href="#">{TEXTS.navCustomers}</a>
-            <a href="#">{TEXTS.navReports}</a>
-          </nav>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {TEXTS.pageTitle}
+          </h1>
         </div>
-        <div className="header-right">
-          <div className="quick-search">
-            <Icons.Search />
-            <input type="text" placeholder={TEXTS.searchPlaceholder} />
-          </div>
-          <button className="icon-btn">
-            <Icons.Bell />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95"
+          >
+            <FiDownload size={18} />
+            {TEXTS.btnExport}
           </button>
-          <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-            alt="User"
-            className="user-avatar"
-          />
+          <button
+             onClick={() => setShowStatsModal(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95"
+          >
+            <FiTrendingUp size={18} />
+            {TEXTS.btnCreate}
+          </button>
         </div>
-      </header>
+      </div>
 
-      {/* MAIN CONTENT */}
-      <main className="order-container">
-        <nav className="breadcrumb">
-          {TEXTS.breadcrumbHome} &rsaquo; {TEXTS.breadcrumbOrders} &rsaquo; <span>{TEXTS.breadcrumbList}</span>
-        </nav>
-
-        <div className="header-row">
-          <div className="title-area">
-            <h1>{TEXTS.pageTitle}</h1>
-            <p className="subtitle">{TEXTS.pageSubtitle}</p>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        {stats.map((stat, idx) => (
+          <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl transition-transform group-hover:scale-110`}>
+                <stat.icon size={24} />
+              </div>
+              <div className="text-[10px] font-bold px-2 py-1 bg-slate-50 text-slate-400 rounded-full border border-slate-100 uppercase tracking-wider">
+                Đơn hàng
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-slate-500 text-sm font-medium">{stat.title}</p>
+              <h3 className="text-2xl font-extrabold text-slate-900">{stat.value}</h3>
+              <p className={`text-xs font-bold leading-relaxed flex items-center gap-1 ${stat.title === TEXTS.kpiRevenue ? 'text-emerald-500' : 'text-slate-400'}`}>
+                {stat.trend}
+              </p>
+            </div>
           </div>
-          <div className="button-group">
-            <button className="btn btn-outline" onClick={() => setShowExportModal(true)}>
-              <Icons.Download /> {TEXTS.btnExport}
-            </button>
-            <button className="btn btn-primary" onClick={() => { setShowCreateModal(true); setIsEditing(false); setOrderForm(emptyOrderForm); }}>
-              <Icons.Plus /> {TEXTS.btnCreate}
-            </button>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Selected actions */}
-        {selectedOrders.length > 0 && (
-          <div className="selected-actions">
-            <span>Đã chọn {selectedOrders.length} đơn hàng</span>
-            <button className="btn btn-outline btn-sm" onClick={() => setShowExportModal(true)}>
-              <Icons.Download /> {TEXTS.btnExport}
-            </button>
-            <button className="btn btn-danger btn-sm" onClick={handleDeleteSelected}>
-              <Icons.Trash /> {TEXTS.actionDelete}
-            </button>
-            <button className="btn-link" onClick={() => setSelectedOrders([])}>{TEXTS.clearSelection}</button>
+      {/* Filters Bar */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+        <div className="flex flex-col lg:flex-row items-end gap-6">
+          {/* Search Section */}
+          <div className="flex-1 space-y-2 w-full">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-2">Tìm kiếm đơn hàng</label>
+            <div className="relative group">
+              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-all duration-300 z-10" size={18} />
+              <input
+                type="text"
+                placeholder={TEXTS.filterSearch}
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 focus:bg-white transition-all duration-300 shadow-sm"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
           </div>
-        )}
 
-        {/* KPI Grid */}
-        <div className="kpi-grid">
-          {kpis.map((kpi, i) => (
-            <div key={i} className="kpi-card">
-              <div className="kpi-top">
-                <div className="kpi-icon" style={{ backgroundColor: kpi.bg, color: kpi.color }}>
-                  {kpi.icon}
+          <div className="flex flex-wrap items-end gap-5">
+            {/* Status Filter */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-2">Trạng thái</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 cursor-pointer min-w-[150px] shadow-sm hover:bg-slate-50 transition-all"
+              >
+                <option value="">{TEXTS.filterStatus}</option>
+                <option value="pending">{TEXTS.statusPending}</option>
+                <option value="shipping">{TEXTS.statusShipping}</option>
+                <option value="completed">{TEXTS.statusCompleted}</option>
+                <option value="cancelled">{TEXTS.statusCancelled}</option>
+              </select>
+            </div>
+
+            {/* Payment Filter */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-2">Thanh toán</label>
+              <select
+                value={paymentFilter}
+                onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 cursor-pointer min-w-[150px] shadow-sm hover:bg-slate-50 transition-all"
+              >
+                <option value="">{TEXTS.filterPayment}</option>
+                <option value="paid">{TEXTS.paymentPaid}</option>
+                <option value="unpaid">{TEXTS.paymentUnpaid}</option>
+              </select>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-2">Khoảng thời gian</label>
+              <div className="flex items-center gap-2">
+                <div className="relative group">
+                  <input
+                    type="date"
+                    value={startDate}
+                    max={endDate || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => handleDateChange("start", e.target.value)}
+                    className={`bg-white border rounded-2xl px-3 py-3.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 transition-all shadow-sm hover:bg-slate-50 ${
+                      errors.some(e => e.field === "dateRange") ? 'border-rose-300 ring-rose-50' : 'border-slate-200 focus:ring-blue-500/5 focus:border-blue-500'
+                    }`}
+                  />
                 </div>
-                <span className="trend-badge">{kpi.trend}</span>
+                <span className="text-slate-300 font-bold">-</span>
+                <div className="relative group">
+                  <input
+                    type="date"
+                    value={endDate}
+                    min={startDate}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => handleDateChange("end", e.target.value)}
+                    className={`bg-white border rounded-2xl px-3 py-3.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 transition-all shadow-sm hover:bg-slate-50 ${
+                      errors.some(e => e.field === "dateRange") ? 'border-rose-300 ring-rose-50' : 'border-slate-200 focus:ring-blue-500/5 focus:border-blue-500'
+                    }`}
+                  />
+                </div>
               </div>
-              <div className="kpi-info">
-                <span className="kpi-label">{kpi.label}</span>
-                <span className="kpi-value">{kpi.value}</span>
-              </div>
+              {getErrorMessage("dateRange") && (
+                <div className="flex items-center gap-1.5 text-[10px] text-rose-500 font-bold ml-2 animate-in fade-in slide-in-from-top-1">
+                  <FiAlertCircle size={12} />
+                  {getErrorMessage("dateRange")}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
 
-        {/* Filter Section */}
-        <div className="filter-section">
-          <div className={`search-wrapper ${getErrorMessage("search") ? "has-error" : ""}`}>
-            <Icons.Search />
-            <input
-              type="text"
-              placeholder={TEXTS.filterSearch}
-              value={searchQuery}
-              onChange={handleSearchChange}
-              maxLength={100}
-            />
-          </div>
-          <div className="filter-controls">
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-              <option value="">{TEXTS.filterStatus}</option>
-              <option value="pending">{TEXTS.statusPending}</option>
-              <option value="shipping">{TEXTS.statusShipping}</option>
-              <option value="completed">{TEXTS.statusCompleted}</option>
-              <option value="cancelled">{TEXTS.statusCancelled}</option>
-            </select>
-            <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}>
-              <option value="">{TEXTS.filterPayment}</option>
-              <option value="paid">{TEXTS.paymentPaid}</option>
-              <option value="unpaid">{TEXTS.paymentUnpaid}</option>
-            </select>
-            <div className={`date-range ${getErrorMessage("dateRange") ? "has-error" : ""}`}>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => handleDateChange("start", e.target.value)}
-              />
-              <span>-</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => handleDateChange("end", e.target.value)}
-              />
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleReset}
+                className="text-blue-600 font-bold text-sm bg-blue-50 hover:bg-blue-100 px-6 py-3.5 rounded-2xl transition-all active:scale-95 shadow-sm border border-blue-100 whitespace-nowrap"
+              >
+                {TEXTS.filterReset}
+              </button>
             </div>
-            <button className="btn-reset" onClick={handleReset}>{TEXTS.filterReset}</button>
           </div>
         </div>
+      </div>
 
-{/* Validation Errors */}
-        {errors.length > 0 && (
-          <div className="validation-errors">
-            {errors.map((err, i) => (
-              <div key={i} className="error-item">{err.message}</div>
-            ))}
+      {/* Bulk Actions & Table */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        {selectedOrders.length > 0 && (
+          <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex items-center justify-between animate-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-3">
+              <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                {selectedOrders.length}
+              </span>
+              <span className="text-blue-700 font-bold text-sm">Đơn hàng được chọn</span>
+            </div>
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-rose-100 transition-all active:scale-95 border border-rose-100"
+            >
+              <FiTrash2 size={16} />
+              Xóa các mục đã chọn
+            </button>
           </div>
         )}
-
-        {/* View Mode Toggle */}
-        <div className="view-mode-toggle">
-          <span className="view-mode-label">Chế độ hiển thị:</span>
-          <div className="toggle-buttons">
-            <button 
-              className={`toggle-btn ${viewMode === "pagination" ? "active" : ""}`}
-              onClick={() => handleSwitchMode("pagination")}
-            >
-              {TEXTS.paginationMode}
-            </button>
-            <button 
-              className={`toggle-btn ${viewMode === "loadmore" ? "active" : ""}`}
-              onClick={() => handleSwitchMode("loadmore")}
-            >
-              {TEXTS.loadMoreMode}
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="table-card">
-          {/* Loading Overlay */}
-          {isLoading && (
-            <div className="loading-overlay">
-              <div className="loading-spinner">
-                <Icons.Loader />
-                <span>Đang tải dữ liệu...</span>
-              </div>
-            </div>
-          )}
-          <table className="order-table">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr>
-<th>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-5 w-10">
                   <input
                     type="checkbox"
                     checked={selectedOrders.length === orders.length && orders.length > 0}
                     onChange={() => handleSelectAll(orders)}
+                    className="w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-200 cursor-pointer"
                   />
                 </th>
-                <th>{TEXTS.thOrderId}</th>
-                <th>{TEXTS.thCustomer}</th>
-                <th>{TEXTS.thProduct}</th>
-                <th>{TEXTS.thAmount}</th>
-                <th>{TEXTS.thStatus}</th>
-                <th>{TEXTS.thPayment}</th>
-                <th>{TEXTS.thDate}</th>
-                <th>{TEXTS.thActions}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">{TEXTS.thOrderId}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">{TEXTS.thCustomer}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">{TEXTS.thProduct}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">{TEXTS.thAmount}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">{TEXTS.thStatus}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">{TEXTS.thPayment}</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Ngày tạo</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">{TEXTS.thActions}</th>
               </tr>
             </thead>
-<tbody>
-              {orders.length === 0 && !isLoading ? (
+            <tbody className="divide-y divide-slate-50">
+              {isLoading && !isLoadingMore ? (
                 <tr>
-                  <td colSpan={9} className="empty-state">
-                    {TEXTS.emptyState}
+                  <td colSpan="9" className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div>
+                      <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Đang tải dữ liệu...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-50/30">
+                    <div className="flex flex-col items-center gap-3">
+                      <FiPackage size={48} className="opacity-20" />
+                      {TEXTS.emptyState}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 orders.map((o) => (
-                  <tr key={o.id} className={selectedOrders.includes(o.id) ? "selected" : ""}>
-                    <td>
+                  <tr key={o.id} className={`hover:bg-slate-50/80 transition-colors group ${selectedOrders.includes(o.id) ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-6 py-5">
                       <input
                         type="checkbox"
                         checked={selectedOrders.includes(o.id)}
                         onChange={() => handleSelectOrder(o.id)}
+                        className="w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-200 cursor-pointer"
                       />
                     </td>
-                    <td className="order-id">{o.id}</td>
-                    <td>
-                      <div className="cust-name">{o.name}</div>
-                      <div className="cust-email">{o.email}</div>
+                    <td className="px-6 py-5">
+                      <span className="font-bold text-blue-600">{o.id}</span>
                     </td>
-                    <td className="product-cell">{o.product}</td>
-                    <td className="amount">{o.amount}</td>
-                    <td>
-                      <span className={`status-dot dot-${o.type}`}>{o.status}</span>
+                    <td className="px-6 py-5">
+                      <div className="font-bold text-slate-800">{o.name}</div>
+                      <div className="text-xs font-medium text-slate-400 mt-0.5">{o.email}</div>
                     </td>
-                    <td>
-                      <span className={`pay-status pay-${o.type}`}>{o.payment}</span>
+                    <td className="px-6 py-5">
+                      <span className="text-sm font-semibold text-slate-600 block max-w-[150px] truncate">{o.product}</span>
                     </td>
-                    <td className="date-cell">{o.date}</td>
-                    <td className="action-cell">
-                      <button className="btn-more" onClick={() => setShowActionMenu(showActionMenu === o.id ? null : o.id)}>
-                        <Icons.More />
-                      </button>
-                      {showActionMenu === o.id && (
-                        <div className="action-menu">
-                          <button onClick={() => handleView(o)}><Icons.Eye /> {TEXTS.actionView}</button>
-                          <button onClick={() => handleEdit(o)}><Icons.Edit /> {TEXTS.actionEdit}</button>
-                          <button className="danger" onClick={() => handleDelete(o)}><Icons.Trash /> {TEXTS.actionDelete}</button>
-                        </div>
-                      )}
+                    <td className="px-6 py-5">
+                      <span className="text-sm font-black text-slate-800">{o.amount}</span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex justify-center">
+                        <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                          o.type === 'pending' ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100' :
+                          o.type === 'shipping' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-100' :
+                          o.type === 'completed' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' :
+                          'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
+                        }`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                             o.type === 'pending' ? 'bg-amber-500' :
+                             o.type === 'shipping' ? 'bg-blue-500' :
+                             o.type === 'completed' ? 'bg-emerald-500' :
+                             'bg-rose-500'
+                          }`} />
+                          {o.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex justify-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${
+                          o.payment === TEXTS.paymentPaid ? 'bg-emerald-100/50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {o.payment}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">{o.date}</span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEdit(o)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        >
+                          <FiEdit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleView(o)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        >
+                          <FiEye size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(o)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
-</tbody>
+            </tbody>
           </table>
-          
-          {/* Pagination Mode */}
-          {viewMode === "pagination" && (
-            <div className="pagination">
-              <span>
-                {TEXTS.showing} {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalOrders)} {TEXTS.of} {totalOrders} {TEXTS.results}
-              </span>
-              <div className="page-numbers">
-                <button 
-                  onClick={() => handlePageChange(currentPage - 1)} 
-                  disabled={currentPage === 1 || isLoading}
-                  className="page-btn"
-                >
-                  {"<"}
-                </button>
+        </div>
+
+        {/* Pagination Mode */}
+        {viewMode === "pagination" && (
+          <div className="px-6 py-6 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/20">
+            <p className="text-sm font-medium text-slate-500">
+              {TEXTS.showing} <span className="text-slate-800 font-bold">{Math.min((currentPage - 1) * itemsPerPage + 1, totalOrders)}-{Math.min(currentPage * itemsPerPage, totalOrders)}</span> {TEXTS.of} <span className="text-slate-800 font-bold">{totalOrders}</span> {TEXTS.results}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1 || isLoading}
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="p-2 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              >
+                <FiChevronLeft size={20} />
+              </button>
+              <div className="flex items-center gap-1">
                 {getPageNumbers().map((page, index) => (
                   page === "..." ? (
-                    <span key={`ellipsis-${index}`} className="ellipsis">...</span>
+                    <span key={`ellipsis-${index}`} className="px-2 text-slate-300">...</span>
                   ) : (
-                    <button 
-                      key={page} 
-                      className={`page-btn ${page === currentPage ? "active" : ""}`}
+                    <button
+                      key={page}
                       onClick={() => handlePageChange(page)}
                       disabled={isLoading}
+                      className={`min-w-[36px] h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                        page === currentPage
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
+                        : 'text-slate-500 hover:bg-white hover:text-blue-600 hover:shadow-sm'
+                      }`}
                     >
                       {page}
                     </button>
                   )
                 ))}
-                <button 
-                  onClick={() => handlePageChange(currentPage + 1)} 
-                  disabled={currentPage === totalPages || isLoading}
-                  className="page-btn"
-                >
-                  {">"}
-                </button>
               </div>
+              <button
+                disabled={currentPage === totalPages || isLoading}
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="p-2 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              >
+                <FiChevronRight size={20} />
+              </button>
             </div>
-          )}
-          
-          {/* Load More Mode */}
-          {viewMode === "loadmore" && (
-            <div className="load-more-section">
-              <span className="load-more-info">
-                {TEXTS.showing} {orders.length} {TEXTS.of} {totalOrders} {TEXTS.results}
-              </span>
-              {hasMore && (
-                <button 
-                  className="btn btn-load-more" 
-                  onClick={handleLoadMore}
-                  disabled={isLoadingMore}
-                >
-                  {isLoadingMore ? (
-                    <>
-                      <Icons.Loader />
-                      {TEXTS.loadingMore}
-                    </>
-                  ) : (
-                    <>
-                      <Icons.Plus />
-                      {TEXTS.loadMore} ({remainingOrders} {TEXTS.remainingOrders})
-                    </>
-                  )}
-                </button>
-              )}
-              {!hasMore && orders.length > 0 && (
-                <span className="all-loaded">{TEXTS.allLoaded}</span>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
-
-      <footer className="main-footer">
-        <div className="footer-content">
-          <span>{TEXTS.copyright}</span>
-          <div className="footer-links">
-            <a href="#">{TEXTS.footerHelp}</a>
-            <a href="#">{TEXTS.footerTerms}</a>
-            <a href="#">{TEXTS.footerPrivacy}</a>
           </div>
+        )}
+
+        {/* Load More Mode */}
+        {viewMode === "loadmore" && (
+          <div className="flex flex-col items-center gap-4 py-8 bg-slate-50/20 border-t border-slate-50">
+            <span className="text-sm font-medium text-slate-400 uppercase tracking-widest">
+              {TEXTS.showing} {orders.length} {TEXTS.of} {totalOrders}
+            </span>
+            {hasMore ? (
+              <button
+                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl font-bold shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all active:scale-95"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? <Icons.Loader /> : <FiPlus />}
+                {TEXTS.loadMore} ({remainingOrders} {TEXTS.remainingOrders})
+              </button>
+            ) : (
+              <span className="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold uppercase tracking-wider ring-1 ring-emerald-100">
+                {TEXTS.allLoaded}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 justify-end text-xs font-bold text-slate-400">
+        <span className="uppercase tracking-widest">Chế độ xem:</span>
+        <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
+          <button 
+            onClick={() => handleSwitchMode("pagination")}
+            className={`px-4 py-1.5 rounded-lg transition-all ${viewMode === 'pagination' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-slate-600'}`}
+          >
+            {TEXTS.paginationMode}
+          </button>
+          <button 
+            onClick={() => handleSwitchMode("loadmore")}
+            className={`px-4 py-1.5 rounded-lg transition-all ${viewMode === 'loadmore' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-slate-600'}`}
+          >
+            {TEXTS.loadMoreMode}
+          </button>
         </div>
-      </footer>
+      </div>
 
       {/* CREATE/EDIT ORDER MODAL */}
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => { setShowCreateModal(false); setFormErrors({}); }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{isEditing ? TEXTS.modalEditTitle : TEXTS.modalCreateTitle}</h2>
-              <button className="btn-close" onClick={() => { setShowCreateModal(false); setFormErrors({}); }}>
-                <Icons.Close />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                {isEditing ? TEXTS.modalEditTitle : TEXTS.modalCreateTitle}
+              </h2>
+              <button 
+                className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <FiX size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>{TEXTS.formCustomerName} <span className="required">*</span></label>
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formCustomerName} <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={orderForm.name}
                     onChange={(e) => handleFormChange("name", e.target.value)}
                     placeholder={TEXTS.placeholderName}
-                    className={formErrors.name ? "has-error" : ""}
+                    disabled={isEditing}
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${formErrors.name ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   />
-                  {formErrors.name && <span className="field-error">{formErrors.name}</span>}
+                  {formErrors.name && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{formErrors.name}</p>}
                 </div>
-                <div className="form-group">
-                  <label>{TEXTS.formEmail} <span className="required">*</span></label>
-                  <input
-                    type="email"
-                    value={orderForm.email}
-                    onChange={(e) => handleFormChange("email", e.target.value)}
-                    placeholder={TEXTS.placeholderEmail}
-                    className={formErrors.email ? "has-error" : ""}
-                  />
-                  {formErrors.email && <span className="field-error">{formErrors.email}</span>}
-                </div>
-                <div className="form-group">
-                  <label>{TEXTS.formPhone} <span className="required">*</span></label>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formPhone} <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     value={orderForm.phone}
                     onChange={(e) => handleFormChange("phone", e.target.value)}
                     placeholder={TEXTS.placeholderPhone}
-                    className={formErrors.phone ? "has-error" : ""}
+                    disabled={isEditing}
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${formErrors.phone ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   />
-                  {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
+                  {formErrors.phone && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{formErrors.phone}</p>}
                 </div>
-                <div className="form-group">
-                  <label>{TEXTS.formProduct} <span className="required">*</span></label>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formProduct} <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={orderForm.product}
                     onChange={(e) => handleFormChange("product", e.target.value)}
                     placeholder={TEXTS.placeholderProduct}
-                    className={formErrors.product ? "has-error" : ""}
+                    disabled={isEditing}
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${formErrors.product ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   />
-                  {formErrors.product && <span className="field-error">{formErrors.product}</span>}
+                  {formErrors.product && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{formErrors.product}</p>}
                 </div>
-                <div className="form-group">
-                  <label>{TEXTS.formAmount} (VND) <span className="required">*</span></label>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formAmount} (VND) <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={orderForm.amount}
                     onChange={(e) => handleFormChange("amount", e.target.value.replace(/[^\d]/g, ""))}
                     placeholder={TEXTS.placeholderAmount}
-                    className={formErrors.amount ? "has-error" : ""}
+                    disabled={isEditing}
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${formErrors.amount ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   />
-                  {formErrors.amount && <span className="field-error">{formErrors.amount}</span>}
+                  {formErrors.amount && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{formErrors.amount}</p>}
                 </div>
-                <div className="form-group">
-                  <label>{TEXTS.formStatus}</label>
-                  <select value={orderForm.status} onChange={(e) => handleFormChange("status", e.target.value)}>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formStatus}
+                  </label>
+                  <select
+                    value={orderForm.status}
+                    onChange={(e) => handleFormChange("status", e.target.value)}
+                    disabled={isEditing}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all appearance-none cursor-pointer font-bold text-slate-700"
+                  >
                     <option value="pending">{TEXTS.statusPending}</option>
                     <option value="shipping">{TEXTS.statusShipping}</option>
                     <option value="completed">{TEXTS.statusCompleted}</option>
                     <option value="cancelled">{TEXTS.statusCancelled}</option>
                   </select>
                 </div>
-                <div className="form-group full-width">
-                  <label>{TEXTS.formAddress} <span className="required">*</span></label>
+                <div className="space-y-1.5 text-left md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {TEXTS.formAddress} <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={orderForm.address}
                     onChange={(e) => handleFormChange("address", e.target.value)}
                     placeholder={TEXTS.placeholderAddress}
-                    className={formErrors.address ? "has-error" : ""}
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${formErrors.address ? 'border-rose-500 focus:ring-rose-100' : 'border-slate-100 focus:ring-blue-100 focus:bg-white'}`}
                   />
-                  {formErrors.address && <span className="field-error">{formErrors.address}</span>}
+                  {formErrors.address && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{formErrors.address}</p>}
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => { setShowCreateModal(false); setFormErrors({}); }}>{TEXTS.btnCancel}</button>
-              <button className="btn btn-primary" onClick={handleSubmitOrder}>
-                {isEditing ? TEXTS.btnSave : TEXTS.btnCreate2}
-              </button>
+              <div className="mt-8 flex justify-end gap-3">
+                <button 
+                  className="px-6 py-3 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+                    onClick={() => setShowCreateModal(false)}
+                >
+                  {TEXTS.btnCancel}
+                </button>
+                <button 
+                  className="px-10 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                  onClick={handleSubmitOrder}
+                >
+                  {isEditing ? TEXTS.btnSave : TEXTS.btnCreate2}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEW ORDER DETAIL MODAL */}
+      {/* DETAIL MODAL */}
       {showDetailModal && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{TEXTS.modalDetailTitle} {selectedOrder.id}</h2>
-              <button className="btn-close" onClick={() => setShowDetailModal(false)}>
-                <Icons.Close />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowDetailModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                {TEXTS.modalDetailTitle} {selectedOrder.id}
+              </h2>
+              <button 
+                className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all"
+                onClick={() => setShowDetailModal(false)}
+              >
+                <FiX size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <label>{TEXTS.detailOrderId}</label>
-                  <span className="order-id">{selectedOrder.id}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailStatus}</label>
-                  <span className={`status-dot dot-${selectedOrder.type}`}>{selectedOrder.status}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailCustomer}</label>
-                  <span>{selectedOrder.name}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailEmail}</label>
-                  <span>{selectedOrder.email}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailPhone}</label>
-                  <span>{selectedOrder.phone || "N/A"}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailProduct}</label>
-                  <span>{selectedOrder.product}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailAmount}</label>
-                  <span className="amount">{selectedOrder.amount}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailPayment}</label>
-                  <span className={`pay-status pay-${selectedOrder.type}`}>{selectedOrder.payment}</span>
-                </div>
-                <div className="detail-item">
-                  <label>{TEXTS.detailDate}</label>
-                  <span>{selectedOrder.date}</span>
-                </div>
-                <div className="detail-item full-width">
-                  <label>{TEXTS.detailAddress}</label>
-                  <span>{selectedOrder.address || "N/A"}</span>
-                </div>
+            <div className="p-8 text-left space-y-6">
+               <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khách hàng</p>
+                    <p className="font-bold text-slate-800">{selectedOrder.name}</p>
+                    <p className="text-xs text-slate-500">{selectedOrder.email}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</p>
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                      selectedOrder.type === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                    }`}>
+                      {selectedOrder.status}
+                    </span>
+                  </div>
+               </div>
+               <div className="pt-6 border-t border-slate-50 space-y-4">
+                  <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                    <span className="text-sm font-bold text-slate-500">Tổng thanh toán:</span>
+                    <span className="text-xl font-black text-blue-600">{selectedOrder.amount}</span>
+                  </div>
+               </div>
+            </div>
+            <div className="p-6 bg-slate-50 flex justify-end gap-3">
+              <button 
+                className="px-6 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 bg-white"
+                onClick={() => setShowDetailModal(false)}
+              >
+                {TEXTS.btnClose}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STATS MODAL - Simplified for new UI */}
+      {showStatsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowStatsModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 space-y-6">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Phân tích đơn hàng</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {stats.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`${s.bg} ${s.color} p-2 rounded-xl`}>
+                        <s.icon size={18} />
+                      </div>
+                      <span className="text-sm font-bold text-slate-600">{s.title}</span>
+                    </div>
+                    <span className="text-lg font-black text-slate-900">{s.value}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowDetailModal(false)}>{TEXTS.btnClose}</button>
-              <button className="btn btn-primary" onClick={() => { setShowDetailModal(false); handleEdit(selectedOrder); }}>
-                {TEXTS.actionEdit}
+              <button 
+                onClick={() => setShowStatsModal(false)}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 transition-all hover:bg-blue-700 mt-4"
+              >
+                Đóng phân tích
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Xac nhan xoa</h2>
-              <button className="btn-close" onClick={() => setShowDeleteModal(false)}>
-                <Icons.Close />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="confirm-text">
-                Ban co chac chan muon xoa don hang <strong>{selectedOrder.id}</strong>?
-                <br />Hanh dong nay khong the hoan tac.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowDeleteModal(false)}>Huy</button>
-              <button className="btn btn-danger" onClick={handleDeleteOrder}>Xoa</button>
+      {/* Delete Confirmation */}
+      {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Xác nhận xóa?</h3>
+            <p className="text-slate-500 mt-2 font-medium">Bạn có chắc muốn xóa đơn hàng này? Thao tác này không thể khôi phục.</p>
+            <div className="mt-8 flex gap-3">
+              <button className="flex-1 py-3 font-bold text-slate-500 rounded-2xl hover:bg-slate-50" onClick={() => setShowDeleteModal(false)}>Hủy</button>
+              <button className="flex-1 py-3 bg-rose-500 text-white font-bold rounded-2xl shadow-lg shadow-rose-100 hover:bg-rose-600" onClick={handleDeleteOrder}>Xóa ngay</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* EXPORT MODAL */}
-      {showExportModal && (
-        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Xuat du lieu</h2>
-              <button className="btn-close" onClick={() => setShowExportModal(false)}>
-                <Icons.Close />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="export-info">
-                {selectedOrders.length > 0 
-                  ? `Xuat ${selectedOrders.length} don hang da chon`
-                  : `Xuat ${orders.length} don hang (theo bo loc hien tai)`
-                }
-              </p>
-              <div className="export-options">
-                <button className="export-btn" onClick={() => handleExport("csv")}>
-                  <span className="export-icon">CSV</span>
-                  <span>File CSV</span>
+       {/* Export Modal */}
+       {showExportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowExportModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Xuất dữ liệu</h3>
+            <div className="grid grid-cols-1 gap-2 mt-6">
+              {['csv', 'excel', 'json'].map(fmt => (
+                <button 
+                  key={fmt}
+                  onClick={() => handleExport(fmt)}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-blue-500 hover:bg-blue-50/50 transition-all group"
+                >
+                  <span className="font-bold text-slate-700 uppercase">Tải file {fmt}</span>
+                  <FiDownload className="text-slate-300 group-hover:text-blue-500 transition-colors" />
                 </button>
-                <button className="export-btn" onClick={() => handleExport("excel")}>
-                  <span className="export-icon">XLS</span>
-                  <span>File Excel</span>
-                </button>
-                <button className="export-btn" onClick={() => handleExport("json")}>
-                  <span className="export-icon">JSON</span>
-                  <span>File JSON</span>
-                </button>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Click outside to close action menu */}
-      {showActionMenu && (
-        <div className="action-menu-overlay" onClick={() => setShowActionMenu(null)} />
-      )}
     </div>
   )
 }

@@ -1,5 +1,152 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import userService from '../../services/userService';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { jwtDecode } from 'jwt-decode';
+import { CategoryService } from '../../services/CategoryService';
+import '../LandingPage/LandingPage.css';
+import './UpdateProfile.css';
+
+function getUserDisplayNameFromToken() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const payload = jwtDecode(token);
+    return payload.email || payload.name || payload.fullName || payload.username || payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
+function PageHeader({ userLabel, dbCategories, onLogout }) {
+  const navigate = useNavigate();
+
+  const handleNavClick = (categoryId) => {
+    navigate('/', { state: { category: categoryId } });
+  };
+
+  return (
+    <>
+      <header className="main-header">
+        <div className="container header-content">
+          <Link to="/" className="logo">
+            SmartAI Fashion
+          </Link>
+          <label className="search-wrap">
+            <span className="visually-hidden">Tìm kiếm sản phẩm</span>
+            <FaSearch className="search-icon" aria-hidden />
+            <input
+              type="search"
+              name="q"
+              placeholder="Tìm kiếm sản phẩm, thương hiệu..."
+              className="search-bar"
+              autoComplete="off"
+            />
+          </label>
+          <div className="user-actions">
+            <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
+              <FaShoppingCart />
+            </Link>
+            {userLabel ? (
+              <>
+                <Link to="/user/UserProfile" style={{ textDecoration: 'none' }}>
+                  <span className="user-profile">{userLabel}</span>
+                </Link>
+                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <div className="auth-links">
+                <Link to="/login" className="link-muted">
+                  Đăng nhập
+                </Link>
+                <Link to="/register" className="btn-primary btn-header-sm">
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <nav className="main-nav" aria-label="Danh mục chính">
+        <div className="container nav-links">
+          <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>
+            TẤT CẢ DANH MỤC
+          </span>
+          {dbCategories &&
+            dbCategories.map((cat) => (
+              <span key={cat.id} onClick={() => handleNavClick(cat.id)} style={{ cursor: 'pointer' }}>
+                {cat.name}
+              </span>
+            ))}
+          <span className="text-red">BST Thu Đông</span>
+          <span className="text-red">Đồ hiệu sale</span>
+          <span className="flash-sale">⚡ Flash Sale</span>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+function PageFooter() {
+  return (
+    <footer className="lp-footer">
+      <div className="container lp-footer-grid">
+        <div className="lp-footer-brand">
+          <strong className="logo">SmartAI Fashion</strong>
+          <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
+        </div>
+        <div>
+          <h3 className="lp-footer-title">Hỗ trợ</h3>
+          <ul className="lp-footer-links">
+            <li>
+              <Link to="/login">Tài khoản</Link>
+            </li>
+            <li>
+              <a href="#main-content">Theo dõi đơn hàng</a>
+            </li>
+            <li>
+              <a href="#main-content">Đổi trả &amp; bảo hành</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="lp-footer-title">Công ty</h3>
+          <ul className="lp-footer-links">
+            <li>
+              <a href="#main-content">Về chúng tôi</a>
+            </li>
+            <li>
+              <a href="#main-content">Tuyển dụng</a>
+            </li>
+            <li>
+              <a href="#main-content">Điều khoản</a>
+            </li>
+          </ul>
+        </div>
+        <div className="lp-footer-social">
+          <h3 className="lp-footer-title">Kết nối</h3>
+          <div className="lp-social-icons">
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
+              <FaFacebookF />
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
+              <FaInstagram />
+            </a>
+            <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">
+              <FaYoutube />
+            </a>
+          </div>
+        </div>
+      </div>
+      <div className="lp-footer-bottom">
+        <div className="container">© {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.</div>
+      </div>
+    </footer>
+  );
+}
 import './UpdateProfile.css';
 
 // SVG Icons
@@ -72,8 +219,30 @@ const TwitterIcon = () => (
 );
 
 const UpdateProfile = () => {
+  const navigate = useNavigate();
+  const [dbCategories, setDbCategories] = useState([]);
+  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await CategoryService.getAllCategories();
+        const list = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        setDbCategories(list);
+      } catch (err) {
+        console.error("Lỗi tải danh mục:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
 
   const [formData, setFormData] = useState({
     fullName: 'Nguyễn Minh',
@@ -208,52 +377,14 @@ const UpdateProfile = () => {
         </div>
       )}
       {/* Header */}
-      <header className="header">
-        <div className="header-top">
-          <div className="header-left">
-            <div className="logo">SmartAI Fashion</div>
-          </div>
-          <div className="search-bar">
-            <SearchIcon />
-            <input type="text" placeholder="Tìm kiếm sản phẩm, thương hiệu hoặc thời trang AI..." />
-          </div>
-          <div className="header-right">
-            <button className="icon-btn" title="Giỏ hàng">
-              <ShoppingCartIcon />
-            </button>
-            <button className="icon-btn" title="Thông báo">
-              <BellIcon />
-            </button>
-            <div className="user-menu">
-              <img src="https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg" alt="Avatar" className="user-avatar-small" loading="eager" />
-              <span>Nguyễn Minh</span>
-              <ChevronDownIcon />
-            </div>
-          </div>
-        </div>
-        <nav className="nav-menu">
-          <button className="nav-btn">
-            <MenuIcon />
-            TẤT CẢ DANH MỤC
-          </button>
-          <a href="#" className="nav-link">Thời trang Nam</a>
-          <a href="#" className="nav-link">Thời trang Nữ</a>
-          <a href="#" className="nav-link">Giày dép</a>
-          <a href="#" className="nav-link">Túi xách</a>
-          <a href="#" className="nav-link">Phụ kiện</a>
-          <a href="#" className="nav-link">Đồ thể thao</a>
-          <a href="#" className="nav-link highlight-blue">BST Thu Đông</a>
-          <a href="#" className="nav-link highlight-red">Đồ hiệu sale</a>
-          <a href="#" className="nav-link highlight-orange">Flash Sale</a>
-        </nav>
-      </header>
+      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
 
       {/* Main Content */}
       <main className="update-main-content">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h1 className="page-title">Cập nhật thông tin cá nhân</h1>
           <a
-            href="/profile/UserProfile"
+            href="/user/UserProfile"
             className="back-btn"
             style={{ padding: '10px 20px', background: '#f3f4f6', color: '#333', border: '1px solid #e5e5e5', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', textDecoration: 'none', display: 'inline-block' }}
           >
@@ -438,55 +569,7 @@ const UpdateProfile = () => {
       </main>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#3488ffff', color: '#e5e7eb', padding: '40px 20px', marginTop: '40px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '30px' }}>
-          <div>
-            <h3 style={{ color: '#ecececff', fontSize: '18px', fontWeight: '700', marginBottom: '16px' }}>SmartAI Fashion</h3>
-            <p style={{ fontSize: '14px', lineHeight: '1.6', marginBottom: '12px' }}>Nền tảng thương mại điện tử hàng đầu với công nghệ AI tiên tiến, giúp bạn tìm kiếm và mua sắm sản phẩm chất lượng cao.</p>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-
-            </div>
-            <div className="social-icons">
-              <a href="#" title="Facebook"><FacebookIcon /></a>
-              <a href="#" title="Instagram"><InstagramIcon /></a>
-              <a href="#" title="Twitter"><TwitterIcon /></a>
-            </div>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#fff', fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>Chính sách khách hàng</h4>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Giới thiệu</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Thương hiệu hợp tác</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Blog</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Liên hệ</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#fff', fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>Về SmartAI Fashion</h4>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Điều khoản sử dụng</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Chính sách bảo mật</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Chính sách vận chuyển</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Chính sách đổi trả</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#fff', fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>Thanh toán & lỗi chính sách</h4>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Phương thức thanh toán</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Góp ý & khiếu nại</a></li>
-              <li><a href="#" style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '13px' }}>Hỗ trợ khách hàng</a></li>
-            </ul>
-          </div>
-        </div>
-
-        <div style={{ borderTop: '1px solid #4b5563', marginTop: '30px', paddingTop: '20px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
-          <p>© 2025 SmartAI Fashion | Công ty Cổ phần Thương mại Điện tử SmartAI | Tất cả các quyền được bảo lưu</p>
-        </div>
-      </footer>
+      <PageFooter />
     </div>
   );
 };

@@ -15,7 +15,6 @@ const menuItems = [
   { name: 'Đơn hàng', path: '/shop-owner/orders', icon: FiShoppingCart },
   { name: 'Vouchers', path: '/shop-owner/vouchers', icon: FiTag },
   { name: 'Cửa hàng', path: '/shop-owner/store', icon: FiBriefcase },
-  { name: 'Cài đặt', path: '/shop-owner/settings', icon: FiSettings },
 ];
 
 export default function Sidebar() {

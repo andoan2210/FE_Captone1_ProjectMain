@@ -34,12 +34,50 @@ const mapStatus = (beStatus) => {
 
 const orderService = {
   // Lấy danh sách đơn hàng của cửa hàng
-  getOrders: async () => {
+  getOrders: async (params = {}) => {
     try {
       const response = await api.get('/api/order/order-shop');
-      const rawOrders = response.data?.data?.order || [];
+      let rawOrders = response.data?.data?.order || [];
       
-      const mappedData = rawOrders.map(order => {
+      // Client-side Filtering
+      if (params.search) {
+        const query = params.search.toLowerCase();
+        rawOrders = rawOrders.filter(o => 
+          o.orderId.toString().includes(query) || 
+          (o.user?.FullName || '').toLowerCase().includes(query) ||
+          (o.products || []).some(p => p.toLowerCase().includes(query))
+        );
+      }
+
+      if (params.status) {
+        rawOrders = rawOrders.filter(o => o.orderStatus?.toLowerCase() === params.status.toLowerCase() || mapStatus(o.orderStatus).type === params.status);
+      }
+
+      if (params.payment) {
+        const isPaid = params.payment === 'paid';
+        rawOrders = rawOrders.filter(o => isPaid ? o.paymentStatus === 'PAID' : o.paymentStatus !== 'PAID');
+      }
+
+      if (params.startDate) {
+        const start = new Date(params.startDate);
+        start.setHours(0, 0, 0, 0);
+        rawOrders = rawOrders.filter(o => new Date(o.createdAt) >= start);
+      }
+
+      if (params.endDate) {
+        const end = new Date(params.endDate);
+        end.setHours(23, 59, 59, 999);
+        rawOrders = rawOrders.filter(o => new Date(o.createdAt) <= end);
+      }
+
+      // Pagination setup 
+      const total = rawOrders.length;
+      const page = params.page || 1;
+      const limit = params.limit || 8;
+      const startIndex = (page - 1) * limit;
+      const paginatedOrders = rawOrders.slice(startIndex, startIndex + limit);
+      
+      const mappedData = paginatedOrders.map(order => {
         const statusInfo = mapStatus(order.orderStatus);
         return {
           id: `#ORD-${order.orderId}`,
@@ -59,10 +97,10 @@ const orderService = {
       return {
         data: mappedData,
         pagination: {
-          page: 1,
-          total: mappedData.length,
-          totalPages: 1,
-          hasMore: false,
+          page: page,
+          total: total,
+          totalPages: Math.ceil(total / limit),
+          hasMore: startIndex + limit < total,
         }
       };
     } catch (error) {
