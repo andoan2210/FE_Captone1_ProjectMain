@@ -9,8 +9,8 @@ import ChangePassword from './pages/auth/ChangePassword';
 import ResendCode from './pages/auth/ResendCode';
 
 // New routes from main branch
-import UserProfile from "./pages/profile/UserProfile";
-import UpdateProfile from './pages/profile/UpdateProfile';
+import UserProfile from "./pages/user/UserProfile";
+import UpdateProfile from './pages/user/UpdateProfile';
 import Vieworder from './pages/shop-owner/Vieworder';
 import Manageinvoice from './pages/manage/Manageinvoice';
 import LandingPage from './pages/LandingPage/LandingPage';
@@ -22,9 +22,9 @@ import ShopOwnerLayout from './components/shop-owner/ShopOwnerLayout';
 import Products from './pages/shop-owner/Products';
 import AddProduct from './pages/shop-owner/AddProduct';
 import EditProduct from './pages/shop-owner/EditProduct';
-import QuanLyCuaHang from './pages/shop-owner/ShopOwner';
+import CuaHang from './pages/shop-owner/CuaHang';
 
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import ProtectedRoute from './pages/auth/ProtectedRoute';
 
 // Admin components (if needed separately)
 // import AdminLayout from './components/Admin/AdminLayout';
@@ -51,8 +51,8 @@ function App() {
       <Route path="/change-password" element={<ChangePassword />} />
 
       {/* New functional routes */}
-      <Route path="/profile/UserProfile" element={<UserProfile />} />
-      <Route path="/profile/UpdateProfile" element={<UpdateProfile />} />
+      <Route path="/user/UserProfile" element={<UserProfile />} />
+      <Route path="/user/UpdateProfile" element={<UpdateProfile />} />
 
       <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
 
@@ -60,7 +60,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['ShopOwner']} />}>
         <Route path="/shop-owner" element={<ShopOwnerLayout />}>
           <Route index element={<Navigate to="store" replace />} />
-          <Route path="store" element={<QuanLyCuaHang />} />
+          <Route path="store" element={<CuaHang />} />
           <Route path="dashboard" element={<div className="p-6">Trang Dashboard đang phát triển</div>} />
           <Route path="products" element={<Products />} />
           <Route path="products/add" element={<AddProduct />} />

@@ -1,5 +1,6 @@
 // Sản phẩm
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // Thêm createPortal để xử lý dropdown không bị che khuất
 import {
   FiArrowLeft, FiUpload, FiPlus, FiSave, FiX,
   FiBold, FiItalic, FiList, FiLink, FiInfo, FiImage, FiGrid, FiCheck, FiTrash2, FiDollarSign
@@ -8,6 +9,115 @@ import { useNavigate } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
 import { ProductService } from '../../services/ProductService';
 import { CategoryService } from '../../services/CategoryService';
+
+// =============================================================================
+// [0] DANH SÁCH GỢI Ý (SUGGESTIONS)
+// =============================================================================
+const COMMON_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Freesize', 'One size'];
+const SHOE_SIZES = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
+const ALL_SIZE_OPTIONS = [...COMMON_SIZES, ...SHOE_SIZES];
+
+// =============================================================================
+// [Sub-Component] BỘ CHỌN SIZE CAO CẤP (PORTAL BASED)
+// =============================================================================
+const SuggestibleSizeInput = ({ value, onChange, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState({ bottom: 0, left: 0, width: 0 });
+  const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  const updateCoords = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCoords({
+        bottom: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      updateCoords();
+      window.addEventListener('scroll', updateCoords, true);
+      window.addEventListener('resize', updateCoords);
+    }
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('resize', updateCoords);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none pr-8"
+        />
+        <div
+          className="absolute right-3 cursor-pointer text-slate-400 hover:text-blue-600 transition-colors"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+
+      {isOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'absolute',
+            top: coords.bottom - 4,
+            left: coords.left,
+            width: coords.width,
+            transform: 'translateY(-100%)',
+            zIndex: 9999
+          }}
+          className="bg-white border border-slate-100 rounded-xl shadow-2xl py-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
+          <div className="max-h-[250px] overflow-y-auto custom-scrollbar-mini">
+            <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 mb-1">Gợi ý kích thước</div>
+            {ALL_SIZE_OPTIONS.map(option => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm font-semibold transition-all hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between ${value === option ? 'bg-blue-50 text-blue-600' : 'text-slate-600'}`}
+              >
+                {option}
+                {value === option && <FiCheck size={14} />}
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
 
 // =============================================================================
 // [1] KHỞI TẠO COMPONENT & QUẢN LÝ TRẠNG THÁI (STATE)
@@ -50,10 +160,6 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     fetchCategories();
   }, []);
 
-  // =============================================================================
-  // [2] CÁC HÀM XỬ LÝ SỰ KIỆN (EVENT HANDLERS)
-  // =============================================================================
-
   // Xử lý Xóa sản phẩm
   const handleDeleteConfirmed = async () => {
     try {
@@ -80,7 +186,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     }
     if (!isDraft) {
       if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
-  
+
       if (!formData.variants || formData.variants.length === 0) {
         newErrors.variants = 'Vui lòng thêm ít nhất một biến thể sản phẩm';
       } else {
@@ -96,7 +202,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         });
         if (variantErrors.length > 0) newErrors.variants = variantErrors[0];
       }
-  
+
       if (formData.images.length === 0) newErrors.images = 'Vui lòng tải lên ít nhất một hình ảnh sản phẩm';
     }
 
@@ -143,7 +249,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     setFormData(prev => ({ ...prev, images: newImages }));
     setIsDirty(true);
   };
-  
+
   // --- QUẢN LÝ BIẾN THỂ ---
   const addVariant = () => {
     setFormData(prev => ({
@@ -152,7 +258,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     }));
     setIsDirty(true);
   };
-  
+
   const removeVariant = (id) => {
     if (formData.variants.length <= 1) return;
     setFormData(prev => ({
@@ -161,7 +267,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     }));
     setIsDirty(true);
   };
-  
+
   const updateVariant = (id, field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -172,7 +278,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       setErrors(prev => ({ ...prev, variants: null }));
     }
   };
-  
+
   // Xử lý LƯU SẢN PHẨM (Add hoặc Update)
   const handleSave = async (isDraft = false) => {
     if (!validateForm(isDraft)) return;
@@ -181,10 +287,10 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     try {
       // 1. Lọc ra các ảnh cũ (dạng URL từ server thật, loại bỏ blob local)
       const existingImages = formData.images.filter(img => typeof img === 'string' && !img.startsWith('blob:'));
-      
+
       // 2. Cập nhật data chuẩn bị gửi
       const updatedData = { ...formData, existingImages };
-      
+
       // 3. Gửi tất tần tật (dữ liệu + file) qua 1 lượt gọi API giống như cách sửa Cửa Hàng
       await ProductService.saveProduct(updatedData, isEdit, pendingFiles);
 
@@ -198,11 +304,11 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       }, 2000);
     } catch (error) {
       console.error("Save failed", error.response?.data || error);
-      
+
       // Bắt thông báo lỗi thực tế từ Backend (ví dụ: "Store not found", "Category not found")
       const beError = error.response?.data?.message || "Lỗi cập nhật. Vui lòng thử lại!";
       const errMsg = Array.isArray(beError) ? beError[0] : beError;
-      
+
       alert("Backend từ chối lưu dữ liệu: " + errMsg);
       setErrors(prev => ({ ...prev, submit: errMsg }));
     } finally {
@@ -239,13 +345,20 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   // =============================================================================
   return (
     <div className="space-y-8 text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <style>{`
+        .custom-scrollbar-mini::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar-mini::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar-mini::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar-mini::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+      `}</style>
+
       {/* 3.1 Tiêu đề & Nút quay lại */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2 font-medium">
             <span>Trang chủ</span>
             <span className="text-slate-300">/</span>
-            <span>Cửa hàng</span>
+            <span>Sản phẩm</span>
             <span className="text-slate-300">/</span>
             <span className="text-blue-600">{isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm'}</span>
           </nav>
@@ -358,7 +471,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
             </div>
           </div>
 
-          {/* 3.2 Nhóm: Biến thể sản phẩm (THAY CHO GIÁ & KHO HÀNG) */}
+          {/* 3.2 Nhóm: Biến thể sản phẩm */}
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 overflow-hidden">
             <div className="flex items-center justify-between pb-4 border-b border-slate-50">
               <div className="flex items-center gap-3">
@@ -376,14 +489,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 Thêm biến thể
               </button>
             </div>
-  
+
             <div className="overflow-x-auto -mx-4 px-4 custom-scrollbar">
-              <style>{`
-                .custom-scrollbar::-webkit-scrollbar { height: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-              `}</style>
               <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="text-left border-b border-slate-100">
@@ -398,12 +505,10 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                   {formData.variants.map((v, idx) => (
                     <tr key={v.id} className="group hover:bg-slate-50/50 transition-colors">
                       <td className="py-4 px-2">
-                        <input
-                          type="text"
+                        <SuggestibleSizeInput
                           value={v.size}
-                          onChange={(e) => updateVariant(v.id, 'size', e.target.value)}
-                          placeholder="L, XL, 40..."
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                          onChange={(val) => updateVariant(v.id, 'size', val)}
+                          placeholder="S, M, L..."
                         />
                       </td>
                       <td className="py-4 px-2">
@@ -411,8 +516,8 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                           type="text"
                           value={v.color}
                           onChange={(e) => updateVariant(v.id, 'color', e.target.value)}
-                          placeholder="Đỏ, Xanh..."
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                          placeholder="Màu sắc..."
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                         />
                       </td>
                       <td className="py-4 px-2">
@@ -421,7 +526,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                           value={v.stock}
                           onChange={(e) => updateVariant(v.id, 'stock', e.target.value)}
                           placeholder="0"
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                         />
                       </td>
                       <td className="py-4 px-2">
@@ -430,7 +535,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                           value={v.price}
                           onChange={(e) => updateVariant(v.id, 'price', e.target.value)}
                           placeholder="0"
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm font-bold text-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                         />
                       </td>
                       <td className="py-4 px-2 text-center">

@@ -1,6 +1,6 @@
 // Cửa hàng
 /**
- * File: QuanLyCuaHang.jsx
+ * File: CuaHang.jsx
  * Mục đích: Trang (Page) tổng hợp của tính năng "Quản lý cửa hàng". 
  * Gọi duy nhất 1 lần API lấy thông tin cửa hàng hiện hành và truyền dữ liệu xuyên suốt (thông qua props)
  * xuống cho FormCuaHang và ThongTinHeThong để đảm bảo đồng nhất nội dung, tiết kiệm network.
@@ -11,7 +11,7 @@ import FormCuaHang from '@/components/shop-owner/FormCuaHang';
 import ThongTinHeThong from '@/components/shop-owner/ThongTinHeThong';
 import { CuahangService } from '@/services/CuahangService';
 
-export default function QuanLyCuaHang() {
+export default function CuaHang() {
   const [storeInfo, setStoreInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +63,10 @@ export default function QuanLyCuaHang() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-8 text-left">
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quản lý cửa hàng</h1>
+      </div>
       <TheThongKe stats={storeInfo} isActive={storeInfo?.isActive} />
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">

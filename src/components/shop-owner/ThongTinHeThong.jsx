@@ -13,9 +13,9 @@ export default function ThongTinHeThong({ storeInfo }) {
       <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/60 p-7 w-full lg:w-80 h-fit animate-pulse text-left text-slate-800">
         <div className="h-6 w-1/2 bg-slate-200 rounded-md mb-8"></div>
         <div className="space-y-5">
-           <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
-           <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
-           <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
+          <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
+          <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
+          <div className="h-12 w-full bg-slate-100 rounded-xl"></div>
         </div>
       </div>
     );
@@ -34,7 +34,7 @@ export default function ThongTinHeThong({ storeInfo }) {
   return (
     <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/60 p-7 w-full lg:w-80 h-fit text-left text-slate-800">
       <h2 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100/60 pb-5 flex items-center gap-2">
-        <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><FiInfo className="text-lg" /></div> 
+        <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><FiInfo className="text-lg" /></div>
         Thông tin hệ thống
       </h2>
       <div className="space-y-4">

@@ -158,15 +158,7 @@ export default function FormCuaHang({ initialData, onUpdateSuccess }) {
           <textarea id="description" name="description" rows={5} value={formData.description} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 focus:bg-white rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm text-slate-800 placeholder-slate-400 resize-none shadow-sm leading-relaxed" />
         </div>
 
-        <div className="flex items-center justify-between p-5 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">Trạng thái hoạt động</h3>
-            <p className="text-xs text-slate-500 mt-1">Bật trạng thái này để mở bán và hiển thị cho khách hàng.</p>
-          </div>
-          <button type="button" onClick={handleToggleActive} className={`${formData.isActive ? 'bg-blue-600 shadow-blue-500/30' : 'bg-slate-200 shadow-slate-300/30'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm`}>
-            <span className={`${formData.isActive ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out`} />
-          </button>
-        </div>
+
 
         <div className="pt-6 mt-8 border-t border-slate-100/80 flex items-center justify-end gap-4">
           <button type="button" onClick={handleCancel} disabled={isSaving} className="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:border-slate-300 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all shadow-sm hover:shadow disabled:opacity-50">Hủy bỏ</button>

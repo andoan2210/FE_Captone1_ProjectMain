@@ -7,7 +7,8 @@ import {
   getBestSellerProducts,
   getProductsByCategory,
   getTopStores,
-  getTopVouchers
+  getTopVouchers,
+  getCategories
 } from '../../services/LandingPageService';
 import api from '../../services/api';
 import * as CartService from '../../services/CartService.js';
@@ -53,15 +54,6 @@ const mockProducts = [
     tag: 'MỚI',
     image:
       'https://down-vn.img.susercontent.com/file/vn-11134207-820l4-mgncqvvh9w5o20',
-  },
-  {
-    id: 4,
-    name: 'Giày Sneaker Phản Quang Urban Style',
-    category: 'GIÀY DÉP',
-    price: '1.500.000đ',
-    tag: 'MỚI',
-    image:
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85&auto=format&fit=crop',
   },
 ];
 
@@ -112,14 +104,7 @@ const mockBrands = [
   { id: 5, name: 'Ivy Moda', followers: '210K FOLLOWERS', rating: 4.8 },
 ];
 
-const CATEGORY_ITEMS = [
-  { id: 'all', label: 'Tất cả sản phẩm' },
-  { id: 'men', label: 'Nam giới' },
-  { id: 'women', label: 'Nữ giới' },
-  { id: 'kids', label: 'Trẻ em' },
-  { id: 'accessories', label: 'Phụ kiện' },
-  { id: 'shoes', label: 'Giày dép' },
-];
+// CATEGORY_ITEMS is now dynamic, initialized with 'all'
 
 function getUserDisplayNameFromToken() {
   const token = localStorage.getItem('token');
@@ -152,7 +137,7 @@ function ProductCard({ product }) {
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const token = localStorage.getItem('token');
     if (!token) {
       showCardToast('warn', 'Hãy đăng nhập!');
@@ -166,7 +151,7 @@ function ProductCard({ product }) {
       const res = await api.get(`/api/product/detail/${product.id}`);
       const data = res.data;
       const variants = data.variants || [];
-      
+
       if (!variants.length) {
         showCardToast('error', 'Hết hàng!');
         return;
@@ -232,9 +217,9 @@ function ProductCard({ product }) {
           <Link className="btn-outline" to={`/products/${product.id}`}>
             Chi tiết
           </Link>
-          <button 
-            type="button" 
-            className="btn-primary product-link-btn" 
+          <button
+            type="button"
+            className="btn-primary product-link-btn"
             onClick={handleQuickAdd}
             disabled={adding}
           >
@@ -273,39 +258,42 @@ export default function LandingPage() {
   const [hasMoreCategory, setHasMoreCategory] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [userLabel, setUserLabel] = useState(null);
+  const [dbCategories, setDbCategories] = useState([]);
 
   useEffect(() => {
     async function loadUser() {
       const token = localStorage.getItem('token');
       if (!token) {
-        // Khách vãng lai - không có token, không cần gọi API
         setUserLabel(null);
-        return;
+      } else {
+        setUserLabel(getUserDisplayNameFromToken());
+        try {
+          const response = await api.get('/api/auth/profile');
+          const profile = response.data;
+          setUserLabel(
+            profile.FullName || profile.fullName ||
+            profile.Email || profile.email ||
+            profile.UserName || profile.username ||
+            getUserDisplayNameFromToken()
+          );
+        } catch { }
       }
+    }
 
-      // Trước tiên set từ JWT decode để UX nhanh hơn
-      setUserLabel(getUserDisplayNameFromToken());
-
+    async function loadCategories() {
       try {
-        // Sử dụng instance `api` đã cấu hình thay vì axios thô
-        const response = await api.get('/api/auth/profile');
-        const profile = response.data;
-        setUserLabel(
-          profile.FullName ||
-          profile.fullName ||
-          profile.Email ||
-          profile.email ||
-          profile.UserName ||
-          profile.username ||
-          getUserDisplayNameFromToken()
-        );
-      } catch {
-        // API profile lỗi → giữ nguyên tên từ JWT token, KHÔNG redirect
-        // (interceptor đã được fix để không redirect khi có token hợp lệ nhưng API 404)
+        const res = await getCategories(100);
+        console.log("Debug Categories API:", res.data);
+        // NestJS trả về mảng kết quả trực tiếp [ {id, name, parentId}, ... ]
+        const list = Array.isArray(res.data) ? res.data : [];
+        setDbCategories(list);
+      } catch (err) {
+        console.error("Lỗi khi tải danh mục từ database:", err);
       }
     }
 
     loadUser();
+    loadCategories();
   }, []);
 
   const handleLogout = () => {
@@ -340,52 +328,52 @@ export default function LandingPage() {
         if (!isMounted) return;
 
         // Bóc tách dữ liệu: Thành công lấy data, Lỗi trả về []
-        const newRaw    = results[0].status === 'fulfilled' ? (results[0].value?.data || []) : [];
-        const bestRaw   = results[1].status === 'fulfilled' ? (results[1].value?.data || []) : [];
+        const newRaw = results[0].status === 'fulfilled' ? (results[0].value?.data || []) : [];
+        const bestRaw = results[1].status === 'fulfilled' ? (results[1].value?.data || []) : [];
         const storesRaw = results[2].status === 'fulfilled' ? (results[2].value?.data || []) : [];
         const vouchersRaw = results[3].status === 'fulfilled' ? (results[3].value?.data || []) : [];
 
         // Map sản phẩm mới nhất — BE trả về: { ProductId, ProductName, Price, ThumbnailUrl, CategoryName }
         const mappedNew = newRaw.length > 0 ? newRaw.map((item) => ({
-          id:       item.ProductId ?? item.id,
-          name:     item.ProductName ?? item.name,
+          id: item.ProductId ?? item.id,
+          name: item.ProductName ?? item.name,
           category: item.CategoryName ?? item.categoryName ?? 'MỚI NHẤT',
-          price:    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                      Number(item.Price ?? item.price ?? 0)
-                    ),
-          tag:   'MỚI',
+          price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+            Number(item.Price ?? item.price ?? 0)
+          ),
+          tag: 'MỚI',
           image: item.ThumbnailUrl ?? item.thumbnail ?? 'https://via.placeholder.com/520x580?text=No+Image',
         })) : mockProducts; // fallback mock nếu API lỗi
 
         // Map sản phẩm bán chạy — BE trả về: { id, name, price, thumbnail, categoryName, sold }
         const mappedBest = bestRaw.length > 0 ? bestRaw.map((item) => ({
-          id:       item.id ?? item.ProductId,
-          name:     item.name ?? item.ProductName,
+          id: item.id ?? item.ProductId,
+          name: item.name ?? item.ProductName,
           category: item.categoryName ?? item.CategoryName ?? 'BÁN CHẠY',
-          price:    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                      Number(item.price ?? item.Price ?? 0)
-                    ),
-          tag:   '🔥 HOT',
+          price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+            Number(item.price ?? item.Price ?? 0)
+          ),
+          tag: '🔥 HOT',
           image: item.thumbnail ?? item.ThumbnailUrl ?? 'https://via.placeholder.com/520x580?text=No+Image',
         })) : mockPersonalized; // fallback mock nếu API lỗi
 
         // Map top stores — BE trả về: { StoreId, StoreName, LogoUrl, ... } hoặc chưa có API
         const mappedStores = storesRaw.length > 0 ? storesRaw.map((store) => ({
-          id:        store.StoreId ?? store.id,
-          name:      store.StoreName ?? store.name,
-          logo:      store.LogoUrl ?? store.logo ?? null,
+          id: store.StoreId ?? store.id,
+          name: store.StoreName ?? store.name,
+          logo: store.LogoUrl ?? store.logo ?? null,
           followers: store.followers ?? '100K FOLLOWERS',
-          rating:    store.rating ?? 4.9,
+          rating: store.rating ?? 4.9,
         })) : mockBrands; // fallback mock nếu BE chưa có API
 
         // Map vouchers — BE trả về: { VoucherId, Code, DiscountPercent, ... } hoặc chưa có API
         const mappedVouchers = vouchersRaw.length > 0 ? vouchersRaw.map((voucher) => ({
-          id:       voucher.VoucherId ?? voucher.id,
+          id: voucher.VoucherId ?? voucher.id,
           discount: voucher.DiscountPercent
-                      ? `${voucher.DiscountPercent}%`
-                      : (voucher.DiscountAmount ? `${Math.round(voucher.DiscountAmount / 1000)}k` : 'SALE'),
-          code:     voucher.Code ?? voucher.code ?? 'VOUCHER',
-          desc:     voucher.Description ?? `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString('vi-VN')}đ`,
+            ? `${voucher.DiscountPercent}%`
+            : (voucher.DiscountAmount ? `${Math.round(voucher.DiscountAmount / 1000)}k` : 'SALE'),
+          code: voucher.Code ?? voucher.code ?? 'VOUCHER',
+          desc: voucher.Description ?? `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString('vi-VN')}đ`,
         })) : offers; // fallback mock nếu BE chưa có API
 
         setNewProductsData(mappedNew);
@@ -426,30 +414,25 @@ export default function LandingPage() {
       setIsLoadingMore(true);
       try {
 
-        // LƯU Ý QUAN TRỌNG: Bạn hãy mở bảng Categories trong SQL Database ra xem lại ID.
-        // ID ở đây PHẢI KHỚP với ID trong Database thì nó mới không bị lộn xộn.
-        const categoryMap = {
-          'men': 1,        // Nếu trong DB, ID 1 là Thời trang nam
-          'women': 2,      // Nếu ID 2 là Thời trang nữ
-          'kids': 3,       // ...
-          'accessories': 4,
-          'shoes': 5
-        };
+        // Xử lý kiểu dữ liệu ID (NestJS thường trả về Number)
+        const currentActiveId = activeCategory;
 
-        const limitPerLoad = 9; // Tải 9 sản phẩm mỗi lần theo ý bạn
+        const limitPerLoad = 9;
         let newData = [];
+        let totalCountFromBE = 0;
 
-        if (activeCategory === 'all') {
-          // Xử lý riêng cho "Tất cả": BE không có API lấy ALL có phân trang, 
-          // nên ta dùng API lấy sản phẩm mới nhất (sẽ được tự động sếp mới nhất lên đầu).
+        if (currentActiveId === 'all') {
           const limit = categoryPage * limitPerLoad;
           const res = await getNewProducts(limit);
           newData = res.data || [];
+          totalCountFromBE = newData.length;
         } else {
-          // Xử lý cho từng danh mục riêng
-          const catId = categoryMap[activeCategory] || 1;
-          const res = await getProductsByCategory(catId, categoryPage, limitPerLoad);
+          // Ép kiểu ID về Number để chắc chắn API nhận đúng
+          const catIdForAPI = isNaN(currentActiveId) ? currentActiveId : Number(currentActiveId);
+          const res = await getProductsByCategory(catIdForAPI, categoryPage, limitPerLoad);
           newData = res.data || [];
+          // Giả sử API trả về total hoặc lấy chiều dài mảng mới nhất làm căn cứ
+          totalCountFromBE = newData.length;
         }
 
         if (!isMounted) return;
@@ -560,14 +543,16 @@ export default function LandingPage() {
 
       <nav className="main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          {/* Thêm style cursor: pointer để hiện bàn tay khi trỏ chuột */}
           <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>TẤT CẢ DANH MỤC</span>
-          <span onClick={() => handleNavClick('men')} style={{ cursor: 'pointer' }}>Thời trang Nam</span>
-          <span onClick={() => handleNavClick('women')} style={{ cursor: 'pointer' }}>Thời trang Nữ</span>
-          <span onClick={() => handleNavClick('shoes')} style={{ cursor: 'pointer' }}>Giày dép</span>
-          <span>Túi xách</span>
-          <span onClick={() => handleNavClick('accessories')} style={{ cursor: 'pointer' }}>Phụ kiện</span>
-          <span>Đồ thể thao</span>
+          {dbCategories.map(cat => (
+            <span
+              key={cat.id}
+              onClick={() => handleNavClick(cat.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              {cat.name}
+            </span>
+          ))}
           <span className="text-red">BST Thu Đông</span>
           <span className="text-red">Đồ hiệu sale</span>
           <span className="flash-sale">⚡ Flash Sale</span>
@@ -588,9 +573,16 @@ export default function LandingPage() {
               ướm thử tức thì ngay trên màn hình.
             </p>
             <div className="hero-buttons">
-              <Link to="/products/1" className="btn-primary large">
+              <a 
+                href="#category-section-target" 
+                className="btn-primary large"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick('all');
+                }}
+              >
                 Khám phá ngay →
-              </Link>
+              </a>
               <button type="button" className="btn-outline large">
                 Thử đồ AI
               </button>
@@ -655,9 +647,16 @@ export default function LandingPage() {
               <h2 id="new-products-heading">Sản phẩm mới nhất</h2>
               <p>Cập nhật những xu hướng thời trang mới nhất vừa lên kệ</p>
             </div>
-            <Link to="/products/1" className="view-all">
+            <a 
+              href="#category-section-target" 
+              className="view-all"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick('all');
+              }}
+            >
               Xem tất cả &gt;
-            </Link>
+            </a>
           </div>
           <div className="products-grid">
             {(newProducts.length ? newProducts : mockProducts).map((product) => (
@@ -736,14 +735,24 @@ export default function LandingPage() {
           <div className="category-sidebar">
             <h2 id="hot-cat-heading">Danh mục hot</h2>
             <ul className="category-menu">
-              {CATEGORY_ITEMS.map((item) => (
-                <li key={item.id}>
+              <li>
+                <button
+                  type="button"
+                  className={activeCategory === 'all' ? 'active' : ''}
+                  onClick={() => setActiveCategory('all')}
+                >
+                  Tất cả sản phẩm
+                </button>
+              </li>
+              {dbCategories.map((cat) => (
+                <li key={cat.id}>
                   <button
                     type="button"
-                    className={item.id === activeCategory ? 'active' : ''}
-                    onClick={() => setActiveCategory(item.id)}
+                    // So sánh linh hoạt (==) vì ID từ DB có thể là Number, trong khi state sau redirect có thể là String
+                    className={String(cat.id) === String(activeCategory) ? 'active' : ''}
+                    onClick={() => handleNavClick(cat.id)}
                   >
-                    {item.label}
+                    {cat.name}
                   </button>
                 </li>
               ))}

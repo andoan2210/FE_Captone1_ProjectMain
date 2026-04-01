@@ -111,16 +111,25 @@ const Products = () => {
   };
 
   // Logic Lọc Dữ Liệu
+  // Logic Lọc Dữ Liệu - Thêm kiểm tra an toàn (null check)
   const filteredProducts = allProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'Tất cả danh mục' || product.category === categoryFilter;
-    const matchesStatus = statusFilter === 'Tất cả' || product.status === statusFilter;
+    const name = product.name || product.productName || '';
+    const sku = product.sku || product.productSku || '';
+    
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sku.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const category = product.category || product.categoryName || 'Tất cả danh mục';
+    const matchesCategory = categoryFilter === 'Tất cả danh mục' || category === categoryFilter;
+    
+    const matchesStatus = statusFilter === 'Tất cả' || product.status === statusFilter || (product.isActive ? 'Đang hoạt động' : 'Tạm ẩn') === statusFilter;
 
     let matchesStock = true;
-    if (stockFilter === 'Hết hàng') matchesStock = product.stock === 0;
-    else if (stockFilter === 'Sắp hết hàng') matchesStock = product.stock > 0 && product.stock < 10;
-    else if (stockFilter === 'Còn hàng') matchesStock = product.stock >= 10;
+    const currentStock = product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0) : (product.stock || 0);
+    
+    if (stockFilter === 'Hết hàng') matchesStock = currentStock === 0;
+    else if (stockFilter === 'Sắp hết hàng') matchesStock = currentStock > 0 && currentStock < 10;
+    else if (stockFilter === 'Còn hàng') matchesStock = currentStock >= 10;
 
     return matchesSearch && matchesCategory && matchesStatus && matchesStock;
   });
@@ -143,12 +152,7 @@ const Products = () => {
       {/* Header & Breadcrumbs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <nav className="flex items-center text-sm text-slate-500 mb-2 gap-2">
-            <span>Trang chủ</span>
-            <span className="text-slate-300">/</span>
-            <span className="font-medium text-blue-600">Cửa hàng</span>
-          </nav>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quản lý cửa hàng</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quản lý sản phẩm</h1>
         </div>
         <button
           onClick={() => navigate('/shop-owner/products/add')}
@@ -320,8 +324,12 @@ const Products = () => {
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                       </div>
                       <div>
-                        <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer">{product.name}</div>
-                        <div className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-wide">SKU: {product.sku}</div>
+                        <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer">
+                          {product.name || product.productName || 'Chưa có tên'}
+                        </div>
+                        <div className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-wide">
+                          SKU: {product.sku || product.productSku || 'N/A'}
+                        </div>
                         {product.variants && product.variants.length > 0 && (
                           <div className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
                             Phân loại: {Array.from(new Set(product.variants.map(v => v.size))).filter(Boolean).join(', ')} 
@@ -333,7 +341,9 @@ const Products = () => {
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm font-semibold text-slate-600">{product.category}</span>
+                    <span className="text-sm font-semibold text-slate-600">
+                      {product.category || product.categoryName || 'Chưa phân loại'}
+                    </span>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
@@ -377,11 +387,12 @@ const Products = () => {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex justify-center">
-                      <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${product.status === 'Đang hoạt động'
+                      <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${
+                        (product.status === 'Đang hoạt động' || product.isActive)
                         ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
                         : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                         }`}>
-                        {product.status}
+                        {product.status || (product.isActive ? 'Đang hoạt động' : 'Tạm ẩn')}
                       </span>
                     </div>
                   </td>

@@ -17,7 +17,7 @@ export default function ShopOwnerLayout() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
         
         <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-8 shrink-0 z-10">
-          <div className="text-2xl font-bold text-slate-800 tracking-tight">Quản lý cửa hàng</div>
+          <div className="text-2xl font-bold text-slate-800 tracking-tight"></div>
           <div className="flex items-center gap-4">
             <button className="p-2.5 text-slate-500 bg-white rounded-full border border-slate-200 shadow-sm hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
