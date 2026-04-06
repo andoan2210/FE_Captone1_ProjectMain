@@ -1,37 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FaTrashAlt, FaArrowLeft, FaShoppingCart, FaSearch, FaBell, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
-import { BsStars } from 'react-icons/bs';
-import { jwtDecode } from 'jwt-decode';
-import * as CartService from '../../services/CartService.js';
-import { CategoryService } from '../../services/CategoryService';
-import '../LandingPage/LandingPage.css';
-import '../ProductDetail/ProductDetail.css';
-import './ShoppingCart.css';
+import React, { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  FaTrashAlt,
+  FaArrowLeft,
+  FaShoppingCart,
+  FaSearch,
+  FaBell,
+  FaFacebookF,
+  FaInstagram,
+  FaYoutube,
+  FaSignOutAlt,
+  FaUserCircle,
+} from "react-icons/fa";
+import userService from "../../services/userService";
+import { BsStars } from "react-icons/bs";
+import { jwtDecode } from "jwt-decode";
+import * as CartService from "../../services/CartService.js";
+import { CategoryService } from "../../services/CategoryService";
+import '../LandingPage/LangdingPage.css';
+import '../ProductDetail/ProductDetailPage.css';
+import "./ShoppingCart.css";
 
-function getUserDisplayNameFromToken() {
-  const token = localStorage.getItem('token')
-  if (!token) return null
-  try {
-    const payload = jwtDecode(token)
-    return (
-      payload.email ||
-      payload.name ||
-      payload.fullName ||
-      payload.username ||
-      payload.sub ||
-      null
-    )
-  } catch {
-    return null
-  }
-}
-
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userProfile, dbCategories, onLogout }) {
   const navigate = useNavigate();
 
   const handleNavClick = (categoryId) => {
-    navigate('/', { state: { category: categoryId } });
+    navigate("/", { state: { category: categoryId } });
   };
 
   return (
@@ -56,13 +50,35 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
-            {userLabel ? (
-              <>
-                <span className="user-profile">{userLabel}</span>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
+            {userProfile ? (
+              <div className="user-profile-wrapper">
+                <Link to="/user/UserProfile" className="user-info-link">
+                  {userProfile.avatar ? (
+                    <img
+                      src={userProfile.avatar}
+                      alt="Avatar"
+                      className="user-avatar"
+                    />
+                  ) : (
+                    <FaUserCircle className="user-avatar-placeholder" />
+                  )}
+                  <span className="user-name">
+                    {userProfile.fullName ||
+                      userProfile.FullName ||
+                      userProfile.email ||
+                      "Người dùng"}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className="logout-btn-premium"
+                  onClick={onLogout}
+                  title="Đăng xuất"
+                >
+                  <FaSignOutAlt />
+                  <span>Rời đi</span>
                 </button>
-              </>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
@@ -79,12 +95,19 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 
       <nav className="main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>
+          <span
+            onClick={() => handleNavClick("all")}
+            style={{ cursor: "pointer" }}
+          >
             TẤT CẢ DANH MỤC
           </span>
           {dbCategories &&
             dbCategories.map((cat) => (
-              <span key={cat.id} onClick={() => handleNavClick(cat.id)} style={{ cursor: 'pointer' }}>
+              <span
+                key={cat.id}
+                onClick={() => handleNavClick(cat.id)}
+                style={{ cursor: "pointer" }}
+              >
                 {cat.name}
               </span>
             ))}
@@ -94,7 +117,7 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
         </div>
       </nav>
     </>
-  )
+  );
 }
 
 function PageFooter() {
@@ -136,39 +159,86 @@ function PageFooter() {
         <div className="lp-footer-social">
           <h3 className="lp-footer-title">Kết nối</h3>
           <div className="lp-social-icons">
-            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Facebook"
+            >
               <FaFacebookF />
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Instagram"
+            >
               <FaInstagram />
             </a>
-            <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">
+            <a
+              href="https://youtube.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="YouTube"
+            >
               <FaYoutube />
             </a>
           </div>
         </div>
       </div>
       <div className="lp-footer-bottom">
-        <div className="container">© {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.</div>
+        <div className="container">
+          © {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.
+        </div>
       </div>
     </footer>
-  )
+  );
 }
 export default function ShoppingCart() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherCode, setVoucherCode] = useState("");
   const [dbCategories, setDbCategories] = useState([]);
   const navigate = useNavigate();
 
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [userProfile, setUserProfile] = useState(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
+
+  const getUserDisplayNameFromToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+      const decoded = jwtDecode(token);
+      return decoded.sub || decoded.email || decoded.name || null;
+    } catch (e) {
+      return null;
+    }
   };
 
   useEffect(() => {
+    async function loadUser() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUserProfile(null);
+      } else {
+        try {
+          const profile = await userService.getUserProfile();
+          setUserProfile(profile);
+        } catch (err) {
+          console.error("Lỗi khi tải profile:", err);
+          const displayName = getUserDisplayNameFromToken();
+          if (displayName) {
+            setUserProfile({ fullName: displayName });
+          }
+        }
+      }
+    }
+    loadUser();
+
     fetchCart();
     fetchCategories();
   }, []);
@@ -177,7 +247,11 @@ export default function ShoppingCart() {
     try {
       const res = await CategoryService.getAllCategories();
       // NestJS trả về mảng trực tiếp
-      const list = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+      const list = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res)
+          ? res
+          : [];
       setDbCategories(list);
     } catch (err) {
       console.error("Lỗi tải danh mục:", err);
@@ -186,9 +260,9 @@ export default function ShoppingCart() {
 
   const fetchCart = async () => {
     setLoading(true);
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
@@ -197,40 +271,47 @@ export default function ShoppingCart() {
       const data = response.data;
 
       let items = [];
-      if (typeof data === 'string') {
+      if (typeof data === "string") {
         items = [];
       } else {
-        items = Array.isArray(data) ? data : (data.cartItems || data.items || []);
+        items = Array.isArray(data) ? data : data.cartItems || data.items || [];
       }
 
       if (items.length > 0) {
-        const formattedCart = items.map(item => {
+        const formattedCart = items.map((item) => {
           const variant = item.ProductVariants || item.variant || {};
-          const product = variant.Products || variant.product || item.Product || {};
+          const product =
+            variant.Products || variant.product || item.Product || {};
 
           return {
             cartItemId: item.CartItemId || item.id,
             variantId: item.VariantId || item.variantId,
-            name: product.ProductName || product.name || 'Sản phẩm',
+            name: product.ProductName || product.name || "Sản phẩm",
             price: variant.Price || product.Price || product.price || 0,
             quantity: item.Quantity || item.quantity || 1,
-            size: variant.Size || variant.size || 'M',
-            color: variant.Color || variant.color || 'Mặc định',
-            image: product.ThumbnailUrl || product.thumbnail || product.image || 'https://via.placeholder.com/150',
+            size: variant.Size || variant.size || "M",
+            color: variant.Color || variant.color || "Mặc định",
+            image:
+              product.ThumbnailUrl ||
+              product.thumbnail ||
+              product.image ||
+              "https://via.placeholder.com/150",
             stock: variant.Stock || variant.stock || 50,
             aiSuggest: item.aiSuggest || null,
           };
         });
         setCartItems(formattedCart);
-        localStorage.setItem('local_cart', JSON.stringify(formattedCart));
+        localStorage.setItem("local_cart", JSON.stringify(formattedCart));
       } else {
         setCartItems([]);
-        localStorage.removeItem('local_cart');
+        localStorage.removeItem("local_cart");
       }
     } catch (error) {
-      console.error('Lỗi khi tải giỏ hàng từ API:', error);
+      console.error("Lỗi khi tải giỏ hàng từ API:", error);
       if (!error.response) {
-        const localCart = JSON.parse(localStorage.getItem('local_cart') || '[]');
+        const localCart = JSON.parse(
+          localStorage.getItem("local_cart") || "[]",
+        );
         setCartItems(localCart);
       } else {
         setCartItems([]);
@@ -248,60 +329,77 @@ export default function ShoppingCart() {
     }
 
     const originalCart = [...cartItems];
-    const updatedCart = cartItems.map(item =>
-      item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
+    const updatedCart = cartItems.map((item) =>
+      item.cartItemId === cartItemId
+        ? { ...item, quantity: newQuantity }
+        : item,
     );
     setCartItems(updatedCart);
-    localStorage.setItem('local_cart', JSON.stringify(updatedCart));
+    localStorage.setItem("local_cart", JSON.stringify(updatedCart));
 
     try {
       await CartService.updateCartItem(cartItemId, newQuantity);
     } catch (error) {
-      console.error('Lỗi khi cập nhật số lượng ở Backend:', error);
+      console.error("Lỗi khi cập nhật số lượng ở Backend:", error);
       setCartItems(originalCart);
-      localStorage.setItem('local_cart', JSON.stringify(originalCart));
-      alert('Không thể cập nhật số lượng. Vui lòng thử lại sau!');
+      localStorage.setItem("local_cart", JSON.stringify(originalCart));
+      alert("Không thể cập nhật số lượng. Vui lòng thử lại sau!");
     }
   };
 
   const handleRemoveItem = async (cartItemId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
+    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?"))
+      return;
 
     const originalCart = [...cartItems];
 
-    const updatedCart = cartItems.filter(item => item.cartItemId !== cartItemId);
+    const updatedCart = cartItems.filter(
+      (item) => item.cartItemId !== cartItemId,
+    );
     setCartItems(updatedCart);
-    localStorage.setItem('local_cart', JSON.stringify(updatedCart));
+    localStorage.setItem("local_cart", JSON.stringify(updatedCart));
 
     try {
       await CartService.removeCartItem(cartItemId);
     } catch (error) {
-      console.error('Lỗi khi xóa sản phẩm ở Backend:', error);
+      console.error("Lỗi khi xóa sản phẩm ở Backend:", error);
       setCartItems(originalCart);
-      localStorage.setItem('local_cart', JSON.stringify(originalCart));
-      alert('Có lỗi xảy ra khi xóa sản phẩm. Vui lòng thử lại!');
+      localStorage.setItem("local_cart", JSON.stringify(originalCart));
+      alert("Có lỗi xảy ra khi xóa sản phẩm. Vui lòng thử lại!");
     }
   };
 
   // Tính toán giỏ hàng
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0,
+  );
   const discount = subtotal > 0 ? 50000 : 0;
   const shippingFee = subtotal > 0 ? 30000 : 0;
   const total = subtotal > 0 ? subtotal - discount + shippingFee : 0;
 
-  if (loading) return (
-    <div className="landing-page-container pd-shell">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
-      <div className="cart-page-bg" style={{ minHeight: '60vh' }}>
-        <div className="cart-loading">Đang tải giỏ hàng...</div>
+  if (loading)
+    return (
+      <div className="landing-page-container pd-shell">
+        <PageHeader
+          userProfile={userProfile}
+          dbCategories={dbCategories}
+          onLogout={handleLogout}
+        />
+        <div className="cart-page-bg" style={{ minHeight: "60vh" }}>
+          <div className="cart-loading">Đang tải giỏ hàng...</div>
+        </div>
+        <PageFooter />
       </div>
-      <PageFooter />
-    </div>
-  );
+    );
 
   return (
     <div className="landing-page-container pd-shell">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+      <PageHeader
+        userProfile={userProfile}
+        dbCategories={dbCategories}
+        onLogout={handleLogout}
+      />
       <div className="cart-page-bg">
         <div className="container cart-container-main">
           <nav className="cart-breadcrumb" aria-label="Breadcrumb">
@@ -314,7 +412,10 @@ export default function ShoppingCart() {
             <div className="cart-left-col">
               <h1 className="cart-main-title">
                 <FaShoppingCart className="cart-title-icon" />
-                Giỏ hàng của bạn <span className="cart-count">({cartItems.length} sản phẩm)</span>
+                Giỏ hàng của bạn{" "}
+                <span className="cart-count">
+                  ({cartItems.length} sản phẩm)
+                </span>
               </h1>
 
               {cartItems.length === 0 ? (
@@ -323,32 +424,69 @@ export default function ShoppingCart() {
                 <div className="cart-items-wrapper">
                   {cartItems.map((item) => (
                     <div key={item.cartItemId} className="cart-item-card">
-                      <img src={item.image} alt={item.name} className="cart-item-img" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="cart-item-img"
+                      />
 
                       <div className="cart-item-details">
                         <h3 className="cart-item-name">{item.name}</h3>
-                        <p className="cart-item-variant">Size: {item.size}, Màu: {item.color}</p>
+                        <p className="cart-item-variant">
+                          Size: {item.size}, Màu: {item.color}
+                        </p>
 
                         {item.aiSuggest && (
                           <div className="cart-ai-suggest">
-                            <BsStars className="ai-icon" /> Gợi ý AI: {item.aiSuggest}
+                            <BsStars className="ai-icon" /> Gợi ý AI:{" "}
+                            {item.aiSuggest}
                           </div>
                         )}
 
                         <div className="cart-qty-wrapper">
-                          <button onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1, item.stock)}>-</button>
+                          <button
+                            onClick={() =>
+                              handleUpdateQuantity(
+                                item.cartItemId,
+                                item.quantity - 1,
+                                item.stock,
+                              )
+                            }
+                          >
+                            -
+                          </button>
                           <input type="text" value={item.quantity} readOnly />
-                          <button onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1, item.stock)}>+</button>
+                          <button
+                            onClick={() =>
+                              handleUpdateQuantity(
+                                item.cartItemId,
+                                item.quantity + 1,
+                                item.stock,
+                              )
+                            }
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
 
                       <div className="cart-item-right">
-                        <button className="cart-btn-trash" onClick={() => handleRemoveItem(item.cartItemId)}>
+                        <button
+                          className="cart-btn-trash"
+                          onClick={() => handleRemoveItem(item.cartItemId)}
+                        >
                           <FaTrashAlt />
                         </button>
                         <div className="cart-price-info">
-                          <span className="cart-unit-price">Đơn giá: {item.price.toLocaleString('vi-VN')} đ</span>
-                          <span className="cart-total-line">{(item.price * item.quantity).toLocaleString('vi-VN')} đ</span>
+                          <span className="cart-unit-price">
+                            Đơn giá: {item.price.toLocaleString("vi-VN")} đ
+                          </span>
+                          <span className="cart-total-line">
+                            {(item.price * item.quantity).toLocaleString(
+                              "vi-VN",
+                            )}{" "}
+                            đ
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -381,15 +519,15 @@ export default function ShoppingCart() {
                 <div className="summary-calc">
                   <div className="calc-row">
                     <span>Tạm tính</span>
-                    <span>{subtotal.toLocaleString('vi-VN')} đ</span>
+                    <span>{subtotal.toLocaleString("vi-VN")} đ</span>
                   </div>
                   <div className="calc-row discount-row">
                     <span>Giảm giá</span>
-                    <span>-{discount.toLocaleString('vi-VN')} đ</span>
+                    <span>-{discount.toLocaleString("vi-VN")} đ</span>
                   </div>
                   <div className="calc-row">
                     <span>Phí vận chuyển</span>
-                    <span>{shippingFee.toLocaleString('vi-VN')} đ</span>
+                    <span>{shippingFee.toLocaleString("vi-VN")} đ</span>
                   </div>
                 </div>
 
@@ -397,11 +535,15 @@ export default function ShoppingCart() {
                   <div className="total-header">
                     <span>Tổng cộng</span>
                     <div className="total-price-col">
-                      <span className="total-amount">{total.toLocaleString('vi-VN')} đ</span>
+                      <span className="total-amount">
+                        {total.toLocaleString("vi-VN")} đ
+                      </span>
                       <span className="vat-note">(Đã bao gồm VAT nếu có)</span>
                     </div>
                   </div>
-                  <button className="btn-checkout-primary">Thanh toán ngay</button>
+                  <button className="btn-checkout-primary">
+                    Thanh toán ngay
+                  </button>
                 </div>
               </div>
             </div>

@@ -27,7 +27,9 @@ export default function Manageinvoice() {
       setLoading(true);
       setError(null);
       const response = await invoiceService.getMockInvoices();
-      setInvoices(response.data || []);
+      // Handle both mock API (direct array) and real API (object with data property)
+      const invoicesData = Array.isArray(response) ? response : (response.data || []);
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
     } catch (err) {
       setError('Không thể tải danh sách hóa đơn. Vui lòng thử lại.');
       console.error('Error fetching invoices:', err);

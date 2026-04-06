@@ -15,7 +15,7 @@ export default function ShopOwnerLayout() {
         {/* Subtle Background Glows */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-        
+
         <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-8 shrink-0 z-10">
           <div className="text-2xl font-bold text-slate-800 tracking-tight"></div>
           <div className="flex items-center gap-4">

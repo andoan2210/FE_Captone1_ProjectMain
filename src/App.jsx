@@ -23,6 +23,7 @@ import Products from './pages/shop-owner/Products';
 import AddProduct from './pages/shop-owner/AddProduct';
 import EditProduct from './pages/shop-owner/EditProduct';
 import CuaHang from './pages/shop-owner/CuaHang';
+import ChatPage from './pages/chat/ChatPage';
 
 import ProtectedRoute from './pages/auth/ProtectedRoute';
 
@@ -40,6 +41,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/products/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<ShoppingCart />} />
+      <Route path="/chat" element={<ChatPage />} />
       
       <Route path="/login" element={<Login />} />
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
@@ -67,6 +69,7 @@ function App() {
           <Route path="products/edit/:id" element={<EditProduct />} />
           <Route path="orders" element={<Vieworder />} />
           <Route path="vouchers" element={<div className="p-6">Vouchers Preview</div>} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="settings" element={<div className="p-6">Settings Preview</div>} />
         </Route>
       </Route>

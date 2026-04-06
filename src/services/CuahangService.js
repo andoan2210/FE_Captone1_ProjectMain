@@ -22,4 +22,15 @@ export const CuahangService = {
     const response = await api.get('/api/store/top-store', { params: { limit } });
     return response.data;
   },
+
+  // Lấy thông tin cửa hàng bán sản phẩm nào đó
+  getStoreByProduct: async (productId) => {
+    try {
+      const response = await api.get(`/api/store/product/${productId}`);
+      return response.data || null;
+    } catch (err) {
+      console.warn(`Lỗi tải thông tin cửa hàng cho sản phẩm ${productId}:`, err);
+      return null;
+    }
+  },
 };

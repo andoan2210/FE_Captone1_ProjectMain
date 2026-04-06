@@ -16,35 +16,21 @@ import {
   FaInstagram,
   FaYoutube,
   FaUserCircle,
+  FaSignOutAlt,
   FaCheck,
 } from 'react-icons/fa'
+import userService from '../../services/userService'
 import { jwtDecode } from 'jwt-decode'
-import api from '../../services/api'
-import * as ProductDetailService from '../../services/ProductDetailService'
+import { ProductService } from '../../services/ProductService'
 import { CategoryService } from '../../services/CategoryService'
-import '../LandingPage/LandingPage.css'
-import './ProductDetail.css'
+import { CuahangService } from '../../services/CuahangService'
+import chatService from '../../services/chatService'
+import { useSocket } from '../../hooks/useSocket'
+import '../LandingPage/LangdingPage.css'
+import './ProductDetailPage.css'
 
 // Reuse user label logic
-function getUserDisplayNameFromToken() {
-  const token = localStorage.getItem('token')
-  if (!token) return null
-  try {
-    const payload = jwtDecode(token)
-    return (
-      payload.email ||
-      payload.name ||
-      payload.fullName ||
-      payload.username ||
-      payload.sub ||
-      null
-    )
-  } catch {
-    return null
-  }
-}
-
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userProfile, dbCategories, onLogout }) {
   const navigate = useNavigate()
   const handleNavClick = (categoryId) => {
     navigate('/', { state: { category: categoryId } })
@@ -72,13 +58,23 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
-            {userLabel ? (
-              <>
-                <span className="user-profile">{userLabel}</span>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
+            {userProfile ? (
+              <div className="user-profile-wrapper">
+                <Link to="/user/UserProfile" className="user-info-link">
+                  {userProfile.avatar ? (
+                    <img src={userProfile.avatar} alt="Avatar" className="user-avatar" />
+                  ) : (
+                    <FaUserCircle className="user-avatar-placeholder" />
+                  )}
+                  <span className="user-name">
+                    {userProfile.fullName || userProfile.FullName || userProfile.email || 'Người dùng'}
+                  </span>
+                </Link>
+                <button type="button" className="logout-btn-premium" onClick={onLogout} title="Đăng xuất">
+                  <FaSignOutAlt />
+                  <span>Rời đi</span>
                 </button>
-              </>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
@@ -174,7 +170,7 @@ function Footer() {
 export default function ProductDetail() {
   const { id: idParam } = useParams()
   const navigate = useNavigate()
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), [])
+  const [userProfile, setUserProfile] = useState(null);
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -189,9 +185,47 @@ export default function ProductDetail() {
 
   const [dbCategories, setDbCategories] = useState([])
   const [wishlisted, setWishlisted] = useState(false)
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
+  const [storeInfo, setStoreInfo] = useState(null)
+  const [loadingStore, setLoadingStore] = useState(false)
+  const [isChatLoading, setIsChatLoading] = useState(false)
 
-  // Tải danh mục
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000)
+  }
+
+  const getUserDisplayNameFromToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      const decoded = jwtDecode(token);
+      return decoded.sub || decoded.email || decoded.name || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   useEffect(() => {
+    async function loadUser() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUserProfile(null);
+      } else {
+        try {
+          const profile = await userService.getUserProfile();
+          setUserProfile(profile);
+        } catch (err) {
+          console.error("Lỗi khi tải profile:", err);
+          const displayName = getUserDisplayNameFromToken();
+          if (displayName) {
+            setUserProfile({ fullName: displayName });
+          }
+        }
+      }
+    }
+    loadUser();
+
     async function fetchCats() {
       try {
         // Bypass cache bằng cách không truyền limit mặc định hoặc truyền limit cao
@@ -214,12 +248,13 @@ export default function ProductDetail() {
       setNotFound(false)
 
       try {
-        const res = await ProductDetailService.getProductById(idParam)
-        const data = res.data
+        const data = await ProductService.getProductById(idParam)
 
         if (data) {
           setProduct(data)
-          setSelectedImage(data.thumbnail || (data.images && data.images[0]) || '')
+          // Mặc định chọn ảnh thu nhỏ hoặc ảnh đầu tiên
+          const thumbnail = data.thumbnail || data.image || (data.images && data.images[0]) || '';
+          setSelectedImage(thumbnail)
 
           if (data.variants && data.variants.length > 0) {
             const firstVariant = data.variants[0]
@@ -237,6 +272,25 @@ export default function ProductDetail() {
       }
     }
     loadProductDetail()
+  }, [idParam])
+
+  // Tải thông tin cửa hàng
+  useEffect(() => {
+    async function loadStoreInfo() {
+      if (!idParam) return
+      setLoadingStore(true)
+      try {
+        const res = await CuahangService.getStoreByProduct(idParam)
+        if (res) {
+          setStoreInfo(res)
+        }
+      } catch (err) {
+        console.error('Lỗi tải thông tin shop:', err)
+      } finally {
+        setLoadingStore(false)
+      }
+    }
+    loadStoreInfo()
   }, [idParam])
 
   // --- LOGIC XỬ LÝ BIẾN THỂ ---
@@ -295,17 +349,65 @@ export default function ProductDetail() {
     try {
       // Logic thêm vào giỏ hàng với variantId
       console.log('Thêm vào giỏ:', currentVariant.variantId, 'Số lượng:', quantity)
-      alert('Đã thêm sản phẩm vào giỏ hàng!')
-      navigate('/cart')
+      showToast('Đã thêm sản phẩm vào giỏ hàng!', 'success')
+      // navigate('/cart') // Bỏ navigate để user ở lại trang và thấy toast
     } catch (err) {
-      alert('Có lỗi xảy ra, vui lòng thử lại.')
+      showToast('Có lỗi xảy ra, vui lòng thử lại.', 'error')
     }
   }
 
   const handleBuyNow = () => {
     if (!currentVariant) return
-    // Chuyển sang trang thanh toán hoặc giỏ hàng
     navigate('/cart')
+  }
+
+  // ── Xử lý Chat ngay ──
+  const { joinConversation } = useSocket()
+
+  const handleChatNow = async () => {
+    if (isChatLoading) return
+
+    // Kiểm tra đăng nhập
+    const token = localStorage.getItem('token')
+    if (!token) {
+      showToast('Vui lòng đăng nhập để chat với cửa hàng!', 'error')
+      setTimeout(() => navigate('/login'), 1500)
+      return
+    }
+
+    // Cần có storeId từ storeInfo
+    if (!storeInfo?.storeId) {
+      showToast('Không tìm thấy thông tin cửa hàng!', 'error')
+      return
+    }
+
+    try {
+      setIsChatLoading(true)
+
+      // 1. Gọi API tạo hoặc lấy lại cuộc hội thoại với shop (truyền storeId)
+      const result = await chatService.startChat(storeInfo.storeId)
+      const conversationId = result?.ConversationId
+
+      if (!conversationId) {
+        throw new Error('Không nhận được conversationId từ server')
+      }
+
+      // 2. Join socket room ngay để sẵn sàng nhận tin nhắn realtime
+      joinConversation(conversationId)
+
+      // 3. Chuyển đến trang chat với conversationId đã mở sẵn
+      navigate('/chat', { state: { conversationId } })
+    } catch (err) {
+      console.error('[Chat] Lỗi bắt đầu chat:', err)
+      if (err?.response?.status === 401) {
+        showToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!', 'error')
+        setTimeout(() => navigate('/login'), 1500)
+      } else {
+        showToast('Không thể kết nối với cửa hàng. Vui lòng thử lại!', 'error')
+      }
+    } finally {
+      setIsChatLoading(false)
+    }
   }
 
   if (loading) {
@@ -331,7 +433,7 @@ export default function ProductDetail() {
 
   return (
     <div className="pd-page-wrapper">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+      <PageHeader userProfile={userProfile} dbCategories={dbCategories} onLogout={handleLogout} />
 
       <main className="pd-main-content">
         <div className="container">
@@ -514,6 +616,49 @@ export default function ProductDetail() {
             </div>
           </div>
 
+          {/* Store Section */}
+          {storeInfo && (
+            <div className="pd-store-card">
+              <div className="pd-store-left">
+                <div className="pd-store-avatar-wrap">
+                  <img 
+                    src={storeInfo.logoUrl || 'https://via.placeholder.com/80?text=Store'} 
+                    alt={storeInfo.storeName} 
+                    className="pd-store-avatar"
+                  />
+                  <div className="pd-store-badge-fav">YÊU THÍCH +</div>
+                </div>
+                <div className="pd-store-main-info">
+                  <h3 className="pd-store-name">{storeInfo.storeName || 'SmartAI Fashion Flagship Store'}</h3>
+                  <div className="pd-store-stats-row">
+                    <span className="pd-store-stat">Phản hồi: <span className="text-blue">99% (trong vài phút)</span></span>
+                    <span className="pd-store-sep">|</span>
+                    <span className="pd-store-stat">Sản phẩm: <span className="text-blue">{storeInfo.productCount || 0}</span></span>
+                  </div>
+                </div>
+              </div>
+              <div className="pd-store-actions">
+                <button 
+                  className={`pd-store-btn pd-store-btn-chat ${isChatLoading ? 'loading' : ''}`}
+                  onClick={handleChatNow}
+                  disabled={isChatLoading}
+                >
+                  {isChatLoading ? (
+                    <>
+                      <span className="pd-chat-spinner" />
+                      Đang kết nối...
+                    </>
+                  ) : (
+                    'Chat ngay'
+                  )}
+                </button>
+                <Link to={`/store/${storeInfo.storeId}`} className="pd-store-btn pd-store-btn-view">
+                  Xem cửa hàng
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <section className="pd-description-section">
             <h2 className="pd-section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -528,6 +673,17 @@ export default function ProductDetail() {
       </main>
 
       <Footer />
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`pd-toast ${toast.type}`}>
+          <div className="pd-toast-content">
+            {toast.type === 'success' ? <FaCheck className="pd-toast-icon" /> : <FaUndo className="pd-toast-icon" />}
+            <span>{toast.message}</span>
+          </div>
+          <div className="pd-toast-progress"></div>
+        </div>
+      )}
     </div>
   )
 }

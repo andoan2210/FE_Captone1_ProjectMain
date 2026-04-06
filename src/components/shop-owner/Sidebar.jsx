@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiGrid, FiBox, FiShoppingCart, FiTag, FiSettings, FiBriefcase, FiLogOut } from 'react-icons/fi';
+import { FiGrid, FiBox, FiShoppingCart, FiTag, FiSettings, FiBriefcase, FiLogOut, FiMessageSquare } from 'react-icons/fi';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../services/api';
 
@@ -13,6 +13,7 @@ const menuItems = [
   { name: 'Dashboard', path: '/shop-owner/dashboard', icon: FiGrid },
   { name: 'Sản phẩm', path: '/shop-owner/products', icon: FiBox },
   { name: 'Đơn hàng', path: '/shop-owner/orders', icon: FiShoppingCart },
+  { name: 'Tin nhắn', path: '/shop-owner/chat', icon: FiMessageSquare },
   { name: 'Vouchers', path: '/shop-owner/vouchers', icon: FiTag },
   { name: 'Cửa hàng', path: '/shop-owner/store', icon: FiBriefcase },
 ];
@@ -69,17 +70,15 @@ export default function Sidebar() {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `group flex items-center px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100/50'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              `group flex items-center px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive
+                ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100/50'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`
             }
           >
             <item.icon
               className={({ isActive }) =>
-                `mr-3 text-lg transition-transform duration-200 group-hover:scale-110 ${
-                  isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
+                `mr-3 text-lg transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
                 }`
               }
             />
@@ -96,15 +95,14 @@ export default function Sidebar() {
             <p className="text-sm font-bold text-slate-800 truncate">{user.fullName}</p>
             <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             disabled={isLoggingOut}
             title="Đăng xuất"
-            className={`p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center ${
-              isLoggingOut 
-                ? 'text-slate-300 cursor-not-allowed' 
+            className={`p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center ${isLoggingOut
+                ? 'text-slate-300 cursor-not-allowed'
                 : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-            }`}
+              }`}
           >
             {isLoggingOut ? (
               <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></div>

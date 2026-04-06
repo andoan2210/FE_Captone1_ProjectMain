@@ -5,7 +5,7 @@
 
 // ========== CONFIG ==========
 const API_CONFIG = {
-  USE_MOCK_API: true, // TRUE: Mock API | FALSE: Real API
+  USE_MOCK_API: false, // TRUE: Mock API | FALSE: Real API
   API_BASE_URL: 'http://localhost:8080/api', // Thay đổi URL backend
   TIMEOUT: 5000,
 };
@@ -249,7 +249,7 @@ const realAPI = {
   // Get all invoices
   getAllInvoices: async () => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices`, {
+      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoice`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ const realAPI = {
   // Get invoice by ID
   getInvoiceById: async (id) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
+      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoice/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ const realAPI = {
   // Delete invoice
   deleteInvoice: async (id) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
+      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoice/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -333,7 +333,7 @@ const realAPI = {
   // Create invoice
   createInvoice: async (invoiceData) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices`, {
+      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoice`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,7 +360,7 @@ const realAPI = {
   // Update invoice
   updateInvoice: async (id, updateData) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
+      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoice/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

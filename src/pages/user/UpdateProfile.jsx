@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
 import { CategoryService } from '../../services/CategoryService';
-import '../LandingPage/LandingPage.css';
+import '../LandingPage/LangdingPage.css';
 import './UpdateProfile.css';
 
 function getUserDisplayNameFromToken() {

@@ -7,10 +7,39 @@ export const ProductService = {
     return response.data;
   },
 
-  // Lấy chi tiết sản phẩm theo ID
+  // Lấy chi tiết sản phẩm theo ID - sử dụng endpoint /detail
   getProductById: async (id) => {
-    const response = await api.get(`/api/product/${id}`);
-    return response.data;
+    try {
+      const response = await api.get(`/api/product/detail/${id}`);
+      return response.data || null;
+    } catch (err) {
+      console.warn(`Lỗi tải chi tiết sản phẩm ${id}:`, err);
+      return null;
+    }
+  },
+
+  // Lấy sản phẩm mới nhất (New Products) - limit tuỳ chỉnh
+  getNewProduct: async (limit = 4) => {
+    try {
+      const response = await api.get(`/api/product?limit=${limit}&sort=newest`);
+      const data = response.data || [];
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('Lỗi tải sản phẩm mới:', err);
+      return [];
+    }
+  },
+
+  // Lấy sản phẩm bán chạy nhất (Best Seller Products) - limit tuỳ chỉnh
+  getBestSellerProduct: async (limit = 4) => {
+    try {
+      const response = await api.get(`/api/product?limit=${limit}&sort=bestseller`);
+      const data = response.data || [];
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('Lỗi tải sản phẩm bán chạy:', err);
+      return [];
+    }
   },
 
   // Lưu sản phẩm (Add hoặc Update) chuẩn FormData giống CuaHang

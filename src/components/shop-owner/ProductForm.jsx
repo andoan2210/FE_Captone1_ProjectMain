@@ -126,9 +126,13 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ...initialData,
-    name: initialData?.name || '',
-    category: initialData?.category || '',
-    status: initialData?.status || 'Đang hoạt động',
+    id: initialData?.id || initialData?.productId || null,
+    name: initialData?.name || initialData?.productName || '',
+    productName: initialData?.productName || initialData?.name || '',
+    category: initialData?.categoryId || initialData?.category?.id || initialData?.category?.categoryId || '', 
+    categoryId: initialData?.categoryId || initialData?.category?.id || initialData?.category?.categoryId || null,
+    // [LUÔN MẶC ĐỊNH HOẠT ĐỘNG] theo yêu cầu của USER: "nào cần tắt thì tắt sau"
+    status: 'Đang hoạt động',
     description: initialData?.description || '',
     variants: initialData?.variants || [
       { id: Date.now(), size: '', color: '', stock: '', price: '' }
@@ -201,6 +205,16 @@ const ProductForm = ({ initialData, isEdit = false }) => {
           }
         });
         if (variantErrors.length > 0) newErrors.variants = variantErrors[0];
+      }
+
+      if (!formData.description.trim()) {
+        newErrors.description = 'Vui lòng nhập mô tả sản phẩm';
+      }
+
+      // Kiểm tra biến thể: Ít nhất 1 biến thể hợp lệ (Size và Price > 0)
+      const validVariants = formData.variants.filter(v => (v.size || '').trim() !== '' && Number(v.price) > 0);
+      if (validVariants.length === 0) {
+        newErrors.variants = 'Cần ít nhất 1 biến thể có Kích thước và Giá hợp lệ';
       }
 
       if (formData.images.length === 0) newErrors.images = 'Vui lòng tải lên ít nhất một hình ảnh sản phẩm';
