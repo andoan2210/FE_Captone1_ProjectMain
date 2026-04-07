@@ -124,17 +124,30 @@ const SuggestibleSizeInput = ({ value, onChange, placeholder }) => {
 // =============================================================================
 const ProductForm = ({ initialData, isEdit = false }) => {
   const navigate = useNavigate();
+
+  // Trạng thái Form dựa trên initialData từ Backend
   const [formData, setFormData] = useState({
     ...initialData,
-    name: initialData?.name || '',
-    category: initialData?.category || '',
-    status: initialData?.status || 'Đang hoạt động',
+    productId: initialData?.id || initialData?.productId || null,
+    name: initialData?.name || initialData?.productName || '',
+    category: initialData?.categoryId || '', // Dùng CategoryId để select hiển thị đúng
+    status: (initialData?.isActive !== undefined)
+      ? (initialData.isActive ? 'Đang hoạt động' : 'Tạm ẩn')
+      : 'Đang hoạt động',
     description: initialData?.description || '',
-    variants: initialData?.variants || [
-      { id: Date.now(), size: '', color: '', stock: '', price: '' }
-    ],
-    images: initialData?.images || (initialData?.image ? [initialData.image] : [])
+    variants: (initialData?.variants || initialData?.ProductVariants || []).map(v => ({
+      id: v.variantId || v.VariantId || Date.now() + Math.random(),
+      size: v.size || v.Size || '',
+      color: v.color || v.Color || '',
+      stock: v.stock || v.Stock || 0,
+      price: v.price || v.Price || 0
+    })),
+    images: [] // Sẽ được xử lý ở useEffect bên dưới
   });
+
+  // Track các ảnh cần xóa khi Edit
+  const [removeImageIds, setRemoveImageIds] = useState([]);
+  const [existingImagesInfo, setExistingImagesInfo] = useState([]); // { imageId, imageUrl }
 
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -146,19 +159,53 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   const [categories, setCategories] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Lấy tải danh mục từ BE
+  // Lấy danh mục và xử lý dữ liệu ảnh ban đầu
   useEffect(() => {
-    const fetchCategories = async () => {
+    const initForm = async () => {
       try {
-        const data = await CategoryService.getAllCategories();
-        // Giả sử mảng trả về có { CategoryId, CategoryName }
-        setCategories(Array.isArray(data) ? data : []);
+        const catData = await CategoryService.getAllCategories();
+        setCategories(Array.isArray(catData) ? catData : []);
+
+        if (isEdit && initialData) {
+          // Xử lý ảnh: thumbnail + images phụ
+          const allImages = [];
+          const info = [];
+
+          if (initialData.thumbnail || initialData.thumbnailUrl) {
+            const url = initialData.thumbnail || initialData.thumbnailUrl;
+            allImages.push(url);
+            // Thumbnail thường không có ImageId riêng trong bảng ProductImages nếu lưu ở bảng Products
+            // Nhưng nếu cần xóa/thay thế, ta xử lý qua uploadService
+          }
+
+          if (initialData.images && Array.isArray(initialData.images)) {
+            // Backend trả về mảng string URL hoặc object tùy endpoint
+            initialData.images.forEach(img => {
+              const url = typeof img === 'string' ? img : img.imageUrl;
+              allImages.push(url);
+              if (img.imageId) info.push({ imageId: img.imageId, imageUrl: url });
+            });
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            images: allImages,
+            category: initialData.categoryId || prev.category
+          }));
+          setExistingImagesInfo(info);
+        } else if (!isEdit && formData.variants.length === 0) {
+          // Mặc định 1 dòng biến thể khi thêm mới
+          setFormData(prev => ({
+            ...prev,
+            variants: [{ id: Date.now(), size: '', color: '', stock: '', price: '' }]
+          }));
+        }
       } catch (error) {
-        console.error("Failed to load categories", error);
+        console.error("Failed to init form", error);
       }
     };
-    fetchCategories();
-  }, []);
+    initForm();
+  }, [isEdit, initialData]);
 
   // Xử lý Xóa sản phẩm
   const handleDeleteConfirmed = async () => {
@@ -187,6 +234,12 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (!isDraft) {
       if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
 
+      if (!formData.description) {
+        newErrors.description = 'Hệ thống cần ít nhất một đoạn mô tả về sản phẩm';
+      } else if (formData.description.length < 20) {
+        newErrors.description = 'Mô tả quá ngắn, vui lòng nhập ít nhất 20 ký tự';
+      }
+
       if (!formData.variants || formData.variants.length === 0) {
         newErrors.variants = 'Vui lòng thêm ít nhất một biến thể sản phẩm';
       } else {
@@ -203,7 +256,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         if (variantErrors.length > 0) newErrors.variants = variantErrors[0];
       }
 
-      if (formData.images.length === 0) newErrors.images = 'Vui lòng tải lên ít nhất một hình ảnh sản phẩm';
+      if (formData.images.length === 0) newErrors.images = 'Hãy tải lên ít nhất một ảnh để khách hàng dễ hình dung';
     }
 
     setErrors(newErrors);
@@ -245,6 +298,21 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   };
 
   const removeImage = (index) => {
+    const imageToRemove = formData.images[index];
+
+    // Nếu là ảnh cũ (có trong existingImagesInfo), đánh dấu để xóa ở Backend
+    const infoFound = existingImagesInfo.find(info => info.imageUrl === imageToRemove);
+    if (infoFound) {
+      setRemoveImageIds(prev => [...prev, infoFound.imageId]);
+    }
+
+    // Nếu ảnh đang xóa là ảnh mới (blob), xóa khỏi pendingFiles
+    if (imageToRemove.startsWith('blob:')) {
+      // Tìm index trong pendingFiles. Lưu ý: pendingFiles map với blob theo thứ tự thêm vào
+      // Thực tế nên dùng map name/url để chính xác hơn, ở đây ta đơn giản hóa
+      setPendingFiles(prev => prev.filter((_, i) => i !== (index - (formData.images.length - pendingFiles.length))));
+    }
+
     const newImages = formData.images.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, images: newImages }));
     setIsDirty(true);
@@ -285,18 +353,21 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
     setLoading(true);
     try {
-      // 1. Lọc ra các ảnh cũ (dạng URL từ server thật, loại bỏ blob local)
-      const existingImages = formData.images.filter(img => typeof img === 'string' && !img.startsWith('blob:'));
+      // Chuẩn bị dữ liệu gửi đi
+      const productToSave = {
+        ...formData,
+        categoryId: Number(formData.category), // Tên field match với DTO
+        productName: formData.name,            // Tên field match với DTO
+        status: formData.status                // Sẽ được service convert sang isActive
+      };
 
-      // 2. Cập nhật data chuẩn bị gửi
-      const updatedData = { ...formData, existingImages };
-
-      // 3. Gửi tất tần tật (dữ liệu + file) qua 1 lượt gọi API giống như cách sửa Cửa Hàng
-      await ProductService.saveProduct(updatedData, isEdit, pendingFiles);
+      // Gửi dữ liệu + file + danh sách ImageId cần xóa
+      await ProductService.saveProduct(productToSave, isEdit, pendingFiles, removeImageIds);
 
       setSuccessMessage(isDraft ? 'Đã lưu bản nháp thành công!' : (isEdit ? 'Đã cập nhật sản phẩm thành công!' : 'Đã thêm sản phẩm mới thành công!'));
       setIsDirty(false);
       setPendingFiles([]);
+      setRemoveImageIds([]);
 
       setTimeout(() => {
         setSuccessMessage('');
@@ -304,13 +375,9 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       }, 2000);
     } catch (error) {
       console.error("Save failed", error.response?.data || error);
-
-      // Bắt thông báo lỗi thực tế từ Backend (ví dụ: "Store not found", "Category not found")
       const beError = error.response?.data?.message || "Lỗi cập nhật. Vui lòng thử lại!";
       const errMsg = Array.isArray(beError) ? beError[0] : beError;
-
-      alert("Backend từ chối lưu dữ liệu: " + errMsg);
-      setErrors(prev => ({ ...prev, submit: errMsg }));
+      alert("Lỗi: " + errMsg);
     } finally {
       setLoading(false);
     }
@@ -450,7 +517,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 ml-1">Mô tả sản phẩm</label>
-                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                <div className={`border rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 transition-all ${errors.description ? 'border-rose-300 focus-within:ring-rose-100' : 'border-slate-100 focus-within:ring-blue-100'}`}>
                   <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-slate-100">
                     {[FiBold, FiItalic, FiList, FiLink].map((Icon, idx) => (
                       <button key={idx} className="p-2 text-slate-500 hover:bg-white hover:text-blue-600 rounded-lg transition-all" type="button">
@@ -467,6 +534,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     className="w-full px-4 py-3 text-sm focus:outline-none resize-none bg-white font-medium"
                   ></textarea>
                 </div>
+                {errors.description && <p className="text-rose-500 text-xs font-bold mt-1 ml-1">{errors.description}</p>}
               </div>
             </div>
           </div>

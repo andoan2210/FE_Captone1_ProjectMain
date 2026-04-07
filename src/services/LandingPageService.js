@@ -16,6 +16,10 @@ export const getProductsByCategory = (categoryId, page = 1, limit = 8) => {
   return api.get(`/api/product/category-product?categoryId=${categoryId}&page=${page}&limit=${limit}`);
 };
 
+export const getCategoryByParent = (parentId, limit = 10) => {
+  return api.get(`/api/category/parent-category?parentId=${parentId}&limit=${limit}`);
+};
+
 export const getTopStores = (limit = 5) => {
   return api.get(`/api/store/top-store?limit=${limit}`);
 };

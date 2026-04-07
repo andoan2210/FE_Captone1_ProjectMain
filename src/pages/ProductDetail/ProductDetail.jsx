@@ -16,12 +16,20 @@ import {
   FaInstagram,
   FaYoutube,
   FaUserCircle,
+  FaBox,
+  FaSignOutAlt,
+  FaUser,
   FaCheck,
 } from 'react-icons/fa'
 import { jwtDecode } from 'jwt-decode'
 import api from '../../services/api'
+import * as ProductService from '../../services/ProductService'
+import * as CartService from '../../services/CartService'
 import * as ProductDetailService from '../../services/ProductDetailService'
+import { CuahangService } from '../../services/CuahangService'
 import { CategoryService } from '../../services/CategoryService'
+import chatService from '../../services/chatService'
+
 import '../LandingPage/LandingPage.css'
 import './ProductDetail.css'
 
@@ -47,7 +55,11 @@ function getUserDisplayNameFromToken() {
 function PageHeader({ userLabel, dbCategories, onLogout }) {
   const navigate = useNavigate()
   const handleNavClick = (categoryId) => {
-    navigate('/', { state: { category: categoryId } })
+    if (categoryId === 'all') {
+      navigate('/')
+    } else {
+      navigate(`/category/${categoryId}`)
+    }
   }
 
   return (
@@ -73,12 +85,27 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               <FaShoppingCart />
             </Link>
             {userLabel ? (
-              <>
-                <span className="user-profile">{userLabel}</span>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
+              <div className="user-profile-wrapper">
+                <button type="button" className="user-profile-btn">
+                  <FaUserCircle style={{ fontSize: "20px", color: "var(--lp-accent)" }} />
+                  <span className="user-profile">{userLabel}</span>
                 </button>
-              </>
+                <div className="profile-dropdown">
+                  <Link to="/manage/Manageinvoice" className="profile-dropdown-item">
+                    <FaBox /> Đơn mua
+                  </Link>
+                  <Link to="/user/UserProfile" className="profile-dropdown-item">
+                    <FaUser /> Trang cá nhân
+                  </Link>
+                  <button
+                    type="button"
+                    className="profile-dropdown-item logout"
+                    onClick={onLogout}
+                  >
+                    <FaSignOutAlt /> Đăng xuất
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
@@ -189,6 +216,7 @@ export default function ProductDetail() {
 
   const [dbCategories, setDbCategories] = useState([])
   const [wishlisted, setWishlisted] = useState(false)
+  const [shopInfo, setShopInfo] = useState(null)
 
   // Tải danh mục
   useEffect(() => {
@@ -196,7 +224,8 @@ export default function ProductDetail() {
       try {
         // Bypass cache bằng cách không truyền limit mặc định hoặc truyền limit cao
         const res = await CategoryService.getAllCategories()
-        const categories = Array.isArray(res.data) ? res.data : []
+        // CategoryService.getAllCategories returns response.data already
+        const categories = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : [])
         setDbCategories(categories)
       } catch (err) {
         console.error('Lỗi tải danh mục:', err)
@@ -231,13 +260,29 @@ export default function ProductDetail() {
         }
       } catch (err) {
         console.error('Lỗi tải sp:', err)
-        setError('Không thể tải thông tin sản phẩm. Vui lòng thử lại.')
+        setError('Không thể tải thông tin sản phẩm. Vિય lòng thử lại.')
       } finally {
         setLoading(false)
       }
     }
     loadProductDetail()
   }, [idParam])
+
+  // Tải thông tin cửa hàng
+  useEffect(() => {
+    async function loadShopInfo() {
+      if (!idParam) return;
+      try {
+        const data = await CuahangService.getStoreByProduct(idParam);
+        if (data) {
+          setShopInfo(data);
+        }
+      } catch (err) {
+        console.error('Lỗi tải thông tin shop:', err);
+      }
+    }
+    loadShopInfo();
+  }, [idParam]);
 
   // --- LOGIC XỬ LÝ BIẾN THỂ ---
   const currentVariant = useMemo(() => {
@@ -265,6 +310,14 @@ export default function ProductDetail() {
   const displayPrice = currentVariant ? currentVariant.price : product ? product.price : 0
   const stockAvailable = currentVariant ? currentVariant.stock : 0
 
+  // Find category ID for linking
+  const resolvedCategoryId = useMemo(() => {
+    if (!product || !dbCategories.length) return null;
+    return dbCategories.find(c =>
+      c.name?.toLowerCase().trim() === product.categoryName?.toLowerCase().trim()
+    )?.id;
+  }, [product, dbCategories]);
+
   // --- LOGIC ẢNH ---
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -291,22 +344,76 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = async () => {
-    if (!currentVariant) return
+    if (!currentVariant) {
+      alert('Vui lòng chọn đầy đủ kích thước và màu sắc.');
+      return;
+    }
+
+    if (quantity > stockAvailable) {
+      alert(`Xin lỗi, chúng tôi chỉ còn ${stockAvailable} sản phẩm trong kho.`);
+      return;
+    }
+
     try {
-      // Logic thêm vào giỏ hàng với variantId
-      console.log('Thêm vào giỏ:', currentVariant.variantId, 'Số lượng:', quantity)
-      alert('Đã thêm sản phẩm vào giỏ hàng!')
-      navigate('/cart')
+      const res = await CartService.addToCart(currentVariant.variantId, quantity);
+      if (res.data || res.status === 200 || res.status === 201) {
+        alert('Đã thêm sản phẩm vào giỏ hàng thành công!');
+        // Cập nhật lại số lượng còn lại nếu cần (optional)
+      }
     } catch (err) {
-      alert('Có lỗi xảy ra, vui lòng thử lại.')
+      console.error('Lỗi thêm giỏ hàng:', err);
+      const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng.';
+      alert(errorMessage);
     }
   }
 
-  const handleBuyNow = () => {
-    if (!currentVariant) return
-    // Chuyển sang trang thanh toán hoặc giỏ hàng
-    navigate('/cart')
+  const handleBuyNow = async () => {
+    if (!currentVariant) {
+      alert('Vui lòng chọn đầy đủ kích thước và màu sắc.');
+      return;
+    }
+
+    if (quantity > stockAvailable) {
+      alert(`Xin lỗi, chúng tôi chỉ còn ${stockAvailable} sản phẩm trong kho.`);
+      return;
+    }
+
+    try {
+      await CartService.addToCart(currentVariant.variantId, quantity);
+      navigate('/cart');
+    } catch (err) {
+      console.error('Lỗi mua ngay:', err);
+      const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.';
+      alert(errorMessage);
+    }
   }
+
+  const handleChatNow = async () => {
+    if (!userLabel) {
+      alert("Vui lòng đăng nhập để chat với cửa hàng.");
+      navigate('/login');
+      return;
+    }
+
+    const shopId = shopInfo?.StoreId || shopInfo?.storeId || product?.StoreId || product?.storeId;
+    if (!shopId) {
+      alert("Không tìm thấy thông tin cửa hàng.");
+      return;
+    }
+
+    try {
+      const res = await chatService.startChat(shopId);
+      if (res && res.ConversationId) {
+        navigate('/chat', { state: { conversationId: res.ConversationId } });
+      } else {
+        navigate('/chat');
+      }
+    } catch (err) {
+      console.error("Lỗi bắt đầu chat:", err);
+      navigate('/chat');
+    }
+  }
+
 
   if (loading) {
     return (
@@ -339,7 +446,11 @@ export default function ProductDetail() {
           <nav className="pd-breadcrumb" aria-label="Breadcrumb">
             <Link to="/">Trang chủ</Link>
             <span className="pd-sep">/</span>
-            <Link to="#">{product.categoryName || 'Sản phẩm'}</Link>
+            {resolvedCategoryId ? (
+              <Link to={`/category/${resolvedCategoryId}`}>{product.categoryName || 'Sản phẩm'}</Link>
+            ) : (
+              <span>{product.categoryName || 'Sản phẩm'}</span>
+            )}
             <span className="pd-sep">/</span>
             <span className="pd-current">{product.name}</span>
           </nav>
@@ -349,7 +460,7 @@ export default function ProductDetail() {
             <div className="pd-gallery-section">
               <div className="pd-main-image-wrap">
                 <img src={selectedImage} alt={product.name} className="pd-main-image" />
-                
+
                 {allImages.length > 1 && (
                   <>
                     <button className="pd-nav-btn pd-nav-prev" onClick={handlePrevImage} aria-label="Ảnh trước">
@@ -388,7 +499,13 @@ export default function ProductDetail() {
             <div className="pd-info-section">
               <div className="pd-badge-row">
                 <span className="pd-badge pd-badge-dark">CỬA HÀNG</span>
-                <span className="pd-category-link">{product.categoryName}</span>
+                {resolvedCategoryId ? (
+                  <Link to={`/category/${resolvedCategoryId}`} className="pd-category-link">
+                    {product.categoryName}
+                  </Link>
+                ) : (
+                  <span className="pd-category-link">{product.categoryName}</span>
+                )}
               </div>
 
               <h1 className="pd-title">{product.name}</h1>
@@ -453,15 +570,28 @@ export default function ProductDetail() {
                   <span className="pd-option-label">Số lượng</span>
                   <div className="pd-quantity-row">
                     <div className="pd-qty-selector">
-                      <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                      >
                         -
                       </button>
                       <input
                         type="number"
                         value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        min="1"
+                        max={stockAvailable}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 1;
+                          setQuantity(Math.min(Math.max(1, val), stockAvailable || 1));
+                        }}
                       />
-                      <button onClick={() => setQuantity(quantity + 1)}>+</button>
+                      <button
+                        onClick={() => setQuantity(Math.min(quantity + 1, stockAvailable))}
+                        disabled={quantity >= stockAvailable}
+                      >
+                        +
+                      </button>
                     </div>
                     <span className="pd-stock-status">
                       {stockAvailable > 0 ? (
@@ -513,6 +643,44 @@ export default function ProductDetail() {
               </div>
             </div>
           </div>
+
+          {/* Shop Banner */}
+          <section className="pd-store-section">
+            <div className="pd-store-info">
+              <div className="pd-store-avatar-wrap">
+                <img
+                  src={shopInfo?.logoUrl || "https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg"}
+                  alt={shopInfo?.storeName || "Cửa hàng"}
+                  className="pd-store-avatar"
+                />
+                <span className="pd-store-badge">YÊU THÍCH +</span>
+              </div>
+              <div className="pd-store-details">
+                <h3 className="pd-store-name">{shopInfo?.storeName || "SmartAI Fashion Flagship Store"}</h3>
+                <div className="pd-store-stats">
+                  <div className="pd-stat-item">
+                    Phản hồi: <span className="text-blue">99% (trong vài phút)</span>
+                  </div>
+                  <span className="pd-store-sep">|</span>
+                  <div className="pd-stat-item">
+                    Sản phẩm: <span className="text-blue">{shopInfo?.productCount || 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="pd-store-actions">
+              <button className="pd-btn-store pd-btn-chat" onClick={handleChatNow}>
+                Chat ngay
+              </button>
+
+              <button
+                className="pd-btn-store pd-btn-view-store"
+                onClick={() => navigate(`/shop-owner/store`)}
+              >
+                Xem cửa hàng
+              </button>
+            </div>
+          </section>
 
           {/* Description */}
           <section className="pd-description-section">
