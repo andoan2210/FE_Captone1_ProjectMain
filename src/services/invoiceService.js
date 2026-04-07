@@ -13,70 +13,105 @@ const API_CONFIG = {
 // ========== MOCK DATA ==========
 const MOCK_INVOICES = [
   {
-    id: 'HD-001',
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@email.com',
-    phone: '0912345678',
-    address: '123 Đường Phố, Quận 1, TP.HCM',
-    date: '2024-01-15',
-    product: 'Áo thun cao cấp',
-    amount: '500.000đ',
-    payment: 'Đã thanh toán',
+    id: 'ORD12345678',
+    shopName: 'Ananas Official Store',
+    shopLogo: 'https://ananas.vn/wp-content/uploads/logo_ananas.png',
+    date: '2024-03-20 14:30',
     status: 'completed',
-    type: 'normal',
+    statusText: 'Hoàn thành',
+    items: [
+      {
+        id: 'p1',
+        name: 'Giày Sneaker Ananas Track 6 - Classics Grey',
+        image: 'https://ananas.vn/wp-content/uploads/Track6_Grey_1.jpg',
+        variant: 'Grey, Size 42',
+        price: 1250000,
+        quantity: 1
+      }
+    ],
+    totalAmount: 1250000,
+    shippingFee: 30000,
+    discount: 50000,
+    finalAmount: 1230000,
+    paymentMethod: 'Thẻ tín dụng'
   },
   {
-    id: 'HD-002',
-    name: 'Trần Thị B',
-    email: 'tranthib@email.com',
-    phone: '0987654321',
-    address: '456 Đường Lớn, Quận 3, TP.HCM',
-    date: '2024-01-16',
-    product: 'Quần jean nam',
-    amount: '750.000đ',
-    payment: 'Chưa thanh toán',
-    status: 'pending',
-    type: 'normal',
+    id: 'ORD88889999',
+    shopName: 'Coolmate Official',
+    shopLogo: 'https://mms.businesswire.com/media/20210518005459/en/878954/5/Coolmate_Logo.jpg',
+    date: '2024-03-22 09:15',
+    status: 'shipping',
+    statusText: 'Đang vận chuyển',
+    items: [
+      {
+        id: 'p2',
+        name: 'Áo thun Cotton Compact phiên bản Premium',
+        image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/January2024/ao-thun-cotton-compact-premium-den-1.jpg',
+        variant: 'Đen, Size L',
+        price: 299000,
+        quantity: 2
+      },
+      {
+        id: 'p3',
+        name: 'Quần Short thể thao Quick-Dry',
+        image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/February2024/quan-short-the-thao-den-1.jpg',
+        variant: 'Xanh Navy, Size L',
+        price: 199000,
+        quantity: 1
+      }
+    ],
+    totalAmount: 797000,
+    shippingFee: 0,
+    discount: 20000,
+    finalAmount: 777000,
+    paymentMethod: 'Ví ShopeePay'
   },
   {
-    id: 'HD-003',
-    name: 'Lê Văn C',
-    email: 'levanc@email.com',
-    phone: '0978123456',
-    address: '789 Đường Mới, Quận 5, TP.HCM',
-    date: '2024-01-10',
-    product: 'Váy nữ cao cấp',
-    amount: '1.200.000đ',
-    payment: 'Chưa thanh toán',
-    status: 'pending',
-    type: 'overdue',
+    id: 'ORD55554444',
+    shopName: 'Marc Fashion',
+    shopLogo: 'https://marc.com.vn/cdn/shop/files/Logo_MARC_2023_Black.png',
+    date: '2024-03-24 18:20',
+    status: 'pending_payment',
+    statusText: 'Chờ thanh toán',
+    items: [
+      {
+        id: 'p4',
+        name: 'Đầm Midi Hoa Nhí Dáng Xòe tay phồng',
+        image: 'https://marc.com.vn/cdn/shop/files/24-0238_1.jpg',
+        variant: 'Hoa xanh, Size M',
+        price: 850000,
+        quantity: 1
+      }
+    ],
+    totalAmount: 850000,
+    shippingFee: 25000,
+    discount: 0,
+    finalAmount: 875000,
+    paymentMethod: 'Chuyển khoản ngân hàng'
   },
   {
-    id: 'HD-004',
-    name: 'Phạm Thị D',
-    email: 'phamthid@email.com',
-    phone: '0901234567',
-    address: '321 Đường Ngắn, Quận 7, TP.HCM',
-    date: '2024-01-18',
-    product: 'Áo khoác nam',
-    amount: '950.000đ',
-    payment: 'Đã thanh toán',
-    status: 'completed',
-    type: 'normal',
-  },
-  {
-    id: 'HD-005',
-    name: 'Hoàng Văn E',
-    email: 'hoangvane@email.com',
-    phone: '0945678901',
-    address: '654 Đường Dài, Quận 2, TP.HCM',
-    date: '2024-01-19',
-    product: 'Giày thể thao',
-    amount: '650.000đ',
-    payment: 'Đã thanh toán',
-    status: 'completed',
-    type: 'normal',
-  },
+    id: 'ORD11112222',
+    shopName: 'DirtyCoins Studio',
+    shopLogo: 'https://dirtycoins.vn/images/logo.png',
+    date: '2024-03-10 11:00',
+    status: 'cancelled',
+    statusText: 'Đã hủy',
+    items: [
+      {
+        id: 'p5',
+        name: 'Hoodie Box Logo Limited Edition',
+        image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=85&auto=format&fit=crop',
+        variant: 'Trắng, Size XL',
+        price: 550000,
+        quantity: 1
+      }
+    ],
+    totalAmount: 550000,
+    shippingFee: 0,
+    discount: 0,
+    finalAmount: 550000,
+    paymentMethod: 'COD'
+  }
 ];
 
 const MOCK_INVOICE_DETAILS = {

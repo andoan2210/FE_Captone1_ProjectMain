@@ -33,11 +33,15 @@ const Products = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const data = await ProductService.getAllProducts();
-      if (Array.isArray(data)) {
-        setAllProducts(data);
-      } else if (data && Array.isArray(data.data)) {
-        setAllProducts(data.data);
+      const response = await ProductService.getMyProducts(currentPage, 100);
+      if (response && response.data) {
+        // Sắp xếp sản phẩm mới nhất lên đầu (Dựa trên updatedAt hoặc createdAt)
+        const sortedProducts = response.data.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt);
+          const dateB = new Date(b.updatedAt || b.createdAt);
+          return dateB - dateA;
+        });
+        setAllProducts(sortedProducts);
       } else {
         setAllProducts([]);
       }
@@ -54,15 +58,24 @@ const Products = () => {
   }, []);
 
   const handleDeleteClick = (product) => {
-    if (!product || !product.id) return;
+    if (!product || !product.productId) return;
     setProductToDelete(product);
     setIsDeleteModalOpen(true);
   };
 
-  const handleViewClick = (product) => {
-    if (!product || !product.id) return;
-    setProductToView(product);
-    setIsViewModalOpen(true);
+  const handleViewClick = async (product) => {
+    if (!product || !product.productId) return;
+    setLoading(true);
+    try {
+      const detail = await ProductService.getProductById(product.productId);
+      setProductToView(detail);
+      setIsViewModalOpen(true);
+    } catch (error) {
+      console.error("Lỗi tải chi tiết sản phẩm:", error);
+      alert("Không thể tải chi tiết sản phẩm");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearchChange = (e) => {
@@ -81,7 +94,7 @@ const Products = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedProducts(paginatedProducts.map(p => p.id));
+      setSelectedProducts(paginatedProducts.map(p => p.productId));
     } else {
       setSelectedProducts([]);
     }
@@ -100,7 +113,7 @@ const Products = () => {
         await ProductService.bulkDeleteProducts(selectedProducts);
         setSelectedProducts([]);
       } else if (productToDelete) {
-        await ProductService.deleteProduct(productToDelete.id);
+        await ProductService.deleteProduct(productToDelete.productId);
         setProductToDelete(null);
       }
       await fetchProducts();
@@ -113,20 +126,18 @@ const Products = () => {
   // Logic Lọc Dữ Liệu
   // Logic Lọc Dữ Liệu - Thêm kiểm tra an toàn (null check)
   const filteredProducts = allProducts.filter(product => {
-    const name = product.name || product.productName || '';
-    const sku = product.sku || product.productSku || '';
-    
-    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sku.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const category = product.category || product.categoryName || 'Tất cả danh mục';
-    const matchesCategory = categoryFilter === 'Tất cả danh mục' || category === categoryFilter;
-    
-    const matchesStatus = statusFilter === 'Tất cả' || product.status === statusFilter || (product.isActive ? 'Đang hoạt động' : 'Tạm ẩn') === statusFilter;
+    const name = product.productName || '';
+
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const categoryName = product.category?.categoryName || 'Chưa phân loại';
+    const matchesCategory = categoryFilter === 'Tất cả danh mục' || categoryName === categoryFilter;
+
+    const matchesStatus = statusFilter === 'Tất cả' || (product.isActive ? 'Đang hoạt động' : 'Tạm ẩn') === statusFilter;
 
     let matchesStock = true;
-    const currentStock = product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0) : (product.stock || 0);
-    
+    const currentStock = product.stock || 0;
+
     if (stockFilter === 'Hết hàng') matchesStock = currentStock === 0;
     else if (stockFilter === 'Sắp hết hàng') matchesStock = currentStock > 0 && currentStock < 10;
     else if (stockFilter === 'Còn hàng') matchesStock = currentStock >= 10;
@@ -140,11 +151,11 @@ const Products = () => {
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const stats = [
-    { title: 'Tổng sản phẩm', value: allProducts.length, trend: '+12% tháng này', icon: FiBox, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Đang hoạt động', value: allProducts.filter(p => p.status === 'Đang hoạt động').length, trend: '+5%', icon: FiCheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Tạm ẩn', value: allProducts.filter(p => p.status === 'Tạm ẩn').length, trend: 'Không đổi', icon: FiEyeOff, color: 'text-slate-500', bg: 'bg-slate-100' },
-    { title: 'Hết hàng', value: allProducts.filter(p => p.stock === 0).length, trend: '+2 từ hôm qua', icon: FiAlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { title: 'Tổng danh mục', value: '45', trend: 'Hoạt động tốt', icon: FiGrid, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Tổng sản phẩm', value: allProducts.length, trend: 'Toàn bộ', icon: FiBox, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Đang hoạt động', value: allProducts.filter(p => p.isActive).length, trend: 'Sẵn sàng', icon: FiCheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { title: 'Tạm ẩn', value: allProducts.filter(p => !p.isActive).length, trend: 'Đã ẩn', icon: FiEyeOff, color: 'text-slate-500', bg: 'bg-slate-100' },
+    { title: 'Hết hàng', value: allProducts.filter(p => p.stock === 0).length, trend: 'Cần nhập thêm', icon: FiAlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { title: 'Tổng danh mục', value: new Set(allProducts.map(p => p.category?.categoryId).filter(Boolean)).size, trend: 'Đang sử dụng', icon: FiGrid, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
   return (
@@ -309,100 +320,77 @@ const Products = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {paginatedProducts.length > 0 ? paginatedProducts.map((product) => (
-                <tr key={product.id} className={`hover:bg-slate-50/80 transition-colors group ${selectedProducts.includes(product.id) ? 'bg-blue-50/30' : ''}`}>
+                <tr key={product.productId} className={`hover:bg-slate-50/80 transition-colors group ${selectedProducts.includes(product.productId) ? 'bg-blue-50/30' : ''}`}>
                   <td className="px-6 py-5">
                     <input
                       type="checkbox"
-                      checked={selectedProducts.includes(product.id)}
-                      onChange={() => handleSelectProduct(product.id)}
+                      checked={selectedProducts.includes(product.productId)}
+                      onChange={() => handleSelectProduct(product.productId)}
                       className="w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-200 cursor-pointer"
                     />
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm relative group-hover:shadow-md transition-all">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        <img src={product.thumbnailUrl} alt={product.productName} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                       </div>
                       <div>
                         <div className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer">
-                          {product.name || product.productName || 'Chưa có tên'}
+                          {product.productName || 'Chưa có tên'}
                         </div>
-                        <div className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-wide">
-                          SKU: {product.sku || product.productSku || 'N/A'}
+                        <div className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                          ID: #{product.productId}
                         </div>
-                        {product.variants && product.variants.length > 0 && (
-                          <div className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
-                            Phân loại: {Array.from(new Set(product.variants.map(v => v.size))).filter(Boolean).join(', ')} 
-                            {Array.from(new Set(product.variants.map(v => v.color))).filter(Boolean).length > 0 && ' | '}
-                            {Array.from(new Set(product.variants.map(v => v.color))).filter(Boolean).join(', ')}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     <span className="text-sm font-semibold text-slate-600">
-                      {product.category || product.categoryName || 'Chưa phân loại'}
+                      {product.category?.categoryName || 'Chưa phân loại'}
                     </span>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-900">
-                        {product.variants && product.variants.length > 0
-                          ? (() => {
-                              const prices = product.variants.map(v => Number(v.price));
-                              const min = Math.min(...prices);
-                              const max = Math.max(...prices);
-                              return min === max 
-                                ? `${min.toLocaleString('vi-VN')}đ` 
-                                : `${min.toLocaleString('vi-VN')}đ - ${max.toLocaleString('vi-VN')}đ`;
-                            })()
-                          : isNaN(product.price) ? product.price : `${Number(product.price).toLocaleString('vi-VN')}đ`
-                        }
+                        {Number(product.price).toLocaleString('vi-VN')}đ
                       </span>
-                      {product.variants && product.variants.length > 1 && (
-                        <span className="text-[10px] text-slate-400 font-medium italic">
-                          ({product.variants.length} bản phối)
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col gap-2 min-w-[100px]">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className={(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 ? 'text-rose-500' : 'text-slate-600'}>
-                          {product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock} 
-                          {(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 && <FiAlertTriangle className="inline-block ml-1" />}
+                        <span className={(product.stock < 10) ? 'text-rose-500' : 'text-slate-600'}>
+                          {product.stock}
+                          {(product.stock < 10) && <FiAlertTriangle className="inline-block ml-1" />}
                         </span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 10 ? 'bg-rose-500' :
-                            (product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock) < 50 ? 'bg-amber-500' : 'bg-blue-500'
+                          className={`h-full rounded-full transition-all duration-500 ${(product.stock < 10) ? 'bg-rose-500' :
+                            (product.stock < 50) ? 'bg-amber-500' : 'bg-blue-500'
                             }`}
-                          style={{ width: `${Math.min(product.variants ? product.variants.reduce((sum, v) => sum + Number(v.stock), 0) : product.stock, 100)}%` }}
+                          style={{ width: `${Math.min(product.stock, 100)}%` }}
                         ></div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex justify-center">
-                      <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${
-                        (product.status === 'Đang hoạt động' || product.isActive)
-                        ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
-                        : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
+                      <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${product.isActive
+                          ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
+                          : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                         }`}>
-                        {product.status || (product.isActive ? 'Đang hoạt động' : 'Tạm ẩn')}
+                        {product.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm font-medium text-slate-500">{product.updatedAt}</span>
+                    <span className="text-sm font-medium text-slate-500">{new Date(product.updatedAt || product.createdAt).toLocaleDateString('vi-VN')}</span>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => navigate(`/shop-owner/products/edit/${product.id}`)}
+                        onClick={() => navigate(`/shop-owner/products/edit/${product.productId}`)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
                         <FiEdit2 size={18} />
@@ -522,36 +510,38 @@ const Products = () => {
                 <div className="flex-1 space-y-4 w-full">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${productToView.status === 'Đang hoạt động' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${productToView.isActive ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'
                         }`}>
-                        {productToView.status}
+                        {productToView.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
                       </span>
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                        {productToView.category}
+                        {productToView.categoryName || 'Chưa phân loại'}
                       </span>
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 leading-tight">{productToView.name}</h2>
-                    <p className="text-sm font-medium text-slate-400 mt-1 uppercase tracking-wide">SKU: {productToView.sku}</p>
+                    <p className="text-sm font-medium text-slate-400 mt-1 uppercase tracking-wide">ID: #{productToView.id}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100">
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Giá bán</p>
                       <p className="text-2xl font-bold text-blue-600">
-                        {isNaN(productToView.price) ? productToView.price : `${Number(productToView.price).toLocaleString('vi-VN')}đ`}
+                        {Number(productToView.price).toLocaleString('vi-VN')}đ
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tồn kho</p>
-                      <p className={`text-2xl font-bold ${productToView.stock < 10 ? 'text-rose-500' : 'text-slate-800'}`}>
-                        {productToView.stock} <span className="text-sm font-medium text-slate-500">sp</span>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Đã bán</p>
+                      <p className="text-2xl font-bold text-emerald-600">
+                        {productToView.sold || 0} <span className="text-sm font-medium text-slate-500">sp</span>
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cập nhật lần cuối</p>
-                    <p className="text-sm font-bold text-slate-700">{productToView.updatedAt || 'Không xác định'}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tồn kho tổng cộng</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {productToView.variants ? productToView.variants.reduce((sum, v) => sum + v.stock, 0) : 0} sản phẩm
+                    </p>
                   </div>
                 </div>
               </div>

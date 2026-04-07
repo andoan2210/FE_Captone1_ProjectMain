@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaTrashAlt, FaArrowLeft, FaShoppingCart, FaSearch, FaBell, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { FaTrashAlt, FaArrowLeft, FaShoppingCart, FaSearch, FaBell, FaFacebookF, FaInstagram, FaYoutube, FaUserCircle, FaBox, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import { BsStars } from 'react-icons/bs';
 import { jwtDecode } from 'jwt-decode';
 import * as CartService from '../../services/CartService.js';
@@ -57,12 +57,27 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               <FaShoppingCart />
             </Link>
             {userLabel ? (
-              <>
-                <span className="user-profile">{userLabel}</span>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
+              <div className="user-profile-wrapper">
+                <button type="button" className="user-profile-btn">
+                  <FaUserCircle style={{ fontSize: "20px", color: "var(--lp-accent)" }} />
+                  <span className="user-profile">{userLabel}</span>
                 </button>
-              </>
+                <div className="profile-dropdown">
+                  <Link to="/manage/Manageinvoice" className="profile-dropdown-item">
+                    <FaBox /> Đơn mua
+                  </Link>
+                  <Link to="/user/UserProfile" className="profile-dropdown-item">
+                    <FaUser /> Trang cá nhân
+                  </Link>
+                  <button
+                    type="button"
+                    className="profile-dropdown-item logout"
+                    onClick={onLogout}
+                  >
+                    <FaSignOutAlt /> Đăng xuất
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
