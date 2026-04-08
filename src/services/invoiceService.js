@@ -3,10 +3,12 @@
 // =====================================================
 // Chuyển đổi dễ dàng giữa Mock API (test UI) và Real API (production)
 
+import api from './api';
+
 // ========== CONFIG ==========
 const API_CONFIG = {
   USE_MOCK_API: true, // TRUE: Mock API | FALSE: Real API
-  API_BASE_URL: 'http://localhost:8080/api', // Thay đổi URL backend
+  API_BASE_URL: '', // Relative back base URL will be handled by axios instance
   TIMEOUT: 5000,
 };
 
@@ -284,22 +286,10 @@ const realAPI = {
   // Get all invoices
   getAllInvoices: async () => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${localStorage.getItem('token')}`, // Nếu có token
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await api.get('/invoices');
       return {
         success: true,
-        data: data.data || data,
+        data: response.data.data || response.data,
         message: 'Lấy danh sách hóa đơn thành công',
       };
     } catch (error) {
@@ -310,32 +300,20 @@ const realAPI = {
   // Get invoice by ID
   getInvoiceById: async (id) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          return {
-            success: false,
-            error: `Không tìm thấy hóa đơn ${id}`,
-            data: null,
-          };
-        }
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await api.get(`/invoices/${id}`);
       return {
         success: true,
-        data: data.data || data,
+        data: response.data.data || response.data,
         message: 'Lấy chi tiết hóa đơn thành công',
       };
     } catch (error) {
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: `Không tìm thấy hóa đơn ${id}`,
+          data: null,
+        };
+      }
       return handleError(error);
     }
   },
@@ -343,22 +321,10 @@ const realAPI = {
   // Delete invoice
   deleteInvoice: async (id) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await api.delete(`/invoices/${id}`);
       return {
         success: true,
-        message: data.message || 'Xóa hóa đơn thành công',
+        message: response.data.message || 'Xóa hóa đơn thành công',
       };
     } catch (error) {
       return handleError(error);
@@ -368,24 +334,11 @@ const realAPI = {
   // Create invoice
   createInvoice: async (invoiceData) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(invoiceData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await api.post('/invoices', invoiceData);
       return {
         success: true,
-        data: data.data || data,
-        message: data.message || 'Tạo hóa đơn thành công',
+        data: response.data.data || response.data,
+        message: response.data.message || 'Tạo hóa đơn thành công',
       };
     } catch (error) {
       return handleError(error);
@@ -395,24 +348,11 @@ const realAPI = {
   // Update invoice
   updateInvoice: async (id, updateData) => {
     try {
-      const response = await fetch(`${API_CONFIG.API_BASE_URL}/invoices/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await api.put(`/invoices/${id}`, updateData);
       return {
         success: true,
-        data: data.data || data,
-        message: data.message || 'Cập nhật hóa đơn thành công',
+        data: response.data.data || response.data,
+        message: response.data.message || 'Cập nhật hóa đơn thành công',
       };
     } catch (error) {
       return handleError(error);

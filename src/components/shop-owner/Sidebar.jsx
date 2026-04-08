@@ -50,6 +50,7 @@ export default function Sidebar() {
     } finally {
       // Clear storage & redirect
       localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
       navigate('/login');
     }
   };

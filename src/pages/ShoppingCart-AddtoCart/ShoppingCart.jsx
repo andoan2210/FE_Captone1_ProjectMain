@@ -174,12 +174,40 @@ export default function ShoppingCart() {
   const [loading, setLoading] = useState(true);
   const [voucherCode, setVoucherCode] = useState('');
   const [dbCategories, setDbCategories] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]); // cartItemId[]
   const navigate = useNavigate();
+
+  const handleToggleItem = (cartItemId) => {
+    setSelectedItems(prev =>
+      prev.includes(cartItemId)
+        ? prev.filter(id => id !== cartItemId)
+        : [...prev, cartItemId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.length === cartItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(cartItems.map(i => i.cartItemId));
+    }
+  };
+
+  const handleCheckout = () => {
+    if (selectedItems.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
+      return;
+    }
+    navigate('/checkout', {
+      state: { type: 'CART', selectedItems },
+    });
+  };
 
   const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
     window.location.href = '/login';
   };
 
@@ -336,8 +364,40 @@ export default function ShoppingCart() {
                 <div className="cart-empty-state">Giỏ hàng trống</div>
               ) : (
                 <div className="cart-items-wrapper">
+                  {/* Chọn tất cả */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '0 4px' }}>
+                    <input
+                      id="select-all-cb"
+                      type="checkbox"
+                      checked={selectedItems.length === cartItems.length && cartItems.length > 0}
+                      onChange={handleSelectAll}
+                      style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#9d6cff' }}
+                    />
+                    <label htmlFor="select-all-cb" style={{ fontSize: '0.85rem', color: '#9ca3af', cursor: 'pointer' }}>
+                      Chọn tất cả ({selectedItems.length}/{cartItems.length})
+                    </label>
+                  </div>
+
                   {cartItems.map((item) => (
-                    <div key={item.cartItemId} className="cart-item-card">
+                    <div
+                      key={item.cartItemId}
+                      className="cart-item-card"
+                      style={{
+                        border: selectedItems.includes(item.cartItemId)
+                          ? '1.5px solid rgba(157,108,255,0.4)'
+                          : undefined,
+                        transition: 'border-color 0.15s',
+                      }}
+                    >
+                      {/* Checkbox chọn item */}
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.cartItemId)}
+                        onChange={() => handleToggleItem(item.cartItemId)}
+                        style={{ width: 18, height: 18, cursor: 'pointer', flexShrink: 0, accentColor: '#9d6cff' }}
+                        aria-label={`Chọn sản phẩm ${item.name}`}
+                      />
+
                       <img src={item.image} alt={item.name} className="cart-item-img" />
 
                       <div className="cart-item-details">
@@ -416,7 +476,15 @@ export default function ShoppingCart() {
                       <span className="vat-note">(Đã bao gồm VAT nếu có)</span>
                     </div>
                   </div>
-                  <button className="btn-checkout-primary">Thanh toán ngay</button>
+                  <button
+                    id="btn-checkout"
+                    className="btn-checkout-primary"
+                    onClick={handleCheckout}
+                    disabled={selectedItems.length === 0}
+                    style={{ opacity: selectedItems.length === 0 ? 0.5 : 1 }}
+                  >
+                    🛒 Thanh toán ({selectedItems.length})
+                  </button>
                 </div>
               </div>
             </div>

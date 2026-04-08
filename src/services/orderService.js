@@ -22,6 +22,7 @@ const mapStatus = (beStatus) => {
   const statusLower = (beStatus || '').toLowerCase();
   const mapping = {
     'pending': { label: 'Chờ xử lý', type: 'pending' },
+    'confirmed': { label: 'Đã xác nhận', type: 'pending' },
     'processing': { label: 'Đang xử lý', type: 'pending' },
     'shipping': { label: 'Đang giao', type: 'shipping' },
     'completed': { label: 'Hoàn thành', type: 'completed' },
@@ -39,6 +40,9 @@ const orderService = {
       const response = await api.get('/api/order/order-shop');
       let rawOrders = response.data?.data?.order || [];
       
+      // Sắp xếp đơn hàng mới nhất lên đầu (Mới nhất -> Cũ nhất)
+      rawOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
       // Client-side Filtering
       if (params.search) {
         const query = params.search.toLowerCase();
@@ -54,8 +58,11 @@ const orderService = {
       }
 
       if (params.payment) {
-        const isPaid = params.payment === 'paid';
-        rawOrders = rawOrders.filter(o => isPaid ? o.paymentStatus === 'PAID' : o.paymentStatus !== 'PAID');
+        const isPaidInput = params.payment === 'paid';
+        rawOrders = rawOrders.filter(o => {
+          const isPaidStatus = (o.paymentStatus || '').toLowerCase() === 'paid';
+          return isPaidInput ? isPaidStatus : !isPaidStatus;
+        });
       }
 
       if (params.startDate) {
@@ -90,7 +97,7 @@ const orderService = {
           date: formatDateTime(order.createdAt),
           type: statusInfo.type,      
           status: statusInfo.label,   
-          payment: order.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
+          payment: (order.paymentStatus || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán',
         };
       });
 

@@ -340,6 +340,7 @@ export default function ProductDetail() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('userRole')
     window.location.href = '/login'
   }
 
@@ -367,7 +368,7 @@ export default function ProductDetail() {
     }
   }
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!currentVariant) {
       alert('Vui lòng chọn đầy đủ kích thước và màu sắc.');
       return;
@@ -378,15 +379,22 @@ export default function ProductDetail() {
       return;
     }
 
-    try {
-      await CartService.addToCart(currentVariant.variantId, quantity);
-      navigate('/cart');
-    } catch (err) {
-      console.error('Lỗi mua ngay:', err);
-      const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.';
-      alert(errorMessage);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Vui lòng đăng nhập để mua hàng!');
+      navigate('/login');
+      return;
     }
+
+    navigate('/checkout', {
+      state: {
+        type: 'BUY_NOW',
+        variantId: currentVariant.variantId,
+        quantity,
+      },
+    });
   }
+
 
   const handleChatNow = async () => {
     if (!userLabel) {

@@ -39,7 +39,7 @@ function GoogleCallback() {
             if (userRole) {
               localStorage.setItem('userRole', userRole);
 
-              if (userRole === 'ShopOwner') {
+              if (userRole.toLowerCase().includes('shop')) {
                 navigate('/shop-owner/dashboard');
               } else {
                 navigate('/');
