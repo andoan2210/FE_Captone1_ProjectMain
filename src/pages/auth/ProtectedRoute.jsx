@@ -15,8 +15,13 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
   }
 
   // 2. Nếu đã đăng nhập nhưng không có role hợp lệ -> Chuyển về trang chủ (hoặc trang báo lỗi)
-  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+  if (allowedRoles.length > 0) {
+    const hasValidRole = allowedRoles.some(
+      role => role.toLowerCase() === (userRole || '').toLowerCase()
+    );
+    if (!hasValidRole) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   // 3. Nếu thỏa mãn cả 2 điều kiện -> Render các component bên trong (Route con)

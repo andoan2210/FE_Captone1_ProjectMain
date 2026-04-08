@@ -269,6 +269,16 @@ export default function LandingPage() {
     location.state?.category || "all",
   );
 
+  // Tự động chuyển hướng Shop Owner vào trang quản lý thay vì ở lại Trang Chủ
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    // Nếu không muốn ép buộc chuyển hướng mỗi khi bấm logo Trang chủ, ta có thể thêm điều kiện kiểm tra URL
+    // Nhưng hiện tại để đáp ứng yêu cầu "vào localhost tự động vào channel shop"
+    if (role && role.toLowerCase().includes('shop')) {
+      navigate('/shop-owner/store', { replace: true });
+    }
+  }, [navigate]);
+
   // Tự động cuộn xuống khu vực danh mục nếu được redirect từ header của trang khác
   useEffect(() => {
     if (location.state?.category) {
@@ -334,6 +344,7 @@ export default function LandingPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
     window.location.href = "/login";
   };
 
@@ -619,6 +630,11 @@ export default function LandingPage() {
                   <Link to="/user/UserProfile" className="profile-dropdown-item">
                     <FaUser /> Trang cá nhân
                   </Link>
+                  {localStorage.getItem('userRole')?.toLowerCase().includes('shop') && (
+                    <Link to="/shop-owner/store" className="profile-dropdown-item" style={{ color: 'var(--lp-accent)' }}>
+                      <FaBox /> Kênh Shop <span style={{fontSize:'10px', marginLeft:'auto', background:'var(--lp-accent)', color:'white', padding:'2px 6px', borderRadius:'10px'}}>PRO</span>
+                    </Link>
+                  )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"

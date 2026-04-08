@@ -1,8 +1,9 @@
-// ========== CONFIG ==========
+import api from './api';
+
 // ========== CONFIG ==========
 const API_CONFIG = {
-  USE_MOCK_API: true, // TRUE: Mock API | FALSE: Real API
-  API_BASE_URL: 'http://localhost:8080/api/users/profile', // Thay đổi URL backend
+  USE_MOCK_API: false, // Turned OFF to use real backend
+  API_BASE_URL: '/address', 
   TIMEOUT: 5000,
 };
 // ========== MOCK DATA ==========
@@ -102,18 +103,8 @@ const mockDeletePayment = async (paymentId) => {
 // ========== REAL API FUNCTIONS ==========
 const apiGetUserProfile = async () => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/profile`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.get(`${API_CONFIG.API_BASE_URL}`);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to fetch user profile: ${error.message}`);
   }
@@ -121,58 +112,44 @@ const apiGetUserProfile = async () => {
 
 const apiUpdateUserProfile = async (userData) => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      },
-      body: JSON.stringify(userData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.put(`${API_CONFIG.API_BASE_URL}`, userData);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to update user profile: ${error.message}`);
   }
 };
 
+const apiGetAddresses = async () => {
+  try {
+    const response = await api.get('/address');
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch addresses: ${error.message}`);
+  }
+};
+
 const apiAddAddress = async (address) => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/addresses`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      },
-      body: JSON.stringify(address)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.post('/address', address);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to add address: ${error.message}`);
   }
 };
 
+const apiUpdateAddress = async (id, address) => {
+  try {
+    const response = await api.patch(`/address/${id}`, address);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to update address: ${error.message}`);
+  }
+};
+
 const apiDeleteAddress = async (addressId) => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/addresses/${addressId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.delete(`/address/${addressId}`);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to delete address: ${error.message}`);
   }
@@ -180,19 +157,8 @@ const apiDeleteAddress = async (addressId) => {
 
 const apiAddPayment = async (payment) => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/payments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      },
-      body: JSON.stringify(payment)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.post('/users/payments', payment);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to add payment: ${error.message}`);
   }
@@ -200,18 +166,8 @@ const apiAddPayment = async (payment) => {
 
 const apiDeletePayment = async (paymentId) => {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/users/payments/${paymentId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    const response = await api.delete(`/users/payments/${paymentId}`);
+    return response.data;
   } catch (error) {
     throw new Error(`Failed to delete payment: ${error.message}`);
   }
@@ -270,6 +226,18 @@ const userService = {
   },
 
   // Address Management
+  getAddresses: async () => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        return MOCK_ADDRESSES;
+      } else {
+        return await apiGetAddresses();
+      }
+    } catch (error) {
+      throw error;
+    }
+  },
+
   addAddress: async (address) => {
     try {
       if (API_CONFIG.USE_MOCK_API) {
@@ -287,6 +255,21 @@ const userService = {
         console.error('[v0] REAL API failed:', error.message);
         throw error;
       }
+    }
+  },
+
+  updateAddress: async (id, address) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Updating MOCK address');
+        return { success: true, id, ...address };
+      } else {
+        console.log('[v0] Calling REAL API to update address');
+        return await apiUpdateAddress(id, address);
+      }
+    } catch (error) {
+      console.error('[v0] REAL API failed:', error.message);
+      throw error;
     }
   },
 

@@ -44,15 +44,19 @@ function Login() {
           // Giải mã token để lấy thông tin role
           const decoded = jwtDecode(token);
           console.log('Decoded token:', decoded);
+          const userRole = decoded.role || data.role || (data.user && data.user.role) || (decoded.User && decoded.User.role);
+          console.log('Detected Role:', userRole);
           
-          const userRole = decoded.role || data.role || (data.user && data.user.role);
           if (userRole) {
             localStorage.setItem('userRole', userRole);
 
             // Chuyển hướng dựa trên Role
-            if (userRole === 'ShopOwner') {
-              navigate('/shop-owner/dashboard');
+            const lowerRole = userRole.toLowerCase();
+            if (lowerRole.includes('shop')) {
+              console.log('Redirecting to Shop Owner Store');
+              navigate('/shop-owner/store');
             } else {
+              console.log('Redirecting to Home');
               navigate('/');
             }
             return; // Dừng xử lý sau khi đã navigate
