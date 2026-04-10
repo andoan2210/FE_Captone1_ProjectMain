@@ -14,6 +14,7 @@ import UserProfile from "./pages/user/UserProfile";
 import UpdateProfile from "./pages/user/UpdateProfile";
 import Vieworder from "./pages/shop-owner/Vieworder";
 import Manageinvoice from "./pages/manage/Manageinvoice";
+import InvoiceDetail from "./pages/manage/InvoiceDetail";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import CategoryProducts from "./pages/CategoryProducts/CategoryProducts";
 import ProductDetail from "./pages/ProductDetail/ProductDetail";
@@ -70,6 +71,7 @@ function App() {
         <Route path="/user/UpdateProfile" element={<UpdateProfile />} />
 
         <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
+        <Route path="/manage/invoice-detail/:orderId" element={<InvoiceDetail />} />
 
         {/* Chat Routes */}
         <Route path="/chat" element={<ChatPage />} />

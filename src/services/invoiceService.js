@@ -1,18 +1,14 @@
-// =====================================================
-// INVOICE SERVICE - Mock API & Real API
-// =====================================================
-// Chuyển đổi dễ dàng giữa Mock API (test UI) và Real API (production)
-
-import api from './api';
+import apiRequest from './api';
 
 // ========== CONFIG ==========
 const API_CONFIG = {
-  USE_MOCK_API: true, // TRUE: Mock API | FALSE: Real API
-  API_BASE_URL: '', // Relative back base URL will be handled by axios instance
+  USE_MOCK_API: true,  // TRUE: dùng Mock khi backend chưa hoàn thiện | FALSE: Real API
+  API_BASE_URL: 'http://localhost:8080/api',
   TIMEOUT: 5000,
 };
 
 // ========== MOCK DATA ==========
+// Chú ý: id của MOCK_INVOICES phải khớp với key của MOCK_INVOICE_DETAILS
 const MOCK_INVOICES = [
   {
     id: 'ORD12345678',
@@ -28,14 +24,14 @@ const MOCK_INVOICES = [
         image: 'https://ananas.vn/wp-content/uploads/Track6_Grey_1.jpg',
         variant: 'Grey, Size 42',
         price: 1250000,
-        quantity: 1
-      }
+        quantity: 1,
+      },
     ],
     totalAmount: 1250000,
     shippingFee: 30000,
     discount: 50000,
     finalAmount: 1230000,
-    paymentMethod: 'Thẻ tín dụng'
+    paymentMethod: 'Thẻ tín dụng',
   },
   {
     id: 'ORD88889999',
@@ -51,7 +47,7 @@ const MOCK_INVOICES = [
         image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/January2024/ao-thun-cotton-compact-premium-den-1.jpg',
         variant: 'Đen, Size L',
         price: 299000,
-        quantity: 2
+        quantity: 2,
       },
       {
         id: 'p3',
@@ -59,22 +55,22 @@ const MOCK_INVOICES = [
         image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/February2024/quan-short-the-thao-den-1.jpg',
         variant: 'Xanh Navy, Size L',
         price: 199000,
-        quantity: 1
-      }
+        quantity: 1,
+      },
     ],
     totalAmount: 797000,
     shippingFee: 0,
     discount: 20000,
     finalAmount: 777000,
-    paymentMethod: 'Ví ShopeePay'
+    paymentMethod: 'Ví ShopeePay',
   },
   {
     id: 'ORD55554444',
     shopName: 'Marc Fashion',
     shopLogo: 'https://marc.com.vn/cdn/shop/files/Logo_MARC_2023_Black.png',
     date: '2024-03-24 18:20',
-    status: 'pending_payment',
-    statusText: 'Chờ thanh toán',
+    status: 'pending',
+    statusText: 'Chờ xác nhận',
     items: [
       {
         id: 'p4',
@@ -82,14 +78,14 @@ const MOCK_INVOICES = [
         image: 'https://marc.com.vn/cdn/shop/files/24-0238_1.jpg',
         variant: 'Hoa xanh, Size M',
         price: 850000,
-        quantity: 1
-      }
+        quantity: 1,
+      },
     ],
     totalAmount: 850000,
     shippingFee: 25000,
     discount: 0,
     finalAmount: 875000,
-    paymentMethod: 'Chuyển khoản ngân hàng'
+    paymentMethod: 'Chuyển khoản ngân hàng',
   },
   {
     id: 'ORD11112222',
@@ -105,61 +101,164 @@ const MOCK_INVOICES = [
         image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=85&auto=format&fit=crop',
         variant: 'Trắng, Size XL',
         price: 550000,
-        quantity: 1
-      }
+        quantity: 1,
+      },
     ],
     totalAmount: 550000,
     shippingFee: 0,
     discount: 0,
     finalAmount: 550000,
-    paymentMethod: 'COD'
-  }
+    paymentMethod: 'COD',
+  },
+  {
+    id: 'ORD33336666',
+    shopName: 'Nike Vietnam Official',
+    shopLogo: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg',
+    date: '2024-04-01 08:00',
+    status: 'confirmed',
+    statusText: 'Đang chuẩn bị',
+    items: [
+      {
+        id: 'p6',
+        name: 'Nike Air Force 1 Low - White',
+        image: 'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/e6da41fa-1be4-4ce5-b89c-22be4f1f02d4/air-force-1-07-shoes-WrLlWX.png',
+        variant: 'Trắng, Size 43',
+        price: 2890000,
+        quantity: 1,
+      },
+    ],
+    totalAmount: 2890000,
+    shippingFee: 0,
+    discount: 100000,
+    finalAmount: 2790000,
+    paymentMethod: 'Momo',
+  },
 ];
 
+// MOCK_INVOICE_DETAILS — key phải KHỚP với id trong MOCK_INVOICES
 const MOCK_INVOICE_DETAILS = {
-  'HD-001': {
-    id: 'HD-001',
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@email.com',
-    phone: '0912345678',
-    address: '123 Đường Phố, Quận 1, TP.HCM',
-    date: '2024-01-15',
-    product: 'Áo thun cao cấp',
-    amount: '500.000đ',
-    payment: 'Đã thanh toán',
-    status: 'completed',
-    type: 'normal',
+  'ORD12345678': {
+    orderId: 'ORD12345678',
+    orderStatus: 'Completed',
+    paymentStatus: 'Paid',
+    createdAt: '2024-03-20T14:30:00.000Z',
+    shippingAddress: '123 Đường Phố, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+    totalAmount: 1230000,
+    shippingFee: 30000,
+    discount: 50000,
+    payment: { method: 'Thẻ tín dụng', transactionCode: 'TXN-001-20240320' },
+    invoice: { invoiceNumber: 'INV-2024-001' },
+    store: { storeName: 'Ananas Official Store' },
     items: [
-      { name: 'Áo thun cao cấp - Tím', quantity: 2, price: '250.000đ', total: '500.000đ' },
+      {
+        productName: 'Giày Sneaker Ananas Track 6 - Classics Grey',
+        image: 'https://ananas.vn/wp-content/uploads/Track6_Grey_1.jpg',
+        variant: 'Grey, Size 42',
+        price: 1250000,
+        quantity: 1,
+        total: 1250000,
+      },
     ],
-    subtotal: '500.000đ',
-    tax: '50.000đ',
-    total: '550.000đ',
-    notes: 'Đơn hàng được thanh toán bằng chuyển khoản',
-    createdAt: '2024-01-15 10:30:00',
-    updatedAt: '2024-01-15 14:45:00',
   },
-  'HD-002': {
-    id: 'HD-002',
-    name: 'Trần Thị B',
-    email: 'tranthib@email.com',
-    phone: '0987654321',
-    address: '456 Đường Lớn, Quận 3, TP.HCM',
-    date: '2024-01-16',
-    product: 'Quần jean nam',
-    amount: '750.000đ',
-    payment: 'Chưa thanh toán',
-    status: 'pending',
-    type: 'normal',
+  'ORD88889999': {
+    orderId: 'ORD88889999',
+    orderStatus: 'Shipping',
+    paymentStatus: 'Paid',
+    createdAt: '2024-03-22T09:15:00.000Z',
+    shippingAddress: '456 Đường Lớn, Phường 5, Quận 3, TP. Hồ Chí Minh',
+    totalAmount: 777000,
+    shippingFee: 0,
+    discount: 20000,
+    payment: { method: 'Ví ShopeePay', transactionCode: 'TXN-002-20240322' },
+    invoice: { invoiceNumber: 'INV-2024-002' },
+    store: { storeName: 'Coolmate Official' },
     items: [
-      { name: 'Quần jean nam - Đen', quantity: 1, price: '750.000đ', total: '750.000đ' },
+      {
+        productName: 'Áo thun Cotton Compact phiên bản Premium',
+        image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/January2024/ao-thun-cotton-compact-premium-den-1.jpg',
+        variant: 'Đen, Size L',
+        price: 299000,
+        quantity: 2,
+        total: 598000,
+      },
+      {
+        productName: 'Quần Short thể thao Quick-Dry',
+        image: 'https://media.coolmate.me/cdn-cgi/image/width=672,height=990,quality=85,format=auto/uploads/February2024/quan-short-the-thao-den-1.jpg',
+        variant: 'Xanh Navy, Size L',
+        price: 199000,
+        quantity: 1,
+        total: 199000,
+      },
     ],
-    subtotal: '750.000đ',
-    tax: '75.000đ',
-    total: '825.000đ',
-    notes: 'Chờ khách hàng thanh toán',
-    createdAt: '2024-01-16 09:15:00',
-    updatedAt: '2024-01-16 09:15:00',
+  },
+  'ORD55554444': {
+    orderId: 'ORD55554444',
+    orderStatus: 'Pending',
+    paymentStatus: 'Unpaid',
+    createdAt: '2024-03-24T18:20:00.000Z',
+    shippingAddress: '789 Lý Thái Tổ, Phường 9, Quận 10, TP. Hồ Chí Minh',
+    totalAmount: 875000,
+    shippingFee: 25000,
+    discount: 0,
+    payment: { method: 'Chuyển khoản ngân hàng', transactionCode: null },
+    invoice: null,
+    store: { storeName: 'Marc Fashion' },
+    items: [
+      {
+        productName: 'Đầm Midi Hoa Nhí Dáng Xòe tay phồng',
+        image: 'https://marc.com.vn/cdn/shop/files/24-0238_1.jpg',
+        variant: 'Hoa xanh, Size M',
+        price: 850000,
+        quantity: 1,
+        total: 850000,
+      },
+    ],
+  },
+  'ORD11112222': {
+    orderId: 'ORD11112222',
+    orderStatus: 'Cancelled',
+    paymentStatus: 'Unpaid',
+    createdAt: '2024-03-10T11:00:00.000Z',
+    shippingAddress: '101 Nguyễn Trãi, Phường Nguyễn Cư Trinh, Quận 1, TP. Hồ Chí Minh',
+    totalAmount: 550000,
+    shippingFee: 0,
+    discount: 0,
+    payment: { method: 'COD', transactionCode: null },
+    invoice: null,
+    store: { storeName: 'DirtyCoins Studio' },
+    items: [
+      {
+        productName: 'Hoodie Box Logo Limited Edition',
+        image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=85&auto=format&fit=crop',
+        variant: 'Trắng, Size XL',
+        price: 550000,
+        quantity: 1,
+        total: 550000,
+      },
+    ],
+  },
+  'ORD33336666': {
+    orderId: 'ORD33336666',
+    orderStatus: 'Confirmed',
+    paymentStatus: 'Paid',
+    createdAt: '2024-04-01T08:00:00.000Z',
+    shippingAddress: '50 Pasteur, Phường Nguyễn Thái Bình, Quận 1, TP. Hồ Chí Minh',
+    totalAmount: 2790000,
+    shippingFee: 0,
+    discount: 100000,
+    payment: { method: 'Momo', transactionCode: 'TXN-003-20240401' },
+    invoice: { invoiceNumber: 'INV-2024-003' },
+    store: { storeName: 'Nike Vietnam Official' },
+    items: [
+      {
+        productName: 'Nike Air Force 1 Low - White',
+        image: 'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/e6da41fa-1be4-4ce5-b89c-22be4f1f02d4/air-force-1-07-shoes-WrLlWX.png',
+        variant: 'Trắng, Size 43',
+        price: 2890000,
+        quantity: 1,
+        total: 2890000,
+      },
+    ],
   },
 };
 
@@ -177,104 +276,84 @@ const handleError = (error) => {
 
 // ========== MOCK API FUNCTIONS ==========
 const mockAPI = {
-  // Get all invoices
   getAllInvoices: async () => {
     try {
-      await delay(500); // Simulate network delay
-      return {
-        success: true,
-        data: MOCK_INVOICES,
-        message: 'Lấy danh sách hóa đơn thành công',
-      };
+      await delay(400);
+      return { success: true, data: MOCK_INVOICES, message: 'Lấy danh sách đơn hàng thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Get invoice by ID
   getInvoiceById: async (id) => {
     try {
       await delay(300);
-      const invoice = MOCK_INVOICE_DETAILS[id];
-      if (!invoice) {
-        return {
-          success: false,
-          error: `Không tìm thấy hóa đơn ${id}`,
-          data: null,
-        };
+      const detail = MOCK_INVOICE_DETAILS[id];
+      if (!detail) {
+        return { success: false, error: `Không tìm thấy đơn hàng ${id}`, data: null };
       }
-      return {
-        success: true,
-        data: invoice,
-        message: 'Lấy chi tiết hóa đơn thành công',
-      };
+      return { success: true, data: detail, message: 'Lấy chi tiết đơn hàng thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Delete invoice
+  cancelOrder: async (id) => {
+    try {
+      await delay(400);
+      const detail = MOCK_INVOICE_DETAILS[id];
+      if (!detail) return { success: false, error: `Không tìm thấy đơn hàng ${id}` };
+      // Check cancellable status
+      const s = detail.orderStatus.toLowerCase();
+      if (!['pending', 'confirmed'].includes(s)) {
+        return { success: false, error: 'Không thể hủy đơn hàng ở trạng thái này' };
+      }
+      detail.orderStatus = 'Cancelled';
+      const inv = MOCK_INVOICES.find(i => i.id === id);
+      if (inv) { inv.status = 'cancelled'; inv.statusText = 'Đã hủy'; }
+      return { success: true, data: detail, message: 'Hủy đơn hàng thành công' };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
   deleteInvoice: async (id) => {
     try {
       await delay(400);
       const index = MOCK_INVOICES.findIndex((inv) => inv.id === id);
-      if (index === -1) {
-        return {
-          success: false,
-          error: `Không tìm thấy hóa đơn ${id}`,
-        };
-      }
+      if (index === -1) return { success: false, error: `Không tìm thấy đơn hàng ${id}` };
       MOCK_INVOICES.splice(index, 1);
       delete MOCK_INVOICE_DETAILS[id];
-      return {
-        success: true,
-        message: 'Xóa hóa đơn thành công',
-      };
+      return { success: true, message: 'Xóa đơn hàng thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Create invoice
   createInvoice: async (invoiceData) => {
     try {
       await delay(500);
       const newInvoice = {
-        id: `HD-${String(MOCK_INVOICES.length + 1).padStart(3, '0')}`,
+        id: `ORD${Date.now()}`,
         ...invoiceData,
         createdAt: new Date().toISOString(),
       };
       MOCK_INVOICES.push(newInvoice);
-      return {
-        success: true,
-        data: newInvoice,
-        message: 'Tạo hóa đơn thành công',
-      };
+      return { success: true, data: newInvoice, message: 'Tạo đơn hàng thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Update invoice
   updateInvoice: async (id, updateData) => {
     try {
       await delay(400);
-      const invoice = MOCK_INVOICES.find((inv) => inv.id === id);
-      if (!invoice) {
-        return {
-          success: false,
-          error: `Không tìm thấy hóa đơn ${id}`,
-        };
-      }
-      const updated = { ...invoice, ...updateData, updatedAt: new Date().toISOString() };
       const index = MOCK_INVOICES.findIndex((inv) => inv.id === id);
+      if (index === -1) return { success: false, error: `Không tìm thấy đơn hàng ${id}` };
+      const updated = { ...MOCK_INVOICES[index], ...updateData };
       MOCK_INVOICES[index] = updated;
-      MOCK_INVOICE_DETAILS[id] = updated;
-      return {
-        success: true,
-        data: updated,
-        message: 'Cập nhật hóa đơn thành công',
-      };
+      if (MOCK_INVOICE_DETAILS[id]) MOCK_INVOICE_DETAILS[id] = { ...MOCK_INVOICE_DETAILS[id], ...updateData };
+      return { success: true, data: updated, message: 'Cập nhật đơn hàng thành công' };
     } catch (error) {
       return handleError(error);
     }
@@ -283,77 +362,70 @@ const mockAPI = {
 
 // ========== REAL API FUNCTIONS ==========
 const realAPI = {
-  // Get all invoices
   getAllInvoices: async () => {
     try {
-      const response = await api.get('/invoices');
+      const response = await apiRequest.get('/order/my-orders');
       return {
         success: true,
         data: response.data.data || response.data,
-        message: 'Lấy danh sách hóa đơn thành công',
+        message: 'Lấy danh sách đơn hàng thành công',
       };
     } catch (error) {
-      return handleError(error);
+      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
+      return mockAPI.getAllInvoices();
     }
   },
 
-  // Get invoice by ID
   getInvoiceById: async (id) => {
     try {
-      const response = await api.get(`/invoices/${id}`);
+      const response = await apiRequest.get(`/order/order-detail/${id}`);
       return {
         success: true,
         data: response.data.data || response.data,
-        message: 'Lấy chi tiết hóa đơn thành công',
+        message: 'Lấy chi tiết đơn hàng thành công',
       };
     } catch (error) {
-      if (error.response?.status === 404) {
-        return {
-          success: false,
-          error: `Không tìm thấy hóa đơn ${id}`,
-          data: null,
-        };
-      }
-      return handleError(error);
+      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
+      return mockAPI.getInvoiceById(id);
     }
   },
 
-  // Delete invoice
+  cancelOrder: async (id) => {
+    try {
+      const response = await apiRequest.patch(`/order/cancel-order/${id}`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Hủy đơn hàng thành công',
+      };
+    } catch (error) {
+      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
+      return mockAPI.cancelOrder(id);
+    }
+  },
+
   deleteInvoice: async (id) => {
     try {
-      const response = await api.delete(`/invoices/${id}`);
-      return {
-        success: true,
-        message: response.data.message || 'Xóa hóa đơn thành công',
-      };
+      const response = await apiRequest.delete(`/invoices/${id}`);
+      return { success: true, message: response.data?.message || 'Xóa thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Create invoice
   createInvoice: async (invoiceData) => {
     try {
-      const response = await api.post('/invoices', invoiceData);
-      return {
-        success: true,
-        data: response.data.data || response.data,
-        message: response.data.message || 'Tạo hóa đơn thành công',
-      };
+      const response = await apiRequest.post('/invoices', invoiceData);
+      return { success: true, data: response.data.data || response.data, message: 'Tạo thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
 
-  // Update invoice
   updateInvoice: async (id, updateData) => {
     try {
-      const response = await api.put(`/invoices/${id}`, updateData);
-      return {
-        success: true,
-        data: response.data.data || response.data,
-        message: response.data.message || 'Cập nhật hóa đơn thành công',
-      };
+      const response = await apiRequest.put(`/invoices/${id}`, updateData);
+      return { success: true, data: response.data.data || response.data, message: 'Cập nhật thành công' };
     } catch (error) {
       return handleError(error);
     }
@@ -362,54 +434,21 @@ const realAPI = {
 
 // ========== INVOICE SERVICE (EXPORTED) ==========
 const invoiceService = {
-  // Chọn API (Mock hoặc Real)
   _getAPI: () => (API_CONFIG.USE_MOCK_API ? mockAPI : realAPI),
 
-  // Get all invoices
-  getMockInvoices: async () => {
-    const api = invoiceService._getAPI();
-    return api.getAllInvoices();
-  },
+  getMockInvoices: async () => invoiceService._getAPI().getAllInvoices(),
+  getMockInvoiceById: async (id) => invoiceService._getAPI().getInvoiceById(id),
+  cancelOrder: async (id) => invoiceService._getAPI().cancelOrder(id),
+  deleteMockInvoice: async (id) => invoiceService._getAPI().deleteInvoice(id),
+  createInvoice: async (data) => invoiceService._getAPI().createInvoice(data),
+  updateInvoice: async (id, data) => invoiceService._getAPI().updateInvoice(id, data),
 
-  // Get invoice detail by ID
-  getMockInvoiceById: async (id) => {
-    const api = invoiceService._getAPI();
-    return api.getInvoiceById(id);
-  },
-
-  // Delete invoice
-  deleteMockInvoice: async (id) => {
-    const api = invoiceService._getAPI();
-    return api.deleteInvoice(id);
-  },
-
-  // Create new invoice
-  createInvoice: async (invoiceData) => {
-    const api = invoiceService._getAPI();
-    return api.createInvoice(invoiceData);
-  },
-
-  // Update invoice
-  updateInvoice: async (id, updateData) => {
-    const api = invoiceService._getAPI();
-    return api.updateInvoice(id, updateData);
-  },
-
-  // Switch between Mock and Real API
+  // Tiện ích
   setUseMockAPI: (useMock) => {
     API_CONFIG.USE_MOCK_API = useMock;
-    console.log(
-      `[Invoice Service] Switched to ${useMock ? 'MOCK' : 'REAL'} API`
-    );
+    console.log(`[Invoice Service] Switched to ${useMock ? 'MOCK' : 'REAL'} API`);
   },
-
-  // Set API Base URL
-  setAPIBaseURL: (url) => {
-    API_CONFIG.API_BASE_URL = url;
-    console.log(`[Invoice Service] API Base URL set to: ${url}`);
-  },
-
-  // Get current config
+  setAPIBaseURL: (url) => { API_CONFIG.API_BASE_URL = url; },
   getConfig: () => ({ ...API_CONFIG }),
 };
 
