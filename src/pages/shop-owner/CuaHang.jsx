@@ -36,16 +36,8 @@ export default function CuaHang() {
         setStoreInfo(data);
       } catch (error) {
         console.error("Lỗi lấy thông tin cửa hàng:", error);
-        // Dữ liệu giả định (mock) nếu API chưa kết nối được
-        setStoreInfo({
-          storeId: 'STR-892415',
-          name: 'TechStore Official',
-          description: 'Chuyên cung cấp các sản phẩm công nghệ chính hãng với giá cả hợp lý nhất thị trường.',
-          isActive: true,
-          logoUrl: '',
-          ownerName: 'Chủ cửa hàng',
-          createdAt: new Date().toISOString()
-        });
+        // Khi lỗi, giữ storeInfo là null hoặc xử lý thông báo lỗi qua UI
+        setStoreInfo(null);
       } finally {
         setLoading(false);
       }

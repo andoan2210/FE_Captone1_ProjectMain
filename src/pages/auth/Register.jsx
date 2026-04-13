@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUserPlus, FaLock, FaShieldAlt, FaRegUser } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
 import './Login.css';
-
-const API_BASE = 'http://localhost:8080/api';
+import api from '../../services/api';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -30,30 +29,24 @@ const Register = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password }),
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Return message can be a string or array of messages
-                const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Đăng ký thất bại');
-                throw new Error(errMsg);
-            }
-
+            // Dùng api (axios) thay vì fetch
+            const response = await api.post('/users', { name, email, password });
+            
             // Chuyển sang trang xác nhận OTP và truyền email
             navigate('/verify-otp', { state: { email } });
         } catch (err) {
-            setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            // Axios trả lỗi trong err.response.data
+            const data = err.response?.data || {};
+            const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            setError(errMsg);
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = `${API_BASE}/auth/google/login`;
+        const baseURL = api.defaults.baseURL;
+        window.location.href = `${baseURL}/auth/google/login`;
     };
 
     return (

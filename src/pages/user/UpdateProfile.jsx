@@ -4,8 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
 import { CategoryService } from '../../services/CategoryService';
+import { ChevronRight, Bell, Info, MapPin, Plus, Trash2, Edit3, Camera, Save, X, AlertTriangle } from 'lucide-react';
 import '../LandingPage/LandingPage.css';
-import './UpdateProfile.css';
 
 function getUserDisplayNameFromToken() {
   const token = localStorage.getItem('token');
@@ -29,7 +29,7 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
     <>
       <header className="main-header">
         <div className="container header-content">
-          <Link to="/" className="logo">
+          <Link to="/" className="logo" style={{ color: '#2563eb' }}>
             SmartAI Fashion
           </Link>
           <label className="search-wrap">
@@ -95,7 +95,7 @@ function PageFooter() {
     <footer className="lp-footer">
       <div className="container lp-footer-grid">
         <div className="lp-footer-brand">
-          <strong className="logo">SmartAI Fashion</strong>
+          <strong className="logo" style={{ color: '#2563eb' }}>SmartAI Fashion</strong>
           <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
         </div>
         <div>
@@ -147,76 +147,6 @@ function PageFooter() {
     </footer>
   );
 }
-import './UpdateProfile.css';
-
-// SVG Icons
-const SearchIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"></circle>
-    <path d="m21 21-4.3-4.3"></path>
-  </svg>
-);
-
-const ShoppingCartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="8" cy="21" r="1"></circle>
-    <circle cx="19" cy="21" r="1"></circle>
-    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
-  </svg>
-);
-
-const BellIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 9 6 6 6-6"></path>
-  </svg>
-);
-
-const MenuIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="4" x2="20" y1="12" y2="12"></line>
-    <line x1="4" x2="20" y1="6" y2="6"></line>
-    <line x1="4" x2="20" y1="18" y2="18"></line>
-  </svg>
-);
-
-const MapPinIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-    <circle cx="12" cy="10" r="3"></circle>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19"></line>
-    <line x1="5" y1="12" x2="19" y2="12"></line>
-  </svg>
-);
-
-const FacebookIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-  </svg>
-);
-
-const InstagramIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z" />
-  </svg>
-);
-
-const TwitterIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-);
 
 const UpdateProfile = () => {
   const navigate = useNavigate();
@@ -246,22 +176,22 @@ const UpdateProfile = () => {
   };
 
   const [formData, setFormData] = useState({
-    fullName: 'Nguyễn Minh',
-    birthDate: '01/01/1990',
+    fullName: '',
+    birthDate: '',
     gender: 'Nam',
-    email: 'nguyenminh@gmail.com',
-    phone: '0123456789'
+    email: '',
+    phone: ''
   });
 
-  const [addresses, setAddresses] = useState([
-    { id: 1, type: 'Nhà (Mặc định)', address: 'K275/27 Trường Chinh, An Khê, Thanh Khê, Đà Nẵng' },
-    { id: 2, type: 'Công ty', address: 'Số 49, Bàu Năng 11, Hoà Minh, Liên Chiểu, Đà Nẵng' }
-  ]);
+  const [addresses, setAddresses] = useState([]);
+  const [payments, setPayments] = useState([]);
 
-  const [payments, setPayments] = useState([
-    { id: 1, type: 'VISA', number: 'Visa****1234' },
-    { id: 2, type: 'MOMO', number: 'Momo ****1234' }
-  ]);
+  // Modals state
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [newAddress, setNewAddress] = useState({ type: '', address: '' });
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [newPayment, setNewPayment] = useState({ type: 'VISA', number: '' });
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
@@ -280,9 +210,9 @@ const UpdateProfile = () => {
         const profile = await userService.getUserProfile();
         if (profile) {
           setFormData(profile.basicInfo || formData);
-          setAddresses(profile.addresses || addresses);
-          setPayments(profile.payments || payments);
-          setAvatarUrl(profile.avatar || avatarUrl);
+          if (profile.addresses) setAddresses(profile.addresses);
+          if (profile.payments) setPayments(profile.payments);
+          if (profile.avatar) setAvatarUrl(profile.avatar);
         }
         setError(null);
       } catch (err) {
@@ -297,12 +227,49 @@ const UpdateProfile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    setError(null);
     setFormData({ ...formData, [name]: value });
   };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
+    setError(null);
     setPasswordData({ ...passwordData, [name]: value });
+  };
+
+  // ADD Handlers
+  const handleAddAddress = async () => {
+    if (!newAddress.address || !newAddress.type) {
+      setError('Vui lòng nhập đầy đủ loại địa chỉ và nội dung địa chỉ.');
+      return;
+    }
+    try {
+      const added = await userService.addAddress(newAddress);
+      setAddresses([...addresses, added]);
+      setShowAddressModal(false);
+      setNewAddress({ type: '', address: '' });
+      setSuccessMessage('Thêm địa chỉ thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleAddPayment = async () => {
+    if (!newPayment.number) {
+      setError('Vui lòng nhập số thẻ hoặc tài khoản thanh toán.');
+      return;
+    }
+    try {
+      const added = await userService.addPayment(newPayment);
+      setPayments([...payments, added]);
+      setShowPaymentModal(false);
+      setNewPayment({ type: 'VISA', number: '' });
+      setSuccessMessage('Thêm phương thức thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleDeleteAddress = async (id) => {
@@ -328,6 +295,17 @@ const UpdateProfile = () => {
   };
 
   const handleSaveChanges = async () => {
+    // Basic Profile Validation
+    if (!formData.fullName || formData.fullName.length < 2) {
+      setError('Họ và tên không hợp lệ.');
+      return;
+    }
+    // Allow phone number to be checked if edited
+    if (formData.phone && formData.phone.length < 10) {
+      setError('Số điện thoại không hợp lệ (cần ít nhất 10 số).');
+      return;
+    }
+
     try {
       await userService.updateUserProfile(formData);
       setSuccessMessage('Cập nhật thành công!');
@@ -336,6 +314,34 @@ const UpdateProfile = () => {
     } catch (err) {
       console.error('[v0] Save profile error:', err.message);
       setError(err.message);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setError('Vui lòng điền đầy đủ các trường cấu hình mật khẩu.');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp với mật khẩu mới.');
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      setError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+
+    try {
+      await userService.updateUserProfile({
+        ...formData,
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword
+      });
+      setSuccessMessage('Cập nhật mật khẩu thành công!');
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError(`Lỗi cập nhật mật khẩu: ${err.message}`);
     }
   };
 
@@ -366,208 +372,329 @@ const UpdateProfile = () => {
   };
 
   return (
-    <div className="update-profile-page">
-      {error && (
-        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '12px', margin: '12px', borderRadius: '6px', color: '#dc2626', fontSize: '14px' }}>
-          Lỗi: {error}
-        </div>
-      )}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <p>Đang tải thông tin...</p>
-        </div>
-      )}
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-r from-[#f0f8ff] to-[#dcf0fa] relative">
+      {/* Global Header */}
       <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
 
-      {/* Main Content */}
-      <main className="update-main-content">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 className="page-title">Cập nhật thông tin cá nhân</h1>
-          <a
-            href="/user/UserProfile"
-            className="back-btn"
-            style={{ padding: '10px 20px', background: '#f3f4f6', color: '#333', border: '1px solid #e5e5e5', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', textDecoration: 'none', display: 'inline-block' }}
-          >
-            ← Quay lại
-          </a>
-        </div>
-
-        <div className="update-container">
-          {/* Sidebar with Avatar */}
-          <aside className="update-sidebar">
-            <div className="avatar-section">
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="profile-avatar"
-                loading="eager"
-              />
-              <h2 className="sidebar-name">Nguyễn Minh</h2>
-              <input
-                type="file"
-                id="avatar-input"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                style={{ display: 'none' }}
-              />
-              <button
-                className="change-avatar-btn"
-                onClick={() => document.getElementById('avatar-input').click()}
-              >
-                Thay đổi ảnh đại diện
-              </button>
+      {!loading && (
+        <>
+          {/* Local Title Header */}
+          <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-800">Cập nhật thông tin cá nhân</h1>
+              <div className="flex gap-4">
+                <button onClick={handleCancel} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition flex items-center gap-2">
+                  <X size={16} /> Hủy
+                </button>
+                <button onClick={handleSaveChanges} className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition flex items-center gap-2 shadow-md">
+                  <Save size={16} /> Lưu thay đổi
+                </button>
+              </div>
             </div>
-          </aside>
+          </header>
 
-          {/* Main Form Content */}
-          <div className="update-content">
-            {successMessage && <div className="success-message">{successMessage}</div>}
+          <div className="max-w-5xl mx-auto px-5 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar with Avatar */}
+            <aside className="lg:col-span-1">
+              <div className="bg-gradient-to-b from-blue-600 to-blue-800 rounded-[20px] p-6 text-white shadow-lg sticky top-24">
+                {/* Avatar Section */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group w-32 h-32 mb-4">
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="w-full h-full rounded-full object-cover border-4 border-white shadow-md bg-white"
+                    />
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer" onClick={() => document.getElementById('avatar-input').click()}>
+                      <Camera className="text-white w-8 h-8" />
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    id="avatar-input"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <h2 className="text-center text-xl font-bold mb-1">{formData.fullName || 'Người dùng'}</h2>
+                  <p className="text-sm text-blue-100 mt-1">Thành viên MatFlow</p>
+                </div>
 
-            {/* Basic Information */}
-            <section className="form-section">
-              <h3 className="section-title">Thông tin cơ bản</h3>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Họ và Tên:</label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Ngày sinh:</label>
-                  <input
-                    type="text"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleInputChange}
-                    placeholder="DD/MM/YYYY"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Giới tính:</label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange}>
-                    <option value="Nam">Nam</option>
-                    <option value="Nữ">Nữ</option>
-                    <option value="Khác">Khác</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Email:</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>SĐT:</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
+                <div className="border-t border-blue-400 pt-4">
+                  <p className="text-xs opacity-90 text-center font-medium leading-relaxed">Nhấp dính vào ảnh phía trên để thay đổi Avatar.</p>
                 </div>
               </div>
-            </section>
+            </aside>
 
-            {/* Address Section */}
-            <section className="form-section">
-              <h3 className="section-title">Địa Chỉ</h3>
-              <div className="items-list">
-                {addresses.map((addr) => (
-                  <div key={addr.id} className="address-item">
-                    <div className="item-icon">
-                      <MapPinIcon />
-                    </div>
-                    <div className="item-content">
-                      <span className="item-label">{addr.type}</span>
-                      <span className="item-text">{addr.address}</span>
-                    </div>
-                    <button className="edit-btn">Sửa</button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDeleteAddress(addr.id)}
+            {/* Main Content Area */}
+            <main className="lg:col-span-3 space-y-8">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-xl flex items-center gap-3 animate-fadeIn">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <p className="font-semibold">{error}</p>
+                </div>
+              )}
+              {successMessage && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-4 rounded-xl flex items-center gap-3 animate-fadeIn">
+                  <Save className="w-5 h-5 flex-shrink-0" />
+                  <p className="font-semibold">{successMessage}</p>
+                </div>
+              )}
+
+              {/* Basic Information */}
+              <div className="bg-white rounded-[20px] p-8 shadow-sm border border-gray-100">
+                <h3 className="text-[19px] font-extrabold text-gray-800 mb-6 flex items-center gap-3">
+                  <Info className="text-blue-500" /> Thông tin cơ bản
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Họ và Tên</label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Nhập họ tên đầy đủ"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Ngày sinh</label>
+                    <input
+                      type="text"
+                      name="birthDate"
+                      value={formData.birthDate || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="DD/MM/YYYY"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Giới tính</label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     >
-                      Xóa
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Email <span className="text-gray-400 font-normal">(Chỉ xem)</span></label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                      readOnly
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Số điện thoại</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Nhập số điện thoại của bạn"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Section */}
+              <div className="bg-white rounded-[20px] p-8 shadow-sm border border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-[19px] font-extrabold text-gray-800 flex items-center gap-3">
+                    <MapPin className="text-blue-500" /> Sổ địa chỉ
+                  </h3>
+                  <button onClick={() => setShowAddressModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition shadow-sm">
+                    <Plus size={16} /> Thêm mới
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {addresses.length === 0 ? (
+                    <p className="text-gray-500 py-4 text-center">Chưa có địa chỉ nào được thêm</p>
+                  ) : addresses.map((addr) => (
+                    <div key={addr.id} className="flex items-center justify-between p-5 border border-gray-100 bg-gray-50 rounded-xl hover:border-blue-200 hover:shadow-sm transition group">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-white rounded-full text-blue-500 shadow-sm transition">
+                          <MapPin size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-[15px] text-gray-800 tracking-wide">{addr.type}</p>
+                          <p className="text-gray-600 text-[13.5px] mt-1.5">{addr.address}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDeleteAddress(addr.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition tooltip rounded-md hover:bg-red-50"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="bg-white rounded-[20px] p-8 shadow-sm border border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-[19px] font-extrabold text-gray-800 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="text-blue-500" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+                    Tùy chọn thanh toán
+                  </h3>
+                  <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition shadow-sm">
+                    <Plus size={16} /> Thêm mới
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {payments.length === 0 ? (
+                    <p className="text-gray-500 py-4 text-center">Chưa có phương thức thanh toán nào</p>
+                  ) : payments.map((payment) => (
+                    <div key={payment.id} className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-xl hover:border-gray-200 transition">
+                      <div className="flex items-center gap-4">
+                        <span className="px-3 py-1 font-bold text-xs uppercase bg-white text-blue-600 shadow-sm rounded-md border border-gray-100">
+                          {payment.type}
+                        </span>
+                        <span className="text-gray-600 tracking-wide font-medium">{payment.number}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDeletePayment(payment.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition rounded-md hover:bg-red-50"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Password Section */}
+              <div className="bg-white rounded-[20px] p-8 shadow-sm border border-gray-100">
+                <h3 className="text-[19px] font-extrabold text-gray-800 mb-6 flex items-center gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="text-blue-500" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                  Đổi mật khẩu
+                </h3>
+                <div className="space-y-5 max-w-xl">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Mật khẩu hiện tại</label>
+                    <input
+                      type="password"
+                      name="oldPassword"
+                      value={passwordData.oldPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Nhập mật khẩu hiện tại"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Mật khẩu mới</label>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Mật khẩu phải có ít nhất 6 ký tự"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Xác nhận mật khẩu mới</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Trùng khớp với mật khẩu bên trên"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button onClick={handleUpdatePassword} className="px-6 py-2 bg-gray-800 text-white text-[14px] font-semibold rounded-lg hover:bg-gray-900 transition shadow-md">
+                      Cập nhật mật khẩu
                     </button>
                   </div>
-                ))}
+                </div>
               </div>
-            </section>
 
-            {/* Payment Section */}
-            <section className="form-section">
-              <h3 className="section-title">Thanh toán</h3>
-              <div className="payment-list">
-                {payments.map((payment) => (
-                  <div key={payment.id} className="payment-item">
-                    <span className={`payment-badge ${payment.type.toLowerCase()}`}>{payment.type}</span>
-                    <span className="payment-number">{payment.number}</span>
-                    <button className="edit-btn">Sửa</button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDeletePayment(payment.id)}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button className="add-method-btn">
-                <PlusIcon />
-                Thêm phương thức thanh toán
-              </button>
-            </section>
+            </main>
+          </div>
+        </>
+      )}
 
-            {/* Change Password Section */}
-            <section className="form-section">
-              <h3 className="section-title">Thay đổi mật khẩu</h3>
-              <div className="form-group">
-                <label>MK hiện tại:</label>
-                <input
-                  type="password"
-                  name="oldPassword"
-                  value={passwordData.oldPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Nhập mật khẩu hiện tại"
-                />
+      {/* ADDRESS MODAL */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-7 shadow-2xl relative">
+            <button onClick={() => setShowAddressModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
+              <X size={22} />
+            </button>
+            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">Thêm địa chỉ mới</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Tên gợi nhớ</label>
+                <input type="text" value={newAddress.type} onChange={(e) => { setNewAddress({ ...newAddress, type: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="VD: Nhà riêng, Công ty..." />
               </div>
-              <div className="form-group">
-                <label>MK mới:</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Nhập mật khẩu mới"
-                />
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Địa chỉ cụ thể</label>
+                <textarea value={newAddress.address} onChange={(e) => { setNewAddress({ ...newAddress, address: e.target.value }); setError(null); }} className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition min-h-[100px]" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh thành phố..."></textarea>
               </div>
-              <div className="form-group">
-                <label>Xác nhận mật khẩu mới:</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Xác nhận mật khẩu mới"
-                />
-              </div>
-            </section>
 
-            {/* Action Buttons */}
-            <div className="form-actions">
-              <button className="cancel-btn" onClick={handleCancel}>Hủy</button>
-              <button className="save-btn" onClick={handleSaveChanges}>Lưu thay đổi</button>
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+
+              <div className="pt-4 flex justify-end gap-3 mt-2 border-t border-gray-100">
+                <button onClick={() => setShowAddressModal(false)} className="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[14px] font-semibold transition">Hủy</button>
+                <button onClick={handleAddAddress} className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-[14px] font-semibold transition shadow-md flex items-center gap-2"><Save size={16} /> Lưu địa chỉ</button>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      )}
+
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-7 shadow-2xl relative">
+            <button onClick={() => setShowPaymentModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
+              <X size={22} />
+            </button>
+            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">Thêm thẻ / ví thanh toán</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Loại thẻ / Ví</label>
+                <select value={newPayment.type} onChange={(e) => { setNewPayment({ ...newPayment, type: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                  <option value="VISA">Thẻ VISA</option>
+                  <option value="MASTERCARD">Thẻ MasterCard</option>
+                  <option value="JCB">Thẻ JCB</option>
+                  <option value="MOMO">Ví điện tử MoMo</option>
+                  <option value="ZALOPAY">Ví điện tử ZaloPay</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Số thẻ / Số điện thoại đăng ký ví</label>
+                <input type="text" value={newPayment.number} onChange={(e) => { setNewPayment({ ...newPayment, number: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Ví dụ: 4123 4567... hoặc 0901..." />
+              </div>
+
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+
+              <div className="pt-4 flex justify-end gap-3 mt-2 border-t border-gray-100">
+                <button onClick={() => setShowPaymentModal(false)} className="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[14px] font-semibold transition">Hủy</button>
+                <button onClick={handleAddPayment} className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-[14px] font-semibold transition shadow-md flex items-center gap-2"><Save size={16} /> Lưu thông tin</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <PageFooter />
@@ -575,4 +702,4 @@ const UpdateProfile = () => {
   );
 };
 
-export default UpdateProfile;  
+export default UpdateProfile;

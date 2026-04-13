@@ -2,19 +2,23 @@ import api from './api';
 
 export const VoucherService = {
   getAllVouchers: async (params = {}) => {
-    const res = await api.get('/api/voucher/my/list', { params });
+
+    const res = await api.get('/voucher/my/list', { params });
+
     return res.data; // Back-end returns { message, data: { items: [], pagination: {} } }
   },
 
   saveVoucher: async (data, isEdit = false, id = null) => {
     if (isEdit && id) {
-      return (await api.patch(`/api/voucher/${id}`, data)).data;
+
+      return (await api.patch(`/voucher/${id}`, data)).data;
     }
-    return (await api.post('/api/voucher', data)).data;
+    return (await api.post('/voucher', data)).data;
   },
 
   deleteVoucher: async (id) => {
-    return (await api.delete(`/api/voucher/${id}`)).data;
+    return (await api.delete(`/voucher/${id}`)).data;
+
   },
 
   getVoucherStats: async (filters = {}) => {

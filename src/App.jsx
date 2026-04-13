@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from "react-hot-toast";
+
 import Login from "./pages/auth/Login";
 import GoogleCallback from "./pages/auth/GoogleCallback";
 import Register from "./pages/auth/Register";
@@ -18,6 +19,7 @@ import InvoiceDetail from "./pages/manage/InvoiceDetail";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import CategoryProducts from "./pages/CategoryProducts/CategoryProducts";
 import ProductDetail from "./pages/ProductDetail/ProductDetail";
+import AIVirtualTryOn from "./pages/AIVirtualTryOn/AIVirtualTryOn";
 import ShoppingCart from "./pages/ShoppingCart-AddtoCart/ShoppingCart";
 import ChatPage from "./pages/chat/ChatPage";
 import Checkout from "./pages/checkout/Checkout";
@@ -34,8 +36,10 @@ import Vouchers from "./pages/shop-owner/Vouchers";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 
 const RootRedirect = () => {
-  const role = localStorage.getItem('userRole');
-  if (role && role.toLowerCase().includes('shop')) {
+
+  const role = localStorage.getItem("userRole");
+  if (role && role.toLowerCase().includes("shop")) {
+
     return <Navigate to="/shop-owner/store" replace />;
   }
   return <LandingPage />;
@@ -49,6 +53,9 @@ function App() {
         {/* Mặc định điều hướng thông minh dựa trên Role */}
         <Route path="/" element={<RootRedirect />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+
+        <Route path="/ai-virtual-tryon" element={<AIVirtualTryOn />} />
+
         <Route path="/category/:id" element={<CategoryProducts />} />
         <Route path="/cart" element={<ShoppingCart />} />
         <Route path="/checkout" element={<Checkout />} />
@@ -71,7 +78,12 @@ function App() {
         <Route path="/user/UpdateProfile" element={<UpdateProfile />} />
 
         <Route path="/manage/Manageinvoice" element={<Manageinvoice />} />
-        <Route path="/manage/invoice-detail/:orderId" element={<InvoiceDetail />} />
+
+        <Route
+          path="/manage/invoice-detail/:orderId"
+          element={<InvoiceDetail />}
+        />
+
 
         {/* Chat Routes */}
         <Route path="/chat" element={<ChatPage />} />
@@ -83,17 +95,20 @@ function App() {
             <Route path="store" element={<CuaHang />} />
             <Route
               path="dashboard"
-              element={<div className="p-6">Trang Dashboard đang phát triển</div>}
+
+              element={
+                <div className="p-6">Trang Dashboard đang phát triển</div>
+              }
+
             />
             <Route path="products" element={<Products />} />
             <Route path="products/add" element={<AddProduct />} />
             <Route path="products/edit/:id" element={<EditProduct />} />
             <Route path="orders" element={<Vieworder />} />
             <Route path="messages" element={<ChatPage />} />
-            <Route
-              path="vouchers"
-              element={<Vouchers />}
-            />
+
+            <Route path="vouchers" element={<Vouchers />} />
+
             <Route
               path="settings"
               element={<div className="p-6">Settings Preview</div>}

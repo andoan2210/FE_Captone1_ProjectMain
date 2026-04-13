@@ -37,7 +37,7 @@ const orderService = {
   // Lấy danh sách đơn hàng của cửa hàng
   getOrders: async (params = {}) => {
     try {
-      const response = await api.get('/api/order/order-shop');
+      const response = await api.get('/order/order-shop');
       let rawOrders = response.data?.data?.order || [];
       
       // Sắp xếp đơn hàng mới nhất lên đầu (Mới nhất -> Cũ nhất)
@@ -119,7 +119,7 @@ const orderService = {
   // Lấy chi tiết đơn hàng
   getOrderById: async (id) => {
     try {
-      const response = await api.get(`/api/order/${id}`);
+      const response = await api.get(`/order/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching order by ID:', error);
@@ -130,7 +130,7 @@ const orderService = {
   // Tạo đơn hàng mới
   createOrder: async (orderData) => {
     try {
-      const response = await api.post('/api/order', orderData);
+      const response = await api.post('/order', orderData);
       return response.data;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -141,7 +141,7 @@ const orderService = {
   // Cập nhật trạng thái/thông tin đơn hàng
   updateOrder: async (id, orderData) => {
     try {
-      const response = await api.patch(`/api/order/${id}`, orderData);
+      const response = await api.patch(`/order/${id}`, orderData);
       return response.data;
     } catch (error) {
       console.error('Error updating order:', error);
@@ -152,10 +152,25 @@ const orderService = {
   // Xóa đơn hàng
   deleteOrder: async (id) => {
     try {
-      const response = await api.delete(`/api/order/${id}`);
+      const response = await api.delete(`/order/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting order:', error);
+      throw error;
+    }
+  },
+
+  // Xác thực thanh toán MoMo
+  verifyMomoPayment: async (orderId, resultCode) => {
+    try {
+      // Endpoint giả định dựa trên cấu trúc backend NestJS
+      const response = await api.post('/order/verify-momo-payment', {
+        orderId: String(orderId),
+        resultCode: String(resultCode)
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying MoMo payment:', error);
       throw error;
     }
   }

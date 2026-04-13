@@ -377,8 +377,8 @@ const Products = () => {
                   <td className="px-6 py-5">
                     <div className="flex justify-center">
                       <span className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${product.isActive
-                          ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
-                          : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
+                        ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
+                        : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                         }`}>
                         {product.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
                       </span>

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShieldAlt, FaRegEnvelope, FaArrowRight } from 'react-icons/fa';
+import api from '../../services/api';
 import './Login.css';
-
-const API_BASE = '/api';
 
 function ResendCode() {
   const navigate = useNavigate();
@@ -19,17 +18,10 @@ function ResendCode() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/users/resend-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+      // Sử dụng api.post thay vì fetch
+      await api.post('/users/resend-code', {
+        email
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Gửi mã thất bại');
-      }
 
       setSuccess('Mã xác thực đã được gửi lại vào email của bạn!');
       
@@ -39,7 +31,8 @@ function ResendCode() {
       }, 1500);
 
     } catch (err) {
-      setError(err.message);
+      const data = err.response?.data;
+      setError(Array.isArray(data?.message) ? data.message[0] : (data?.message || err.message || 'Gửi mã thất bại'));
     } finally {
       setLoading(false);
     }

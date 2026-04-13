@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUnlock } from 'react-icons/fa';
 import { FaRegEnvelope, FaPaperPlane } from 'react-icons/fa6';
 import './Login.css';
-
-const API_BASE = 'http://localhost:8080/api';
+import api from '../../services/api';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
@@ -23,22 +22,14 @@ const ForgotPassword = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/users/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Gửi yêu cầu thất bại');
-                throw new Error(errMsg);
-            }
-
+            const response = await api.post('/users/forgot-password', { email });
+            
             // Chuyển sang trang xác nhận mã OTP của forgot password
             navigate('/verify-forgot-password-otp', { state: { email } });
         } catch (err) {
-            setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            const data = err.response?.data || {};
+            const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            setError(errMsg);
         } finally {
             setLoading(false);
         }

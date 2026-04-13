@@ -3,8 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaLock, FaShieldAlt } from 'react-icons/fa';
 import { FaRegEye, FaRegEyeSlash, FaCheck } from 'react-icons/fa6';
 import './Login.css';
-
-const API_BASE = 'http://localhost:8080/api';
+import api from '../../services/api';
 
 const ChangePassword = () => {
     const location = useLocation();
@@ -41,24 +40,16 @@ const ChangePassword = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/users/change-forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, newPassword: password }),
-            });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Thay đổi mật khẩu thất bại');
-                throw new Error(errMsg);
-            }
-
+            const response = await api.post('/users/change-forgot-password', { email, newPassword: password });
+            
             setSuccessMsg('Đổi mật khẩu thành công! Chuyển hướng đến đăng nhập...');
             setTimeout(() => {
                 navigate('/login');
             }, 1500);
         } catch (err) {
-            setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            const data = err.response?.data || {};
+            const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            setError(errMsg);
         } finally {
             setLoading(false);
         }
