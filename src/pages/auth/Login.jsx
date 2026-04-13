@@ -3,10 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaFingerprint, FaLock } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
 import { jwtDecode } from 'jwt-decode';
+import api from '../../services/api';
 import './Login.css';
-
-
-const API_BASE = '/api';
 
 function Login() {
   const navigate = useNavigate();
@@ -22,17 +20,13 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // The backend's LocalStrategy expects a 'username' field by default
-        body: JSON.stringify({ username: email, password }),
+      // Sử dụng instance api tập trung thay vì fetch
+      const response = await api.post('/auth/login', {
+        username: email,
+        password
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Đăng nhập thất bại');
-      }
-      // In ra response để kiểm tra cấu trúc dữ liệu trả về từ backend
+
+      const data = response.data;
       console.log('Login response:', data);
 
       // Lưu token
@@ -59,7 +53,7 @@ function Login() {
               console.log('Redirecting to Home');
               navigate('/');
             }
-            return; // Dừng xử lý sau khi đã navigate
+            return; 
           }
         } catch (decodeErr) {
           console.error('Lỗi khi giải mã token:', decodeErr);
@@ -69,9 +63,8 @@ function Login() {
       // Mặc định quay về trang chủ nếu không xác định được role
       navigate('/');
 
-
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }
@@ -79,7 +72,8 @@ function Login() {
 
   // Đăng nhập bằng Google – chuyển hướng tới OAuth endpoint
   const handleGoogleLogin = () => {
-    window.location.href = `${API_BASE}/auth/google/login`;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    window.location.href = `${baseUrl}/auth/google/login`;
   };
 
   return (

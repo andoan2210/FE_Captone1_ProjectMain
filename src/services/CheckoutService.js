@@ -16,7 +16,7 @@ const CheckoutService = {
     }
     if (voucherCode) body.voucherCode = voucherCode;
 
-    const response = await api.post('/api/order/preview', body);
+    const response = await api.post('/order/preview', body);
     return response.data;
   },
 
@@ -25,7 +25,7 @@ const CheckoutService = {
    * @param {object} orderPayload - toàn bộ CreateOrderDto
    */
   createOrder: async (orderPayload) => {
-    const response = await api.post('/api/order', orderPayload);
+    const response = await api.post('/order', orderPayload);
     return response.data;
   },
 
@@ -33,7 +33,7 @@ const CheckoutService = {
    * Lấy danh sách địa chỉ của user
    */
   getAddresses: async () => {
-    const response = await api.get('/api/address');
+    const response = await api.get('/address');
     return response.data;
   },
 
@@ -41,7 +41,7 @@ const CheckoutService = {
    * Thêm địa chỉ mới
    */
   addAddress: async (data) => {
-    const response = await api.post('/api/address', data);
+    const response = await api.post('/address', data);
     return response.data;
   },
 
@@ -49,7 +49,7 @@ const CheckoutService = {
    * Cập nhật địa chỉ
    */
   updateAddress: async (id, data) => {
-    const response = await api.patch(`/api/address/${id}`, data);
+    const response = await api.patch(`/address/${id}`, data);
     return response.data;
   },
 
@@ -57,7 +57,7 @@ const CheckoutService = {
    * Xóa địa chỉ
    */
   deleteAddress: async (id) => {
-    const response = await api.delete(`/api/address/${id}`);
+    const response = await api.delete(`/address/${id}`);
     return response.data;
   },
 };

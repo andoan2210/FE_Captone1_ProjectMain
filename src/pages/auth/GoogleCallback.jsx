@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import api from '../../services/api';
 import './Login.css';
-
-
-const API_BASE = '/api';
 
 function GoogleCallback() {
   const navigate = useNavigate();
@@ -21,12 +19,10 @@ function GoogleCallback() {
     // Gửi code đến backend để đổi lấy token
     const fetchToken = async () => {
       try {
-        const response = await fetch(`${API_BASE}/auth/google/callback?code=${encodeURIComponent(code)}`);
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || 'Đăng nhập Google thất bại');
-        }
-        // In ra response để kiểm tra cấu trúc dữ liệu trả về từ backend
+        // Sử dụng api.get thay vì fetch
+        const response = await api.get(`/auth/google/callback?code=${encodeURIComponent(code)}`);
+        const data = response.data;
+        
         console.log('Google login response:', data);
 
         const token = data.accessToken || data.token || data.access_token;
@@ -51,13 +47,11 @@ function GoogleCallback() {
           }
         }
 
-
         // Chuyển hướng mặc định
         navigate('/');
 
-
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || err.message || 'Đăng nhập Google thất bại');
       }
     };
 

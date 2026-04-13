@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaTrashAlt, FaArrowLeft, FaShoppingCart,
@@ -9,10 +9,12 @@ import {
 import { BsStars } from 'react-icons/bs';
 import { jwtDecode } from 'jwt-decode';
 import * as CartService from '../../services/CartService.js';
+import CheckoutService from '../../services/CheckoutService';
 import { CategoryService } from '../../services/CategoryService';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
 import './ShoppingCart.css';
+import { toast } from 'react-hot-toast';
 
 /* ── Helpers ─────────────────────────────────────── */
 function getUserDisplayNameFromToken() {
@@ -173,6 +175,17 @@ export default function ShoppingCart() {
   const [voucherCode,  setVoucherCode]  = useState('');
   const [dbCategories, setDbCategories] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]); // cartItemId[]
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isDeleting,   setIsDeleting]   = useState(false);
+
+  // ── Preview state ──
+  const [previewData,    setPreviewData]    = useState(null);  // data từ BE
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError,   setPreviewError]   = useState(null);
+  const [voucherApplied, setVoucherApplied] = useState('');    // voucher đã xác thực
+  const [voucherStatus,  setVoucherStatus]  = useState(null);  // { ok, msg }
+  const previewDebounce = useRef(null);
+
   const navigate = useNavigate();
 
   const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
@@ -238,7 +251,7 @@ export default function ShoppingCart() {
   const handleUpdateQuantity = async (cartItemId, newQty, maxStock) => {
     if (newQty < 1) return;
     if (newQty > maxStock) {
-      alert(`Chỉ còn ${maxStock} sản phẩm trong kho!`);
+      toast.error(`Chỉ còn ${maxStock} sản phẩm trong kho!`);
       return;
     }
     const prev = cartItems;
@@ -254,26 +267,39 @@ export default function ShoppingCart() {
       console.error('Lỗi cập nhật số lượng:', err);
       setCartItems(prev);
       localStorage.setItem('local_cart', JSON.stringify(prev));
-      alert('Không thể cập nhật số lượng. Vui lòng thử lại!');
+      toast.error('Không thể cập nhật số lượng. Vui lòng thử lại!');
     }
   };
 
-  /* ── Remove item (optimistic) ── */
-  const handleRemoveItem = async (cartItemId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
+  /* ── Remove item ── */
+  const handleRemoveItem = (cartItemId) => {
+    setItemToDelete(cartItemId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    
+    // Tìm item info
+    const itemInfo = cartItems.find(i => i.cartItemId === itemToDelete);
+    
     const prev = cartItems;
-    const next = cartItems.filter(i => i.cartItemId !== cartItemId);
+    const next = cartItems.filter(i => i.cartItemId !== itemToDelete);
     setCartItems(next);
-    setSelectedItems(s => s.filter(id => id !== cartItemId));
+    setSelectedItems(s => s.filter(id => id !== itemToDelete));
     localStorage.setItem('local_cart', JSON.stringify(next));
 
     try {
-      await CartService.removeCartItem(cartItemId);
+      await CartService.removeCartItem(itemToDelete);
+      toast.success(`Đã xóa ${itemInfo?.name || 'sản phẩm'} khỏi giỏ hàng!`);
     } catch (err) {
       console.error('Lỗi xóa sản phẩm:', err);
       setCartItems(prev);
       localStorage.setItem('local_cart', JSON.stringify(prev));
-      alert('Có lỗi khi xóa sản phẩm. Vui lòng thử lại!');
+      toast.error('Có lỗi khi xóa sản phẩm. Vui lòng thử lại!');
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
     }
   };
 
@@ -290,21 +316,97 @@ export default function ShoppingCart() {
         : cartItems.map(i => i.cartItemId)
     );
 
+  /* ── Gọi Preview API ── */
+  const callPreview = useCallback(async (appliedVoucher = '') => {
+    if (selectedItems.length === 0) {
+      setPreviewData(null);
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const params = {
+        type: 'CART',
+        selectedItems,
+        ...(appliedVoucher ? { voucherCode: appliedVoucher } : {}),
+      };
+      const data = await CheckoutService.preview(params);
+      setPreviewData(data);
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || 'Không thể tải thông tin đơn hàng';
+      setPreviewError(msg);
+      setPreviewData(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [selectedItems]);
+
+  // Debounce preview khi selectedItems thay đổi
+  useEffect(() => {
+    if (previewDebounce.current) clearTimeout(previewDebounce.current);
+    previewDebounce.current = setTimeout(() => {
+      callPreview(voucherApplied);
+    }, 400);
+    return () => clearTimeout(previewDebounce.current);
+  }, [selectedItems, voucherApplied, callPreview]);
+
+  /* ── Áp dụng Voucher ── */
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setPreviewLoading(true);
+    setVoucherStatus(null);
+    try {
+      const params = {
+        type: 'CART',
+        selectedItems,
+        voucherCode: voucherCode.trim(),
+      };
+      const data = await CheckoutService.preview(params);
+      setPreviewData(data);
+      setVoucherApplied(voucherCode.trim());
+      setVoucherStatus({ ok: true, msg: `Voucher "${voucherCode.trim()}" đã được áp dụng!` });
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || 'Voucher không hợp lệ';
+      setVoucherStatus({ ok: false, msg });
+      setVoucherApplied('');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setVoucherCode('');
+    setVoucherApplied('');
+    setVoucherStatus(null);
+    callPreview('');
+  };
+
   /* ── Checkout ── */
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
+      toast.error('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
       return;
     }
-    navigate('/checkout', { state: { type: 'CART', selectedItems } });
+    navigate('/checkout', {
+      state: {
+        type: 'CART',
+        selectedItems,
+        ...(voucherApplied ? { voucherCode: voucherApplied } : {}),
+      },
+    });
   };
 
-  /* ── Totals — based on SELECTED items ── */
+  /* ── Totals — ưu tiên dùng data từ BE preview, fallback tính local ── */
   const selectedCartItems = cartItems.filter(i => selectedItems.includes(i.cartItemId));
-  const subtotal   = selectedCartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const discount   = subtotal > 500000 ? 50000 : 0;
-  const shippingFee = subtotal > 0 ? 30000 : 0;
-  const total      = subtotal > 0 ? subtotal - discount + shippingFee : 0;
+  const localSubtotal  = selectedCartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  const localDiscount  = localSubtotal > 500000 ? 50000 : 0;
+  const localShipping  = localSubtotal > 0 ? 30000 : 0;
+  const localTotal     = localSubtotal > 0 ? localSubtotal - localDiscount + localShipping : 0;
+
+  const subtotal   = previewData ? previewData.total       : localSubtotal;
+  const discount   = previewData ? previewData.discount    : localDiscount;
+  const shippingFee = previewData ? previewData.shippingFee : localShipping;
+  const total      = previewData ? previewData.finalTotal  : localTotal;
 
   /* ── Loading state ── */
   if (loading) return (
@@ -447,32 +549,100 @@ export default function ShoppingCart() {
                 {/* Voucher */}
                 <div className="summary-voucher">
                   <label>MÃ GIẢM GIÁ</label>
-                  <div className="voucher-input-group">
-                    <input
-                      type="text"
-                      placeholder="Nhập mã voucher..."
-                      value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value)}
-                    />
-                    <button className="btn-apply">Áp dụng</button>
-                  </div>
+                  {voucherApplied ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>
+                        ✓ Đang áp dụng: <strong>{voucherApplied}</strong>
+                      </span>
+                      <button
+                        onClick={handleRemoveVoucher}
+                        style={{
+                          background: 'none',
+                          border: '1px solid #fca5a5',
+                          borderRadius: 8,
+                          padding: '3px 10px',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          fontSize: '0.78rem',
+                          fontFamily: 'inherit',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="voucher-input-group">
+                        <input
+                          type="text"
+                          placeholder="Nhập mã voucher..."
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
+                          disabled={selectedItems.length === 0}
+                        />
+                        <button
+                          className="btn-apply"
+                          onClick={handleApplyVoucher}
+                          disabled={!voucherCode.trim() || previewLoading || selectedItems.length === 0}
+                        >
+                          {previewLoading ? '...' : 'Áp dụng'}
+                        </button>
+                      </div>
+                      {voucherStatus && (
+                        <p style={{
+                          fontSize: '0.8rem',
+                          marginTop: 6,
+                          color: voucherStatus.ok ? '#4ade80' : '#f87171',
+                        }}>
+                          {voucherStatus.ok ? '✓' : '✗'} {voucherStatus.msg}
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
+
+                {/* Preview error banner */}
+                {previewError && !previewLoading && (
+                  <div style={{
+                    background: 'rgba(239,68,68,0.12)',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    marginBottom: 10,
+                    fontSize: '0.8rem',
+                    color: '#f87171',
+                  }}>
+                    ⚠️ {previewError}
+                  </div>
+                )}
 
                 {/* Calculations */}
                 <div className="summary-calc">
                   <div className="calc-row">
-                    <span>Tạm tính ({selectedItems.length} sản phẩm)</span>
-                    <span>{formatVND(subtotal)}</span>
+                    <span>
+                      {previewLoading
+                        ? 'Đang tính...'
+                        : `Tạm tính (${selectedItems.length} sản phẩm)`}
+                    </span>
+                    <span style={{ opacity: previewLoading ? 0.4 : 1 }}>
+                      {formatVND(subtotal)}
+                    </span>
                   </div>
                   {discount > 0 && (
                     <div className="calc-row discount-row">
-                      <span>Giảm giá đơn &gt;500k</span>
+                      <span>
+                        {previewData && voucherApplied ? `Voucher (${voucherApplied})` : 'Giảm giá đơn >500k'}
+                      </span>
                       <span>−{formatVND(discount)}</span>
                     </div>
                   )}
                   <div className="calc-row shipping-row">
                     <span>Phí vận chuyển</span>
-                    <span>{subtotal > 0 ? formatVND(shippingFee) : '—'}</span>
+                    <span style={{ opacity: previewLoading ? 0.4 : 1 }}>
+                      {subtotal > 0 ? formatVND(shippingFee) : '—'}
+                    </span>
                   </div>
                 </div>
 
@@ -506,6 +676,32 @@ export default function ShoppingCart() {
 
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="cart-modal-overlay">
+          <div className="cart-modal-content">
+            <h3 className="cart-modal-title">Xác nhận xóa</h3>
+            <p className="cart-modal-msg">Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?</p>
+            <div className="cart-modal-actions">
+              <button 
+                className="btn-modal-cancel" 
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeleting}
+              >
+                Hủy
+              </button>
+              <button 
+                className="btn-modal-confirm" 
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <PageFooter />
     </div>

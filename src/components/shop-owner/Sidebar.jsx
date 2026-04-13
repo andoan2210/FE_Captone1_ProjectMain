@@ -44,7 +44,7 @@ export default function Sidebar() {
     try {
       setIsLoggingOut(true);
       // Gọi API logout
-      await api.post('/api/auth/logout');
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('Lỗi khi gọi API logout, vẫn tiếp tục xóa token ở trình duyệt', error);
     } finally {

@@ -1,9 +1,13 @@
-import apiRequest from './api';
+
+// =====================================================
+// INVOICE SERVICE - Real API
+// =====================================================
+
+import api from './api';
 
 // ========== CONFIG ==========
 const API_CONFIG = {
-  USE_MOCK_API: true,  // TRUE: dùng Mock khi backend chưa hoàn thiện | FALSE: Real API
-  API_BASE_URL: 'http://localhost:8080/api',
+  USE_MOCK_API: false, // Turned OFF to use real backend
   TIMEOUT: 5000,
 };
 
@@ -362,12 +366,18 @@ const mockAPI = {
 
 // ========== REAL API FUNCTIONS ==========
 const realAPI = {
+
+  // Get all invoices for the current user
   getAllInvoices: async () => {
     try {
-      const response = await apiRequest.get('/order/my-orders');
+      // Backend: /order/order-user returns list of user's orders
+      const response = await api.get('/order/order-user');
+      // Assume structure is response.data.data.order or response.data.data
+      const rawData = response.data?.data?.order || response.data?.data || response.data || [];
       return {
         success: true,
-        data: response.data.data || response.data,
+        data: rawData,
+
         message: 'Lấy danh sách đơn hàng thành công',
       };
     } catch (error) {
@@ -378,45 +388,48 @@ const realAPI = {
 
   getInvoiceById: async (id) => {
     try {
-      const response = await apiRequest.get(`/order/order-detail/${id}`);
+      const response = await api.get(`/order/${id}`);
       return {
         success: true,
-        data: response.data.data || response.data,
+        data: response.data?.data || response.data,
         message: 'Lấy chi tiết đơn hàng thành công',
       };
     } catch (error) {
-      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
-      return mockAPI.getInvoiceById(id);
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: `Không tìm thấy đơn hàng ${id}`,
+          data: null,
+        };
+      }
+      return handleError(error);
     }
   },
 
-  cancelOrder: async (id) => {
-    try {
-      const response = await apiRequest.patch(`/order/cancel-order/${id}`);
-      return {
-        success: true,
-        data: response.data,
-        message: 'Hủy đơn hàng thành công',
-      };
-    } catch (error) {
-      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
-      return mockAPI.cancelOrder(id);
-    }
-  },
-
+  // Delete/Cancel invoice (Backend usually uses patch/delete)
   deleteInvoice: async (id) => {
     try {
-      const response = await apiRequest.delete(`/invoices/${id}`);
-      return { success: true, message: response.data?.message || 'Xóa thành công' };
+      const response = await api.patch(`/order/${id}`, { orderStatus: 'cancelled' });
+      return {
+        success: true,
+        message: response.data.message || 'Hủy đơn hàng thành công',
+      };
+
     } catch (error) {
       return handleError(error);
     }
   },
 
-  createInvoice: async (invoiceData) => {
+
+  // Create invoice (Usually part of checkout)
+  createInvoice: async (orderData) => {
     try {
-      const response = await apiRequest.post('/invoices', invoiceData);
-      return { success: true, data: response.data.data || response.data, message: 'Tạo thành công' };
+      const response = await api.post('/order', orderData);
+      return {
+        success: true,
+        data: response.data.data || response.data,
+        message: response.data.message || 'Tạo đơn hàng thành công',
+      };
     } catch (error) {
       return handleError(error);
     }
@@ -424,8 +437,13 @@ const realAPI = {
 
   updateInvoice: async (id, updateData) => {
     try {
-      const response = await apiRequest.put(`/invoices/${id}`, updateData);
-      return { success: true, data: response.data.data || response.data, message: 'Cập nhật thành công' };
+
+      const response = await api.patch(`/order/${id}`, updateData);
+      return {
+        success: true,
+        data: response.data.data || response.data,
+        message: response.data.message || 'Cập nhật đơn hàng thành công',
+      };
     } catch (error) {
       return handleError(error);
     }
@@ -436,19 +454,46 @@ const realAPI = {
 const invoiceService = {
   _getAPI: () => (API_CONFIG.USE_MOCK_API ? mockAPI : realAPI),
 
-  getMockInvoices: async () => invoiceService._getAPI().getAllInvoices(),
-  getMockInvoiceById: async (id) => invoiceService._getAPI().getInvoiceById(id),
-  cancelOrder: async (id) => invoiceService._getAPI().cancelOrder(id),
-  deleteMockInvoice: async (id) => invoiceService._getAPI().deleteInvoice(id),
-  createInvoice: async (data) => invoiceService._getAPI().createInvoice(data),
-  updateInvoice: async (id, data) => invoiceService._getAPI().updateInvoice(id, data),
 
-  // Tiện ích
+  // Get all invoices
+  getAllInvoices: async () => {
+    const api = invoiceService._getAPI();
+    return api.getAllInvoices();
+  },
+
+  // Get invoice detail by ID
+  getInvoiceById: async (id) => {
+    const api = invoiceService._getAPI();
+    return api.getInvoiceById(id);
+  },
+
+  // Delete/Cancel invoice
+  deleteInvoice: async (id) => {
+    const api = invoiceService._getAPI();
+    return api.deleteInvoice(id);
+  },
+
+  // Create new invoice
+  createInvoice: async (invoiceData) => {
+    const api = invoiceService._getAPI();
+    return api.createInvoice(invoiceData);
+  },
+
+  // Update invoice
+  updateInvoice: async (id, updateData) => {
+    const api = invoiceService._getAPI();
+    return api.updateInvoice(id, updateData);
+  },
+
+  // Switch between Mock and Real API
+
   setUseMockAPI: (useMock) => {
     API_CONFIG.USE_MOCK_API = useMock;
     console.log(`[Invoice Service] Switched to ${useMock ? 'MOCK' : 'REAL'} API`);
   },
-  setAPIBaseURL: (url) => { API_CONFIG.API_BASE_URL = url; },
+
+
+  // Get current config
   getConfig: () => ({ ...API_CONFIG }),
 };
 

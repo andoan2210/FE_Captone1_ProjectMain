@@ -1,336 +1,87 @@
 import api from './api';
 
-// ========== CONFIG ==========
-const API_CONFIG = {
-  USE_MOCK_API: false, // Turned OFF to use real backend
-  API_BASE_URL: '/address', 
-  TIMEOUT: 5000,
-};
-// ========== MOCK DATA ==========
-const MOCK_USER = {
-  id: 1,
-  fullName: 'Nguyễn Minh',
-  birthDate: '01/01/1990',
-  gender: 'Nam',
-  email: 'nguyenminh@gmail.com',
-  phone: '0123456789',
-  avatar: 'https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg',
-  joinDate: '01/01/2025',
-};
-
-const MOCK_ADDRESSES = [
-  {
-    id: 1,
-    type: 'Nhà (Mặc định)',
-    address: 'K275/27 Trường Chinh, An Khê, Thanh Khê, Đà Nẵng'
-  },
-  {
-    id: 2,
-    type: 'Công ty',
-    address: 'Số 45, Đặng Dung 11, Hoà Minh, Liên Chiểu, Đà Nẵng'
-  }
-];
-
-const MOCK_PAYMENTS = [
-  { id: 1, type: 'VISA', number: 'Visa****1234' },
-  { id: 2, type: 'MOMO', number: 'Momo****1234' }
-];
-
-// ========== MOCK FUNCTIONS ==========
-const mockGetUserProfile = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        ...MOCK_USER,
-        addresses: MOCK_ADDRESSES,
-        payments: MOCK_PAYMENTS
-      });
-    }, 500);
-  });
-};
-
-const mockUpdateUserProfile = async (userData) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        ...MOCK_USER,
-        ...userData,
-        addresses: MOCK_ADDRESSES,
-        payments: MOCK_PAYMENTS
-      });
-    }, 500);
-  });
-};
-
-const mockAddAddress = async (address) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: Date.now(),
-        ...address
-      });
-    }, 300);
-  });
-};
-
-const mockDeleteAddress = async (addressId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, id: addressId });
-    }, 300);
-  });
-};
-
-const mockAddPayment = async (payment) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: Date.now(),
-        ...payment
-      });
-    }, 300);
-  });
-};
-
-const mockDeletePayment = async (paymentId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, id: paymentId });
-    }, 300);
-  });
-};
-
-// ========== REAL API FUNCTIONS ==========
-const apiGetUserProfile = async () => {
-  try {
-    const response = await api.get(`${API_CONFIG.API_BASE_URL}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to fetch user profile: ${error.message}`);
-  }
-};
-
-const apiUpdateUserProfile = async (userData) => {
-  try {
-    const response = await api.put(`${API_CONFIG.API_BASE_URL}`, userData);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to update user profile: ${error.message}`);
-  }
-};
-
-const apiGetAddresses = async () => {
-  try {
-    const response = await api.get('/address');
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to fetch addresses: ${error.message}`);
-  }
-};
-
-const apiAddAddress = async (address) => {
-  try {
-    const response = await api.post('/address', address);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to add address: ${error.message}`);
-  }
-};
-
-const apiUpdateAddress = async (id, address) => {
-  try {
-    const response = await api.patch(`/address/${id}`, address);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to update address: ${error.message}`);
-  }
-};
-
-const apiDeleteAddress = async (addressId) => {
-  try {
-    const response = await api.delete(`/address/${addressId}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to delete address: ${error.message}`);
-  }
-};
-
-const apiAddPayment = async (payment) => {
-  try {
-    const response = await api.post('/users/payments', payment);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to add payment: ${error.message}`);
-  }
-};
-
-const apiDeletePayment = async (paymentId) => {
-  try {
-    const response = await api.delete(`/users/payments/${paymentId}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(`Failed to delete payment: ${error.message}`);
-  }
-};
-
-// ========== PUBLIC SERVICE API ==========
 const userService = {
-  // Config Methods
-  setUseMockAPI: (useMock) => {
-    API_CONFIG.USE_MOCK_API = useMock;
-  },
-
-  setAPIBaseURL: (url) => {
-    API_CONFIG.API_BASE_URL = url;
-  },
-
-  // User Profile
+  // Lấy thông tin hồ sơ người dùng
   getUserProfile: async () => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Using MOCK user profile');
-        return await mockGetUserProfile();
-      } else {
-        console.log('[v0] Calling REAL API:', `${API_CONFIG.API_BASE_URL}/users/profile`);
-        return await apiGetUserProfile();
-      }
+      const response = await api.get('/users/profile');
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed - NO FALLBACK:', error.message);
-        throw error;
-      }
+      console.error('Error fetching user profile:', error);
+      throw error;
     }
   },
 
+  // Cập nhật hồ sơ người dùng
   updateUserProfile: async (userData) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Updating MOCK user profile');
-        return await mockUpdateUserProfile(userData);
-      } else {
-        console.log('[v0] Calling REAL API to update profile');
-        return await apiUpdateUserProfile(userData);
-      }
+      const response = await api.put('/users/profile', userData);
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed:', error.message);
-        throw error;
-      }
+      console.error('Error updating user profile:', error);
+      throw error;
     }
   },
 
-  // Address Management
+  // Quản lý địa chỉ
   getAddresses: async () => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        return MOCK_ADDRESSES;
-      } else {
-        return await apiGetAddresses();
-      }
+      const response = await api.get('/address');
+      return response.data;
     } catch (error) {
+      console.error('Error fetching addresses:', error);
       throw error;
     }
   },
 
   addAddress: async (address) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Adding MOCK address');
-        return await mockAddAddress(address);
-      } else {
-        console.log('[v0] Calling REAL API to add address');
-        return await apiAddAddress(address);
-      }
+      const response = await api.post('/address', address);
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed:', error.message);
-        throw error;
-      }
+      console.error('Error adding address:', error);
+      throw error;
     }
   },
 
   updateAddress: async (id, address) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Updating MOCK address');
-        return { success: true, id, ...address };
-      } else {
-        console.log('[v0] Calling REAL API to update address');
-        return await apiUpdateAddress(id, address);
-      }
+      const response = await api.patch(`/address/${id}`, address);
+      return response.data;
     } catch (error) {
-      console.error('[v0] REAL API failed:', error.message);
+      console.error('Error updating address:', error);
       throw error;
     }
   },
 
   deleteAddress: async (addressId) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Deleting MOCK address:', addressId);
-        return await mockDeleteAddress(addressId);
-      } else {
-        console.log('[v0] Calling REAL API to delete address');
-        return await apiDeleteAddress(addressId);
-      }
+      const response = await api.delete(`/address/${addressId}`);
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed:', error.message);
-        throw error;
-      }
+      console.error('Error deleting address:', error);
+      throw error;
     }
   },
 
-  // Payment Management
+  // Quản lý phương thức thanh toán
   addPayment: async (payment) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Adding MOCK payment');
-        return await mockAddPayment(payment);
-      } else {
-        console.log('[v0] Calling REAL API to add payment');
-        return await apiAddPayment(payment);
-      }
+      const response = await api.post('/users/payments', payment);
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed:', error.message);
-        throw error;
-      }
+      console.error('Error adding payment:', error);
+      throw error;
     }
   },
 
   deletePayment: async (paymentId) => {
     try {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.log('[v0] Deleting MOCK payment:', paymentId);
-        return await mockDeletePayment(paymentId);
-      } else {
-        console.log('[v0] Calling REAL API to delete payment');
-        return await apiDeletePayment(paymentId);
-      }
+      const response = await api.delete(`/users/payments/${paymentId}`);
+      return response.data;
     } catch (error) {
-      if (API_CONFIG.USE_MOCK_API) {
-        console.warn('[v0] Mock API error:', error.message);
-        throw error;
-      } else {
-        console.error('[v0] REAL API failed:', error.message);
-        throw error;
-      }
+      console.error('Error deleting payment:', error);
+      throw error;
     }
   }
 };

@@ -8,7 +8,7 @@ const chatService = {
    * @returns {{ ConversationId: number }}
    */
   startChat: async (shopId) => {
-    const res = await api.post("/api/chat/start-chat", { shopId });
+    const res = await api.post("/chat/start-chat", { shopId });
     return res.data;
   },
 
@@ -17,7 +17,7 @@ const chatService = {
    * GET /api/chat/list-conversations
    */
   getConversations: async () => {
-    const res = await api.get("/api/chat/list-conversations");
+    const res = await api.get("/chat/list-conversations");
     return res.data;
   },
 
@@ -31,7 +31,7 @@ const chatService = {
   getMessages: async (conversationId, cursor = null, limit = 6) => {
     const params = { limit };
     if (cursor) params.cursor = cursor;
-    const res = await api.get(`/api/chat/messages/${conversationId}`, {
+    const res = await api.get(`/chat/messages/${conversationId}`, {
       params,
     });
     return res.data; // { data: [...], nextCursor: ... }
@@ -46,7 +46,7 @@ const chatService = {
   uploadImage: async (file) => {
     const formData = new FormData();
     formData.append("image", file); // 'image' là tên field, hãy đảm bảo BE dùng cùng tên này
-    const res = await api.post("/api/chat/upload", formData); // Để axios tự xử lý headers
+    const res = await api.post("/chat/upload", formData); // Để axios tự xử lý headers
     return res.data; // Mong đợi { imageUrl: '...' }
   },
 };

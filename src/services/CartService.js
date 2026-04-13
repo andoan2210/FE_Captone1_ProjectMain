@@ -1,6 +1,6 @@
 import api from './api';
 
-const API_URL = '/api/cart';
+const API_URL = '/cart';
 
 // Lấy giỏ hàng của user đang đăng nhập (có đầy đủ thông tin sản phẩm)
 export const getCart = () => {

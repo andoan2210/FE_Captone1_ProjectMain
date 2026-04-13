@@ -211,9 +211,54 @@ export default function Manageinvoice() {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await invoiceService.getMockInvoices();
+      const response = await invoiceService.getAllInvoices();
       if (response.success) {
-        setInvoices(response.data || []);
+        const rawData = response.data || [];
+        
+        // Ánh xạ dữ liệu từ Backend sang định dạng FE mong đợi
+        const mappedInvoices = rawData.map(order => {
+          // Các trạng thái đơn hàng từ Backend (giả định)
+          const beStatus = (order.orderStatus || 'pending').toLowerCase();
+          
+          let feStatus = 'pending_payment';
+          let feStatusText = 'Chờ xử lý';
+
+          if (beStatus === 'pending') {
+            feStatus = 'pending_payment';
+            feStatusText = 'Chờ xử lý';
+          } else if (beStatus === 'confirmed' || beStatus === 'processing') {
+            feStatus = 'shipping';
+            feStatusText = 'Đang xử lý';
+          } else if (beStatus === 'shipping') {
+            feStatus = 'receiving';
+            feStatusText = 'Đang giao hàng';
+          } else if (beStatus === 'completed' || beStatus === 'delivered') {
+            feStatus = 'completed';
+            feStatusText = 'Hoàn thành';
+          } else if (beStatus === 'cancelled') {
+            feStatus = 'cancelled';
+            feStatusText = 'Đã hủy';
+          }
+
+          return {
+            id: order.orderId ? `ORD${order.orderId}` : order.id,
+            shopName: order.storeName || order.shopName || 'Cửa hàng hệ thống',
+            status: feStatus,
+            statusText: feStatusText,
+            items: (order.orderItems || order.items || []).map(item => ({
+                id: item.variantId || item.id,
+                name: item.productName || item.name || 'Sản phẩm',
+                image: item.productImage || item.thumbnailUrl || item.image || 'https://via.placeholder.com/150',
+                variant: `${item.size || ''} ${item.color ? '| ' + item.color : ''}`.trim() || 'Mặc định',
+                price: item.price || 0,
+                quantity: item.quantity || 1
+            })),
+            finalAmount: order.totalAmount || 0,
+            date: order.createdAt
+          };
+        });
+
+        setInvoices(mappedInvoices);
       }
     } catch (err) {
       setError('Không thể tải danh sách đơn hàng.');

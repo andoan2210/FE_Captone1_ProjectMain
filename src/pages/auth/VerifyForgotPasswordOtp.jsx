@@ -2,9 +2,8 @@ import { useRef, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaShieldAlt } from 'react-icons/fa';
 import { FaCheck } from 'react-icons/fa6';
+import api from '../../services/api';
 import './Login.css';
-
-const API_BASE = '/api';
 
 const VerifyForgotPasswordOtp = () => {
     const inputRefs = useRef([]);
@@ -93,17 +92,11 @@ const VerifyForgotPasswordOtp = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/users/verify-forgot-password-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, code }),
+            // Sử dụng api.post thay vì fetch
+            await api.post('/users/verify-forgot-password-code', {
+                email,
+                code
             });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Xác nhận thất bại');
-                throw new Error(errMsg);
-            }
 
             setSuccessMsg('Xác nhận thành công! Đang chuyển hướng...');
             setTimeout(() => {
@@ -111,7 +104,9 @@ const VerifyForgotPasswordOtp = () => {
             }, 1000);
 
         } catch (err) {
-            setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            const data = err.response?.data;
+            const errMsg = Array.isArray(data?.message) ? data.message[0] : (data?.message || err.message || 'Xác nhận thất bại');
+            setError(errMsg);
         } finally {
             setLoading(false);
         }
@@ -122,21 +117,16 @@ const VerifyForgotPasswordOtp = () => {
         setSuccessMsg('');
         setResendLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/users/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+            // Sử dụng api.post thay vì fetch
+            await api.post('/users/forgot-password', {
+                email
             });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                const errMsg = Array.isArray(data.message) ? data.message[0] : (data.message || 'Lỗi gửi lại mã');
-                throw new Error(errMsg);
-            }
 
             setSuccessMsg('Mã xác nhận đã được gửi lại vào email của bạn.');
         } catch (err) {
-            setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
+            const data = err.response?.data;
+            const errMsg = Array.isArray(data?.message) ? data.message[0] : (data?.message || err.message || 'Lỗi gửi lại mã');
+            setError(errMsg);
         } finally {
             setResendLoading(false);
         }
