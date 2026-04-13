@@ -325,9 +325,11 @@ export default function CategoryProducts() {
   };
 
   const handleLogout = () => {
+
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
     window.location.href = "/login";
+
   };
 
   return (

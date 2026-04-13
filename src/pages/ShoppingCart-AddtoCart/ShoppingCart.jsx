@@ -175,6 +175,7 @@ export default function ShoppingCart() {
   const [voucherCode,  setVoucherCode]  = useState('');
   const [dbCategories, setDbCategories] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]); // cartItemId[]
+
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDeleting,   setIsDeleting]   = useState(false);
 
@@ -251,7 +252,9 @@ export default function ShoppingCart() {
   const handleUpdateQuantity = async (cartItemId, newQty, maxStock) => {
     if (newQty < 1) return;
     if (newQty > maxStock) {
+
       toast.error(`Chỉ còn ${maxStock} sản phẩm trong kho!`);
+
       return;
     }
     const prev = cartItems;
@@ -267,6 +270,7 @@ export default function ShoppingCart() {
       console.error('Lỗi cập nhật số lượng:', err);
       setCartItems(prev);
       localStorage.setItem('local_cart', JSON.stringify(prev));
+
       toast.error('Không thể cập nhật số lượng. Vui lòng thử lại!');
     }
   };
@@ -341,6 +345,7 @@ export default function ShoppingCart() {
     }
   }, [selectedItems]);
 
+
   // Debounce preview khi selectedItems thay đổi
   useEffect(() => {
     if (previewDebounce.current) clearTimeout(previewDebounce.current);
@@ -356,6 +361,7 @@ export default function ShoppingCart() {
     setPreviewLoading(true);
     setVoucherStatus(null);
     try {
+
       const params = {
         type: 'CART',
         selectedItems,
@@ -381,9 +387,11 @@ export default function ShoppingCart() {
     callPreview('');
   };
 
+
   /* ── Checkout ── */
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
+
       toast.error('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
       return;
     }
@@ -407,6 +415,7 @@ export default function ShoppingCart() {
   const discount   = previewData ? previewData.discount    : localDiscount;
   const shippingFee = previewData ? previewData.shippingFee : localShipping;
   const total      = previewData ? previewData.finalTotal  : localTotal;
+
 
   /* ── Loading state ── */
   if (loading) return (
@@ -549,6 +558,7 @@ export default function ShoppingCart() {
                 {/* Voucher */}
                 <div className="summary-voucher">
                   <label>MÃ GIẢM GIÁ</label>
+
                   {voucherApplied ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>
@@ -635,14 +645,17 @@ export default function ShoppingCart() {
                       <span>
                         {previewData && voucherApplied ? `Voucher (${voucherApplied})` : 'Giảm giá đơn >500k'}
                       </span>
+
                       <span>−{formatVND(discount)}</span>
                     </div>
                   )}
                   <div className="calc-row shipping-row">
                     <span>Phí vận chuyển</span>
+
                     <span style={{ opacity: previewLoading ? 0.4 : 1 }}>
                       {subtotal > 0 ? formatVND(shippingFee) : '—'}
                     </span>
+
                   </div>
                 </div>
 
@@ -676,6 +689,7 @@ export default function ShoppingCart() {
 
         </div>
       </div>
+
 
       {/* Delete Confirmation Modal */}
       {itemToDelete && (

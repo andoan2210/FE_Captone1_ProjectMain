@@ -2,12 +2,15 @@ import api from './api';
 
 export const VoucherService = {
   getAllVouchers: async (params = {}) => {
+
     const res = await api.get('/voucher/my/list', { params });
+
     return res.data; // Back-end returns { message, data: { items: [], pagination: {} } }
   },
 
   saveVoucher: async (data, isEdit = false, id = null) => {
     if (isEdit && id) {
+
       return (await api.patch(`/voucher/${id}`, data)).data;
     }
     return (await api.post('/voucher', data)).data;
@@ -15,6 +18,7 @@ export const VoucherService = {
 
   deleteVoucher: async (id) => {
     return (await api.delete(`/voucher/${id}`)).data;
+
   },
 
   getVoucherStats: async (filters = {}) => {

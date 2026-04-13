@@ -326,11 +326,13 @@ export default function LandingPage() {
 
   // Tự động chuyển hướng Shop Owner vào trang quản lý thay vì ở lại Trang Chủ
   useEffect(() => {
+
     const role = localStorage.getItem("userRole");
     // Nếu không muốn ép buộc chuyển hướng mỗi khi bấm logo Trang chủ, ta có thể thêm điều kiện kiểm tra URL
     // Nhưng hiện tại để đáp ứng yêu cầu "vào localhost tự động vào channel shop"
     if (role && role.toLowerCase().includes("shop")) {
       navigate("/shop-owner/store", { replace: true });
+
     }
   }, [navigate]);
 
@@ -699,6 +701,7 @@ export default function LandingPage() {
                   >
                     <FaUser /> Trang cá nhân
                   </Link>
+
                   {localStorage
                     .getItem("userRole")
                     ?.toLowerCase()
@@ -721,6 +724,7 @@ export default function LandingPage() {
                       >
                         PRO
                       </span>
+
                     </Link>
                   )}
                   <button

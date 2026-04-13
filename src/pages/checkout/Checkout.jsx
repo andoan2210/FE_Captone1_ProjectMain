@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CheckoutService from "../../services/CheckoutService";
@@ -7,15 +8,18 @@ import "./Checkout.css";
 const formatVND = (val) =>
   new Intl.NumberFormat("vi-VN").format(Number(val) || 0) + "đ";
 
+
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
 /** Hiển thị 1 sản phẩm trong đơn hàng */
 function OrderItemRow({ item }) {
+
   const imageUrl = item.productImage || item.image;
   return (
     <div className="ck-item-row">
       {imageUrl ? (
         <img src={imageUrl} alt={item.productName} className="ck-item-img" />
+
       ) : (
         <div className="ck-item-img-placeholder">🛍️</div>
       )}
@@ -35,7 +39,9 @@ function OrderItemRow({ item }) {
 function ModalAddressCard({ addr, selected, onSelect, onEdit }) {
   const fullAddr = [addr.detailAddress, addr.ward, addr.district, addr.province]
     .filter(Boolean)
+
     .join(", ");
+
 
   return (
     <div className="ck-modal-addr-card">
@@ -55,26 +61,31 @@ function ModalAddressCard({ addr, selected, onSelect, onEdit }) {
           <span className="ck-modal-addr-name">{addr.fullName}</span>
           <span className="ck-modal-addr-sep">|</span>
           <span className="ck-modal-addr-phone">{addr.phone}</span>
+
           <button
             className="ck-modal-addr-edit-btn"
             onClick={() => onEdit(addr)}
           >
             Cập nhật
           </button>
+
         </div>
         <div className="ck-modal-addr-detail">{addr.detailAddress}</div>
         <div className="ck-modal-addr-region">
           {addr.ward}, {addr.district}, {addr.province}
         </div>
+
         {addr.isDefault && (
           <span className="ck-modal-addr-badge">Mặc định</span>
         )}
+
       </div>
     </div>
   );
 }
 
 /** Modal Chọn Địa Chỉ (Shopee Style) */
+
 function AddressSelectionModal({
   isOpen,
   onClose,
@@ -84,10 +95,12 @@ function AddressSelectionModal({
   onAddNew,
   onEdit,
 }) {
+
   if (!isOpen) return null;
 
   return (
     <div className="ck-modal-overlay" onClick={onClose}>
+
       <div
         className="ck-modal-box ck-addr-select-modal"
         onClick={(e) => e.stopPropagation()}
@@ -100,6 +113,7 @@ function AddressSelectionModal({
         </div>
         <div className="ck-modal-body ck-addr-list-body">
           {addresses.map((addr) => (
+
             <ModalAddressCard
               key={addr.id}
               addr={addr}
@@ -114,12 +128,14 @@ function AddressSelectionModal({
             ＋ Thêm Địa Chỉ Mới
           </button>
           <div className="ck-modal-actions">
+
             <button className="ck-modal-btn-cancel" onClick={onClose}>
               Hủy
             </button>
             <button className="ck-modal-btn-confirm" onClick={onClose}>
               Xác nhận
             </button>
+
           </div>
         </div>
       </div>
@@ -130,6 +146,7 @@ function AddressSelectionModal({
 /** Modal Form Thêm/Sửa Địa Chỉ */
 function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
   const [formData, setFormData] = useState({
+
     fullName: "",
     phone: "",
     province: "",
@@ -137,12 +154,14 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
     ward: "",
     detailAddress: "",
     isDefault: false,
+
   });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
       setFormData({
+
         fullName: initialData.fullName || "",
         phone: initialData.phone || "",
         province: initialData.province || "",
@@ -160,6 +179,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
         ward: "",
         detailAddress: "",
         isDefault: false,
+
       });
     }
     setErrors({});
@@ -170,6 +190,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
+
     if (!formData.fullName) newErrors.fullName = "Vui lòng nhập họ tên";
     if (!formData.phone || !/^\d{10}$/.test(formData.phone))
       newErrors.phone = "Số điện thoại 10 chữ số";
@@ -178,6 +199,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
     if (!formData.ward) newErrors.ward = "Phường/Xã là bắt buộc";
     if (!formData.detailAddress)
       newErrors.detailAddress = "Địa chỉ chi tiết là bắt buộc";
+
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -188,12 +210,14 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
 
   return (
     <div className="ck-modal-overlay" onClick={onClose}>
+
       <div
         className="ck-modal-box ck-addr-form-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ck-modal-header">
           <h3>{initialData ? "Cập nhật địa chỉ" : "Địa chỉ mới"}</h3>
+
         </div>
         <form onSubmit={handleSubmit} className="ck-modal-body">
           <div className="ck-form-row">
@@ -202,6 +226,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
                 type="text"
                 placeholder="Họ và tên"
                 value={formData.fullName}
+
                 onChange={(e) =>
                   setFormData({ ...formData, fullName: e.target.value })
                 }
@@ -209,12 +234,14 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
               {errors.fullName && (
                 <span className="ck-form-error">{errors.fullName}</span>
               )}
+
             </div>
             <div className="ck-input-group">
               <input
                 type="text"
                 placeholder="Số điện thoại"
                 value={formData.phone}
+
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
@@ -222,6 +249,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
               {errors.phone && (
                 <span className="ck-form-error">{errors.phone}</span>
               )}
+
             </div>
           </div>
           <div className="ck-input-group">
@@ -229,6 +257,7 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
               type="text"
               placeholder="Tỉnh/Thành phố"
               value={formData.province}
+
               onChange={(e) =>
                 setFormData({ ...formData, province: e.target.value })
               }
@@ -236,12 +265,14 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
             {errors.province && (
               <span className="ck-form-error">{errors.province}</span>
             )}
+
           </div>
           <div className="ck-input-group">
             <input
               type="text"
               placeholder="Quận/Huyện"
               value={formData.district}
+
               onChange={(e) =>
                 setFormData({ ...formData, district: e.target.value })
               }
@@ -249,12 +280,14 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
             {errors.district && (
               <span className="ck-form-error">{errors.district}</span>
             )}
+
           </div>
           <div className="ck-input-group">
             <input
               type="text"
               placeholder="Phường/Xã"
               value={formData.ward}
+
               onChange={(e) =>
                 setFormData({ ...formData, ward: e.target.value })
               }
@@ -262,11 +295,13 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
             {errors.ward && (
               <span className="ck-form-error">{errors.ward}</span>
             )}
+
           </div>
           <div className="ck-input-group">
             <textarea
               placeholder="Địa chỉ cụ thể"
               value={formData.detailAddress}
+
               onChange={(e) =>
                 setFormData({ ...formData, detailAddress: e.target.value })
               }
@@ -274,25 +309,30 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
             {errors.detailAddress && (
               <span className="ck-form-error">{errors.detailAddress}</span>
             )}
+
           </div>
           <label className="ck-checkbox-row">
             <input
               type="checkbox"
               checked={formData.isDefault}
+
               onChange={(e) =>
                 setFormData({ ...formData, isDefault: e.target.checked })
               }
+
               disabled={initialData?.isDefault}
             />
             Đặt làm địa chỉ mặc định
           </label>
           <div className="ck-form-actions">
+
             <button type="button" className="ck-btn-back" onClick={onClose}>
               TRỞ LẠI
             </button>
             <button type="submit" className="ck-btn-submit">
               HOÀN THÀNH
             </button>
+
           </div>
         </form>
       </div>
@@ -300,13 +340,16 @@ function AddressFormModal({ isOpen, onClose, onSave, initialData }) {
   );
 }
 
+
 /** Thanh bước checkout */
 function Steps({ step }) {
   const steps = ["Giỏ hàng", "Thanh toán", "Xác nhận"];
+
   return (
     <div className="ck-topbar-steps" aria-label="Các bước đặt hàng">
       {steps.map((s, i) => {
         const idx = i + 1;
+
         const state = idx < step ? "done" : idx === step ? "active" : "";
         return (
           <React.Fragment key={s}>
@@ -316,6 +359,7 @@ function Steps({ step }) {
               aria-current={idx === step ? "step" : undefined}
             >
               <div className="ck-step-num">{state === "done" ? "✓" : idx}</div>
+
               <span>{s}</span>
             </div>
           </React.Fragment>
@@ -330,7 +374,9 @@ function SummarySkeleton() {
   return (
     <div className="ck-sum-skeleton">
       {[80, 60, 70, 50, 90].map((w, i) => (
+
         <div key={i} className="ck-skeleton-line" style={{ width: `${w}%` }} />
+
       ))}
     </div>
   );
@@ -350,6 +396,7 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
   }, [hasMomo, payUrl]);
 
   return (
+
     <div
       className="ck-success-overlay"
       role="dialog"
@@ -364,6 +411,7 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
         <p className="ck-success-msg">
           Cảm ơn bạn đã tin tưởng SmartAI Fashion. Chúng tôi sẽ xử lý đơn hàng
           của bạn ngay.
+
         </p>
         {orderId && (
           <div className="ck-success-order-id">
@@ -397,6 +445,7 @@ export default function Checkout() {
   const [showAddrForm, setShowAddrForm] = useState(false);
   const [editingAddr, setEditingAddr] = useState(null);
 
+
   const [paymentMethod, setPaymentMethod] = useState("MOMO");
   // Kế thừa voucher đã áp dụng từ Cart page (nếu có)
   const [voucherCode, setVoucherCode] = useState(
@@ -405,6 +454,7 @@ export default function Checkout() {
   const [voucherApplied, setVoucherApplied] = useState(
     checkoutState.voucherCode || "",
   );
+
   const [voucherStatus, setVoucherStatus] = useState(null); // {ok, msg}
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -417,6 +467,7 @@ export default function Checkout() {
   const previewDebounce = useRef(null);
 
   // ── Kiểm tra state hợp lệ ──
+
   const isValid =
     checkoutState.type === "CART"
       ? checkoutState.selectedItems?.length > 0
@@ -424,10 +475,12 @@ export default function Checkout() {
         checkoutState.variantId &&
         checkoutState.quantity > 0;
 
+
   const fetchAddresses = async () => {
     setLoadingAddr(true);
     try {
       const res = await CheckoutService.getAddresses();
+
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
@@ -441,6 +494,7 @@ export default function Checkout() {
       }
     } catch (e) {
       console.error("Lỗi tải địa chỉ:", e);
+
     } finally {
       setLoadingAddr(false);
     }
@@ -451,6 +505,7 @@ export default function Checkout() {
   }, []);
 
   // ── Gọi Preview mỗi khi voucher / loại đặt thay đổi ──
+
   const callPreview = useCallback(
     async (appliedVoucher = "") => {
       if (!isValid) return;
@@ -482,6 +537,7 @@ export default function Checkout() {
     [checkoutState, isValid],
   );
 
+
   useEffect(() => {
     callPreview(voucherApplied);
   }, [callPreview, voucherApplied]);
@@ -494,17 +550,20 @@ export default function Checkout() {
     try {
       const params = {
         type: checkoutState.type,
+
         ...(checkoutState.type === "CART"
           ? { selectedItems: checkoutState.selectedItems }
           : {
               variantId: checkoutState.variantId,
               quantity: checkoutState.quantity,
             }),
+
         voucherCode: voucherCode.trim(),
       };
       const data = await CheckoutService.preview(params);
       setPreviewData(data);
       setVoucherApplied(voucherCode.trim());
+
       setVoucherStatus({
         ok: true,
         msg: `Voucher "${voucherCode.trim()}" đã được áp dụng thành công!`,
@@ -514,16 +573,19 @@ export default function Checkout() {
         e.response?.data?.message || e.message || "Voucher không hợp lệ";
       setVoucherStatus({ ok: false, msg });
       setVoucherApplied("");
+
     } finally {
       setPreviewLoading(false);
     }
   };
 
   const handleRemoveVoucher = () => {
+
     setVoucherCode("");
     setVoucherApplied("");
     setVoucherStatus(null);
     callPreview("");
+
   };
 
   const handleSaveAddr = async (data) => {
@@ -539,20 +601,24 @@ export default function Checkout() {
       setEditingAddr(null);
       await fetchAddresses();
     } catch (e) {
+
       alert(e.response?.data?.message || e.message || "Lỗi khi lưu địa chỉ");
     }
   };
 
   const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
 
+
   // ── Đặt hàng ──
   const handleSubmit = async () => {
     if (!selectedAddressId) {
+
       setSubmitError("Vui lòng chọn địa chỉ giao hàng.");
       return;
     }
     if (!isValid) {
       setSubmitError("Không có sản phẩm để đặt hàng.");
+
       return;
     }
     setSubmitError(null);
@@ -563,6 +629,7 @@ export default function Checkout() {
         type: checkoutState.type,
         addressId: Number(selectedAddressId),
         paymentMethod,
+
         ...(checkoutState.type === "CART"
           ? { selectedItems: (checkoutState.selectedItems || []).map(Number) }
           : {
@@ -572,16 +639,19 @@ export default function Checkout() {
         ...(voucherApplied ? { voucherCode: voucherApplied } : {}),
       };
       console.log("[Checkout] Gửi payload:", JSON.stringify(payload, null, 2));
+
       const res = await CheckoutService.createOrder(payload);
       setSuccess({
         orderId: res.order?.OrderId,
         payUrl: res.payUrl,
       });
     } catch (e) {
+
       const msg =
         e.response?.data?.message ||
         e.message ||
         "Đặt hàng thất bại. Vui lòng thử lại.";
+
       setSubmitError(msg);
     } finally {
       setSubmitting(false);
@@ -594,6 +664,7 @@ export default function Checkout() {
       <div className="ck-shell">
         <div className="ck-empty-page">
           <div className="ck-empty-icon">🛒</div>
+
           <h2 className="ck-empty-title">
             Không có sản phẩm nào để thanh toán
           </h2>
@@ -601,6 +672,7 @@ export default function Checkout() {
           <Link to="/cart" className="ck-back-btn">
             ← Về giỏ hàng
           </Link>
+
         </div>
       </div>
     );
@@ -613,16 +685,20 @@ export default function Checkout() {
         <SuccessOverlay
           orderId={success.orderId}
           payUrl={success.payUrl}
+
           onGoOrders={() => navigate("/manage/Manageinvoice")}
           onGoHome={() => navigate("/")}
+
         />
       )}
 
       {/* TOPBAR */}
       <header className="ck-topbar">
+
         <Link to="/" className="ck-topbar-logo">
           SmartAI Fashion
         </Link>
+
         <Steps step={2} />
         <div style={{ width: 160 }} />
       </header>
@@ -640,6 +716,7 @@ export default function Checkout() {
       <main className="ck-main" id="main-content">
         {/* LEFT COLUMN */}
         <div className="ck-left-col">
+
           <section className="ck-card ck-addr-section">
             <div className="ck-addr-header-row">
               <h2 className="ck-card-title">Địa chỉ giao hàng</h2>
@@ -647,6 +724,7 @@ export default function Checkout() {
                 className="ck-addr-change-btn"
                 onClick={() => setShowAddrSelect(true)}
               >
+
                 Thay đổi
               </button>
             </div>
@@ -674,6 +752,7 @@ export default function Checkout() {
                 <div className="ck-sel-addr-icon">🏠</div>
                 <div className="ck-sel-addr-info">
                   <div className="ck-sel-addr-name">
+
                     <strong>{selectedAddr.fullName}</strong>{" "}
                     {selectedAddr.phone}
                     {selectedAddr.isDefault && (
@@ -683,6 +762,7 @@ export default function Checkout() {
                   <div className="ck-sel-addr-text">
                     {selectedAddr.detailAddress}, {selectedAddr.ward},{" "}
                     {selectedAddr.district}, {selectedAddr.province}
+
                   </div>
                 </div>
               </div>
@@ -718,6 +798,7 @@ export default function Checkout() {
             <h2 className="ck-card-title" id="items-title">
               Sản phẩm đặt hàng
               {previewData?.items?.length > 0 && (
+
                 <span
                   style={{
                     marginLeft: "auto",
@@ -728,6 +809,7 @@ export default function Checkout() {
                     letterSpacing: 0,
                   }}
                 >
+
                   {previewData.items.length} sản phẩm
                 </span>
               )}
@@ -751,6 +833,7 @@ export default function Checkout() {
                 ))}
               </div>
             ) : !previewLoading ? (
+
               <div
                 style={{
                   color: "var(--ck-text-muted)",
@@ -758,6 +841,7 @@ export default function Checkout() {
                   padding: "16px 0",
                 }}
               >
+
                 Không có sản phẩm nào.
               </div>
             ) : null}
@@ -770,13 +854,16 @@ export default function Checkout() {
             </h2>
 
             {voucherApplied ? (
+
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: "0.88rem", color: "var(--ck-green)" }}>
+
                   ✓ Đang áp dụng: <strong>{voucherApplied}</strong>
                 </span>
                 <button
                   onClick={handleRemoveVoucher}
                   style={{
+
                     background: "none",
                     border: "1px solid #fca5a5",
                     borderRadius: 8,
@@ -785,6 +872,7 @@ export default function Checkout() {
                     cursor: "pointer",
                     fontSize: "0.78rem",
                     fontFamily: "inherit",
+
                     fontWeight: 600,
                   }}
                 >
@@ -799,8 +887,10 @@ export default function Checkout() {
                   className="ck-voucher-input"
                   placeholder="Nhập mã voucher (VD: SALE10)"
                   value={voucherCode}
+
                   onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyVoucher()}
+
                   aria-label="Mã giảm giá"
                   autoComplete="off"
                 />
@@ -816,11 +906,13 @@ export default function Checkout() {
             )}
 
             {voucherStatus && (
+
               <div
                 className={`ck-voucher-status ${voucherStatus.ok ? "success" : "error"}`}
                 role="status"
               >
                 {voucherStatus.ok ? "✓" : "✗"} {voucherStatus.msg}
+
               </div>
             )}
           </section>
@@ -830,6 +922,7 @@ export default function Checkout() {
             <h2 className="ck-card-title" id="pay-title">
               Phương thức thanh toán
             </h2>
+
 
             <div
               className="ck-payment-options"
@@ -842,6 +935,7 @@ export default function Checkout() {
                 className="ck-payment-opt ck-pay-momo selected"
                 role="radio"
                 aria-checked={true}
+
               >
                 <div className="ck-pay-icon">💜</div>
                 <div>
@@ -851,10 +945,12 @@ export default function Checkout() {
               </div>
             </div>
 
+
             {paymentMethod === "MOMO" && (
               <div className="ck-momo-redirect-box">
                 💜 Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán MoMo
                 để hoàn tất.
+
               </div>
             )}
           </section>
@@ -872,6 +968,7 @@ export default function Checkout() {
                 <div className="ck-summary-rows">
                   <div className="ck-sum-row">
                     <span className="label">Tạm tính</span>
+
                     <span className="value">
                       {formatVND(previewData.total)}
                     </span>
@@ -887,6 +984,7 @@ export default function Checkout() {
                     <span className="value">
                       {formatVND(previewData.shippingFee)}
                     </span>
+
                   </div>
                 </div>
 
@@ -895,19 +993,23 @@ export default function Checkout() {
                 <div className="ck-sum-total-row">
                   <span className="ck-sum-total-label">Tổng thanh toán</span>
                   <div className="ck-sum-total-price">
+
                     <span className="ck-sum-total-amount">
                       {formatVND(previewData.finalTotal)}
                     </span>
+
                     <span className="ck-sum-total-vat">(Đã bao gồm VAT)</span>
                   </div>
                 </div>
               </>
             ) : previewError ? (
+
               <div
                 className="ck-error-banner"
                 style={{ marginBottom: 20 }}
                 role="alert"
               >
+
                 ⚠️ {previewError}
               </div>
             ) : null}
@@ -922,6 +1024,7 @@ export default function Checkout() {
             {/* Nút đặt hàng */}
             <button
               id="btn-checkout"
+
               className={`ck-checkout-btn${submitting ? " loading" : ""}`}
               onClick={handleSubmit}
               disabled={
@@ -930,6 +1033,7 @@ export default function Checkout() {
                 !selectedAddressId ||
                 !previewData
               }
+
               aria-label="Đặt hàng ngay"
             >
               <span className="ck-btn-inner">
@@ -939,7 +1043,9 @@ export default function Checkout() {
                     Đang đặt hàng...
                   </>
                 ) : (
+
                   <>💜 Đặt & Thanh toán MoMo</>
+
                 )}
               </span>
             </button>

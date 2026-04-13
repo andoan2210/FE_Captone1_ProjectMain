@@ -1,5 +1,7 @@
 import api from './api';
 
+
+
 const userService = {
   // Lấy thông tin hồ sơ người dùng
   getUserProfile: async () => {
@@ -44,12 +46,29 @@ const userService = {
     }
   },
 
+
   updateAddress: async (id, address) => {
+
     try {
       const response = await api.patch(`/address/${id}`, address);
       return response.data;
     } catch (error) {
       console.error('Error updating address:', error);
+      throw error;
+    }
+  },
+
+  updateAddress: async (id, address) => {
+    try {
+      if (API_CONFIG.USE_MOCK_API) {
+        console.log('[v0] Updating MOCK address');
+        return { success: true, id, ...address };
+      } else {
+        console.log('[v0] Calling REAL API to update address');
+        return await apiUpdateAddress(id, address);
+      }
+    } catch (error) {
+      console.error('[v0] REAL API failed:', error.message);
       throw error;
     }
   },

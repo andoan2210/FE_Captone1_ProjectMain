@@ -388,10 +388,12 @@ export default function ProductDetail() {
   };
 
   const handleLogout = () => {
+
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
     window.location.href = "/login";
   };
+
 
   const handleAddToCart = async () => {
     if (!currentVariant) {
@@ -436,6 +438,7 @@ export default function ProductDetail() {
       return;
     }
 
+
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Vui lòng đăng nhập để mua hàng!");
@@ -446,10 +449,12 @@ export default function ProductDetail() {
     navigate("/checkout", {
       state: {
         type: "BUY_NOW",
+
         variantId: currentVariant.variantId,
         quantity,
       },
     });
+
   };
 
   const handleTryOnAI = () => {
@@ -464,6 +469,8 @@ export default function ProductDetail() {
     const url = `/ai-virtual-tryon?productId=${productId}&thumbnail=${encodeURIComponent(thumbnailUrl)}&productName=${encodeURIComponent(productName)}&price=${price}`;
     navigate(url);
   };
+
+
 
   const handleChatNow = async () => {
     if (!userLabel) {

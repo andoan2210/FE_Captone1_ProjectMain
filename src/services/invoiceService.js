@@ -1,4 +1,5 @@
 
+
 // =====================================================
 // INVOICE SERVICE - Real API
 // =====================================================
@@ -8,6 +9,7 @@ import api from './api';
 // ========== CONFIG ==========
 const API_CONFIG = {
   USE_MOCK_API: false, // Turned OFF to use real backend
+
   TIMEOUT: 5000,
 };
 
@@ -176,6 +178,7 @@ const MOCK_INVOICE_DETAILS = {
     payment: { method: 'Ví ShopeePay', transactionCode: 'TXN-002-20240322' },
     invoice: { invoiceNumber: 'INV-2024-002' },
     store: { storeName: 'Coolmate Official' },
+
     items: [
       {
         productName: 'Áo thun Cotton Compact phiên bản Premium',
@@ -232,6 +235,7 @@ const MOCK_INVOICE_DETAILS = {
     store: { storeName: 'DirtyCoins Studio' },
     items: [
       {
+
         productName: 'Hoodie Box Logo Limited Edition',
         image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=85&auto=format&fit=crop',
         variant: 'Trắng, Size XL',
@@ -388,6 +392,7 @@ const realAPI = {
 
   getInvoiceById: async (id) => {
     try {
+
       const response = await api.get(`/order/${id}`);
       return {
         success: true,
@@ -413,12 +418,24 @@ const realAPI = {
       return {
         success: true,
         message: response.data.message || 'Hủy đơn hàng thành công',
+
       };
 
+    } catch (error) {
+      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
+      return mockAPI.cancelOrder(id);
+    }
+  },
+
+  deleteInvoice: async (id) => {
+    try {
+      const response = await apiRequest.delete(`/invoices/${id}`);
+      return { success: true, message: response.data?.message || 'Xóa thành công' };
     } catch (error) {
       return handleError(error);
     }
   },
+
 
 
   // Create invoice (Usually part of checkout)
@@ -430,6 +447,7 @@ const realAPI = {
         data: response.data.data || response.data,
         message: response.data.message || 'Tạo đơn hàng thành công',
       };
+
     } catch (error) {
       return handleError(error);
     }
@@ -438,12 +456,14 @@ const realAPI = {
   updateInvoice: async (id, updateData) => {
     try {
 
+
       const response = await api.patch(`/order/${id}`, updateData);
       return {
         success: true,
         data: response.data.data || response.data,
         message: response.data.message || 'Cập nhật đơn hàng thành công',
       };
+
     } catch (error) {
       return handleError(error);
     }
@@ -453,6 +473,7 @@ const realAPI = {
 // ========== INVOICE SERVICE (EXPORTED) ==========
 const invoiceService = {
   _getAPI: () => (API_CONFIG.USE_MOCK_API ? mockAPI : realAPI),
+
 
 
   // Get all invoices
@@ -487,13 +508,16 @@ const invoiceService = {
 
   // Switch between Mock and Real API
 
+
   setUseMockAPI: (useMock) => {
     API_CONFIG.USE_MOCK_API = useMock;
     console.log(`[Invoice Service] Switched to ${useMock ? 'MOCK' : 'REAL'} API`);
   },
 
 
+
   // Get current config
+
   getConfig: () => ({ ...API_CONFIG }),
 };
 

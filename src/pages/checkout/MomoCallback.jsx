@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+
 import orderService from '../../services/orderService';
+
 
 /**
  * Trang xử lý callback từ MoMo sau khi thanh toán.
@@ -25,12 +27,16 @@ export default function MomoCallback() {
     // 1. Phân tách lấy OrderId từ chuỗi "CPS_21_..." của MoMo
     const cleanId = orderId && orderId.includes('_') ? orderId.split('_')[1] : orderId;
 
+
     // 2. Đồng bộ trạng thái với Backend
+
     const syncPaymentWithBE = async () => {
       if (isSuccess && cleanId) {
         try {
           console.log(`[MoMo] Đang yêu cầu BE kiểm tra trạng thái cho đơn hàng ID: ${cleanId}`);
+
           await orderService.verifyMomoPayment(cleanId, resultCode);
+
         } catch (err) {
           console.error("Lỗi khi đồng bộ với Backend:", err);
         }
