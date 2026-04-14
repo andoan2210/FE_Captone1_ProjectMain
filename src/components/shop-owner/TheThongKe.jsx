@@ -2,11 +2,11 @@
 /**
  * File: TheThongKe.jsx
  * Mục đích: Thành phần hiển thị 1 thẻ nhỏ thống kê trạng thái cửa hàng cho Shop Owner.
- * Component này sẽ tự động gọi API CuahangService.getStoreStats() để hiển thị số liệu thực tế.
+ * Component này sẽ tự động gọi API ShopCuahangService.getStoreStats() để hiển thị số liệu thực tế.
  */
 import React, { useEffect, useState } from 'react';
 import { FiBox, FiShoppingCart, FiTag, FiActivity } from 'react-icons/fi';
-import { CuahangService } from '@/services/CuahangService';
+import { ShopCuahangService } from '@/services/ShopCuahangService';
 
 const TheThongKe = ({ isActive: propIsActive, stats: externalStats }) => {
   const [stats, setStats] = useState([]);

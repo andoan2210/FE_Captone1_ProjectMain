@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
-import orderService from '../../services/orderService';
+import ShopOrderService from '../../services/ShopOrderService';
 
 
 /**
@@ -35,7 +35,7 @@ export default function MomoCallback() {
         try {
           console.log(`[MoMo] Đang yêu cầu BE kiểm tra trạng thái cho đơn hàng ID: ${cleanId}`);
 
-          await orderService.verifyMomoPayment(cleanId, resultCode);
+          await ShopOrderService.verifyMomoPayment(cleanId, resultCode);
 
         } catch (err) {
           console.error("Lỗi khi đồng bộ với Backend:", err);
@@ -65,9 +65,9 @@ export default function MomoCallback() {
         {/* ICON */}
         <div style={styles.iconWrap}>
           {isSuccess ? (
-            <span style={{ ...styles.icon, color: '#10b981' }}>✅</span>
+            <span style={{ ...styles.icon, color: '#10b981' }}></span>
           ) : (
-            <span style={{ ...styles.icon, color: '#ef4444' }}>❌</span>
+            <span style={{ ...styles.icon, color: '#ef4444' }}></span>
           )}
         </div>
 
@@ -102,7 +102,7 @@ export default function MomoCallback() {
 
         {/* COUNTDOWN */}
         <p style={styles.countdown}>
-          Tự động chuyển về trang đơn hàng sau <strong style={{ color: '#0061ff' }}>{countdown}s</strong>
+          Tự động chuyển về Đơn Mua sau <strong style={{ color: '#0061ff' }}>{countdown}s</strong>
         </p>
 
         {/* NÚT */}
@@ -110,7 +110,7 @@ export default function MomoCallback() {
           onClick={() => navigate('/manage/Manageinvoice', { replace: true })}
           style={styles.btn}
         >
-          📦 Xem đơn hàng ngay
+          Xem Đơn Mua
         </button>
 
         {isSuccess && (
@@ -118,7 +118,7 @@ export default function MomoCallback() {
             onClick={() => navigate('/', { replace: true })}
             style={styles.btnSecondary}
           >
-            🏠 Về trang chủ
+            Về trang chủ
           </button>
         )}
       </div>

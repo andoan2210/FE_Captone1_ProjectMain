@@ -8,7 +8,7 @@ import {
   FiTrendingUp, FiCheckCircle, FiEyeOff, FiAlertTriangle, FiGrid, FiX
 } from 'react-icons/fi';
 
-import { ProductService } from '../../services/ProductService';
+import { ShopProductService } from '../../services/ShopProductService';
 
 const Products = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const Products = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await ProductService.getMyProducts(currentPage, 100);
+      const response = await ShopProductService.getMyProducts(currentPage, 100);
       if (response && response.data) {
         // Sắp xếp sản phẩm mới nhất lên đầu (Dựa trên updatedAt hoặc createdAt)
         const sortedProducts = response.data.sort((a, b) => {
@@ -67,7 +67,7 @@ const Products = () => {
     if (!product || !product.productId) return;
     setLoading(true);
     try {
-      const detail = await ProductService.getProductById(product.productId);
+      const detail = await ShopProductService.getProductById(product.productId);
       setProductToView(detail);
       setIsViewModalOpen(true);
     } catch (error) {
@@ -110,10 +110,10 @@ const Products = () => {
   const confirmDelete = async () => {
     try {
       if (selectedProducts.length > 0) {
-        await ProductService.bulkDeleteProducts(selectedProducts);
+        await ShopProductService.bulkDeleteProducts(selectedProducts);
         setSelectedProducts([]);
       } else if (productToDelete) {
-        await ProductService.deleteProduct(productToDelete.productId);
+        await ShopProductService.deleteProduct(productToDelete.productId);
         setProductToDelete(null);
       }
       await fetchProducts();

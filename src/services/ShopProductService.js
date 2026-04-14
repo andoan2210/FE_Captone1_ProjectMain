@@ -1,6 +1,6 @@
 import api from "./api";
 
-export const ProductService = {
+export const ShopProductService = {
   // Lấy toàn bộ danh sách sản phẩm (Shop owner)
   getMyProducts: async (page = 1, limit = 5) => {
     const response = await api.get("/product/my-products", {
@@ -136,6 +136,23 @@ export const ProductService = {
   // ✅ Delete individual product image
   deleteProductImage: async (imageId) => {
     const response = await api.delete(`/product/images/${imageId}`);
+    return response.data;
+  },
+
+  // 🔍 Tìm kiếm sản phẩm
+  searchProducts: async (searchParams) => {
+    const response = await api.get("/product/search", {
+      params: searchParams,
+    });
+    return response.data;
+  },
+
+  // ✨ Lấy gợi ý từ khóa
+  getSuggestions: async (keyword) => {
+    if (!keyword || keyword.trim() === "") return [];
+    const response = await api.get("/product/suggestions", {
+      params: { keyword },
+    });
     return response.data;
   },
 };

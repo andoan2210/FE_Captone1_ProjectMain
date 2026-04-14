@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import TheThongKe from '@/components/shop-owner/TheThongKe';
 import FormCuaHang from '@/components/shop-owner/FormCuaHang';
 import ThongTinHeThong from '@/components/shop-owner/ThongTinHeThong';
-import { CuahangService } from '@/services/CuahangService';
+import { ShopCuahangService } from '../../services/ShopCuahangService';
 
 export default function CuaHang() {
   const [storeInfo, setStoreInfo] = useState(null);
@@ -21,7 +21,7 @@ export default function CuaHang() {
       try {
         setLoading(true);
         // BE trả về { message, data: { storeId, ownerId, storeName, ... } }
-        const res = await CuahangService.getMyStore();
+        const res = await ShopCuahangService.getMyStore();
         const raw = res.data || {};
         // Normalize field names cho FE (storeName → name)
         const data = {

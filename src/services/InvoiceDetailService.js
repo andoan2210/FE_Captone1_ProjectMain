@@ -1,5 +1,5 @@
 import api from './api';
-import invoiceService from './invoiceService';
+import InvoiceService from './InvoiceService';
 
 const API_URL = '/api/order';
 
@@ -34,7 +34,7 @@ const InvoiceDetailService = {
     }
 
     // Fallback: tìm trong mock data (cho mock string IDs: 'ORD12345678')
-    return invoiceService.getMockInvoiceById(orderId);
+    return InvoiceService.getMockInvoiceById(orderId);
   },
 
   /**
@@ -61,7 +61,7 @@ const InvoiceDetailService = {
     }
 
     // Fallback mock cancel (cho mock string IDs)
-    return invoiceService.cancelOrder(orderId);
+    return InvoiceService.cancelOrder(orderId);
   },
 };
 

@@ -81,9 +81,6 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                 {cat.name}
               </span>
             ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>

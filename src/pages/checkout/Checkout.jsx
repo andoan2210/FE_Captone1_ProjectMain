@@ -405,7 +405,7 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
     >
       <div className="ck-success-box">
         <div className="ck-success-icon" aria-hidden>
-          🎉
+          
         </div>
         <h2 className="ck-success-title">Đặt hàng thành công!</h2>
         <p className="ck-success-msg">
@@ -420,7 +420,17 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
         )}
         {hasMomo && (
           <div className="ck-success-momo-notice">
-            ⚡ Đang chuyển đến cổng thanh toán MoMo trong 3 giây...
+            Đang chuyển đến cổng thanh toán MoMo trong 3 giây...
+          </div>
+        )}
+        {!hasMomo && (
+          <div className="ck-success-actions">
+            <button className="ck-btn-orders" onClick={onGoOrders}>
+              Xem Đơn Mua
+            </button>
+            <button className="ck-btn-home" onClick={onGoHome}>
+              Về trang chủ
+            </button>
           </div>
         )}
       </div>
@@ -472,8 +482,8 @@ export default function Checkout() {
     checkoutState.type === "CART"
       ? checkoutState.selectedItems?.length > 0
       : checkoutState.type === "BUY_NOW" &&
-        checkoutState.variantId &&
-        checkoutState.quantity > 0;
+      checkoutState.variantId &&
+      checkoutState.quantity > 0;
 
 
   const fetchAddresses = async () => {
@@ -517,9 +527,9 @@ export default function Checkout() {
           ...(checkoutState.type === "CART"
             ? { selectedItems: checkoutState.selectedItems }
             : {
-                variantId: checkoutState.variantId,
-                quantity: checkoutState.quantity,
-              }),
+              variantId: checkoutState.variantId,
+              quantity: checkoutState.quantity,
+            }),
           ...(appliedVoucher ? { voucherCode: appliedVoucher } : {}),
         };
         const data = await CheckoutService.preview(params);
@@ -554,9 +564,9 @@ export default function Checkout() {
         ...(checkoutState.type === "CART"
           ? { selectedItems: checkoutState.selectedItems }
           : {
-              variantId: checkoutState.variantId,
-              quantity: checkoutState.quantity,
-            }),
+            variantId: checkoutState.variantId,
+            quantity: checkoutState.quantity,
+          }),
 
         voucherCode: voucherCode.trim(),
       };
@@ -633,9 +643,9 @@ export default function Checkout() {
         ...(checkoutState.type === "CART"
           ? { selectedItems: (checkoutState.selectedItems || []).map(Number) }
           : {
-              variantId: Number(checkoutState.variantId),
-              quantity: Number(checkoutState.quantity),
-            }),
+            variantId: Number(checkoutState.variantId),
+            quantity: Number(checkoutState.quantity),
+          }),
         ...(voucherApplied ? { voucherCode: voucherApplied } : {}),
       };
       console.log("[Checkout] Gửi payload:", JSON.stringify(payload, null, 2));
@@ -937,7 +947,9 @@ export default function Checkout() {
                 aria-checked={true}
 
               >
-                <div className="ck-pay-icon">💜</div>
+                <div className="ck-pay-icon">
+                  <img src="https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png" alt="MoMo" style={{ width: 28, height: 28, borderRadius: 4 }} />
+                </div>
                 <div>
                   <div className="ck-pay-label">Ví MoMo</div>
                   <div className="ck-pay-desc">Thanh toán nhanh qua MoMo</div>
@@ -948,7 +960,8 @@ export default function Checkout() {
 
             {paymentMethod === "MOMO" && (
               <div className="ck-momo-redirect-box">
-                💜 Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán MoMo
+                <img src="https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png" alt="MoMo" style={{ width: 18, height: 18, verticalAlign: 'middle', marginRight: 8, borderRadius: 4 }} />
+                Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán MoMo
                 để hoàn tất.
 
               </div>
@@ -1044,7 +1057,7 @@ export default function Checkout() {
                   </>
                 ) : (
 
-                  <>💜 Đặt & Thanh toán MoMo</>
+                  <><img src="https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png" alt="MoMo" style={{ width: 22, height: 22, verticalAlign: 'middle', marginRight: 8, borderRadius: 4 }} /> Đặt & Thanh toán MoMo</>
 
                 )}
               </span>

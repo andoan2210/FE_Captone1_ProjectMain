@@ -2,7 +2,7 @@
 import React from 'react';
 import ProductForm from '../../components/shop-owner/ProductForm';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ProductService } from '../../services/ProductService';
+import { ShopProductService } from '../../services/ShopProductService';
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -16,7 +16,8 @@ const EditProduct = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const product = await ProductService.getProductById(id);
+        const response = await ShopProductService.getProductById(id);
+        const product = response;
         if (product) {
           setInitialData(product.data || product);
         } else {

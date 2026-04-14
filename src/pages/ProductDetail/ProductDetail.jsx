@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -24,10 +24,9 @@ import {
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import api from "../../services/api";
-import * as ProductService from "../../services/ProductService";
-import * as CartService from "../../services/CartService";
+import { ShopProductService } from "../../services/ShopProductService";
+import { ShopCuahangService } from "../../services/ShopCuahangService";
 import * as ProductDetailService from "../../services/ProductDetailService";
-import { CuahangService } from "../../services/CuahangService";
 import { CategoryService } from "../../services/CategoryService";
 import chatService from "../../services/chatService";
 
@@ -55,6 +54,11 @@ function getUserDisplayNameFromToken() {
 
 function PageHeader({ userLabel, dbCategories, onLogout }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
   const handleNavClick = (categoryId) => {
     if (categoryId === "all") {
       navigate("/");
@@ -63,6 +67,51 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
     }
   };
 
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const data = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error("Lỗi lấy gợi ý:", err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <header className="main-header">
@@ -70,7 +119,7 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
           <Link to="/" className="logo">
             SmartAI Fashion
           </Link>
-          <label className="search-wrap">
+          <div className="search-wrap" ref={searchRef}>
             <span className="visually-hidden">Tìm kiếm sản phẩm</span>
             <FaSearch className="search-icon" aria-hidden />
             <input
@@ -79,8 +128,28 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar"
               autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={handleSearch}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
@@ -147,9 +216,6 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                 {cat.name}
               </span>
             ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>
@@ -280,8 +346,8 @@ export default function ProductDetail() {
       setNotFound(false);
 
       try {
-        const res = await ProductDetailService.getProductById(idParam);
-        const data = res.data;
+        const res = await ShopProductService.getProductById(idParam);
+        const data = res?.data || res;
 
         if (data) {
           setProduct(data);
@@ -312,9 +378,9 @@ export default function ProductDetail() {
     async function loadShopInfo() {
       if (!idParam) return;
       try {
-        const data = await CuahangService.getStoreByProduct(idParam);
-        if (data) {
-          setShopInfo(data);
+        const shopData = await ShopCuahangService.getStoreByProduct(idParam);
+        if (shopData) {
+          setShopInfo(shopData);
         }
       } catch (err) {
         console.error("Lỗi tải thông tin shop:", err);

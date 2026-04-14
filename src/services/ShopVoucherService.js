@@ -1,16 +1,13 @@
 import api from './api';
 
-export const VoucherService = {
+export const ShopVoucherService = {
   getAllVouchers: async (params = {}) => {
-
     const res = await api.get('/voucher/my/list', { params });
-
     return res.data; // Back-end returns { message, data: { items: [], pagination: {} } }
   },
 
   saveVoucher: async (data, isEdit = false, id = null) => {
     if (isEdit && id) {
-
       return (await api.patch(`/voucher/${id}`, data)).data;
     }
     return (await api.post('/voucher', data)).data;
@@ -18,14 +15,12 @@ export const VoucherService = {
 
   deleteVoucher: async (id) => {
     return (await api.delete(`/voucher/${id}`)).data;
-
   },
 
   getVoucherStats: async (filters = {}) => {
     try {
       const { status, search } = filters;
-      // Gọi API với limit 100 thay vì 1000 để tránh lỗi 400 Bad Request từ giới hạn quá lớn của server
-      const resData = await VoucherService.getAllVouchers({ page: 1, limit: 100, status, search });
+      const resData = await ShopVoucherService.getAllVouchers({ page: 1, limit: 100, status, search });
       const items = resData?.data?.items || [];
       const totalVouchers = resData?.data?.pagination?.totalItems || items.length;
       

@@ -7,8 +7,8 @@ import {
     FiAlertTriangle, FiCheck, FiX, FiInfo, FiShield,
     FiTrendingUp, FiBox, FiChevronLeft, FiChevronRight, FiGrid
 } from 'react-icons/fi';
-import { VoucherService } from '../../services/VoucherService';
-import { ProductService } from '../../services/ProductService';
+import { ShopVoucherService } from '../../services/ShopVoucherService';
+import { ShopProductService } from '../../services/ShopProductService';
 import ConfirmModal from '../../components/shop-owner/ConfirmModal';
 
 export default function Vouchers() {
@@ -52,9 +52,9 @@ export default function Vouchers() {
                 search: searchQuery
             };
             const [vouchersResponse, productsResponse, statsData] = await Promise.all([
-                VoucherService.getAllVouchers(params),
-                ProductService.getMyProducts(1, 100).catch(() => ({ data: [] })),
-                VoucherService.getVoucherStats(params)
+                ShopVoucherService.getAllVouchers(params),
+                ShopProductService.getMyProducts(1, 100).catch(() => ({ data: [] })),
+                ShopVoucherService.getVoucherStats()
             ]);
 
             const items = vouchersResponse?.data?.items || [];
@@ -149,7 +149,7 @@ export default function Vouchers() {
         if (!validateForm()) return;
 
         setIsSaving(true);
-        const voucherData = {
+        const formData = {
             code: form.code,
             discountPercent: Number(form.discount),
             quantity: Number(form.limit),
@@ -159,10 +159,10 @@ export default function Vouchers() {
 
         try {
             if (modalMode === 'edit') {
-                await VoucherService.saveVoucher(voucherData, true, selectedVoucher.voucherId);
+                await ShopVoucherService.saveVoucher(formData, !!selectedVoucher, selectedVoucher?.voucherId);
                 toast.success("Cập nhật voucher thành công 🎉");
             } else {
-                await VoucherService.saveVoucher(voucherData);
+                await ShopVoucherService.saveVoucher(formData);
                 toast.success("Thêm voucher thành công 🎉");
             }
             await loadData();
@@ -180,7 +180,7 @@ export default function Vouchers() {
         if (!voucherToDelete) return;
         setIsSaving(true);
         try {
-            await VoucherService.deleteVoucher(voucherToDelete.voucherId);
+            await ShopVoucherService.deleteVoucher(voucherToDelete.voucherId);
             toast.success("Xóa voucher thành công 🗑️");
             await loadData();
             setIsDeleteModalOpen(false);

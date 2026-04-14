@@ -471,38 +471,38 @@ const realAPI = {
 };
 
 // ========== INVOICE SERVICE (EXPORTED) ==========
-const invoiceService = {
+const InvoiceService = {
   _getAPI: () => (API_CONFIG.USE_MOCK_API ? mockAPI : realAPI),
 
 
 
   // Get all invoices
   getAllInvoices: async () => {
-    const api = invoiceService._getAPI();
+    const api = InvoiceService._getAPI();
     return api.getAllInvoices();
   },
 
   // Get invoice detail by ID
   getInvoiceById: async (id) => {
-    const api = invoiceService._getAPI();
+    const api = InvoiceService._getAPI();
     return api.getInvoiceById(id);
   },
 
   // Delete/Cancel invoice
   deleteInvoice: async (id) => {
-    const api = invoiceService._getAPI();
+    const api = InvoiceService._getAPI();
     return api.deleteInvoice(id);
   },
 
   // Create new invoice
   createInvoice: async (invoiceData) => {
-    const api = invoiceService._getAPI();
+    const api = InvoiceService._getAPI();
     return api.createInvoice(invoiceData);
   },
 
   // Update invoice
   updateInvoice: async (id, updateData) => {
-    const api = invoiceService._getAPI();
+    const api = InvoiceService._getAPI();
     return api.updateInvoice(id, updateData);
   },
 
@@ -521,4 +521,4 @@ const invoiceService = {
   getConfig: () => ({ ...API_CONFIG }),
 };
 
-export default invoiceService;
+export default InvoiceService;
