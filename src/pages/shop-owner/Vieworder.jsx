@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
-import orderService from "../../services/orderService"
+import ShopOrderService from "../../services/ShopOrderService"
+import InvoiceService from "../../services/InvoiceService"
 import "./Vieworder.css"
 import { 
   FiSearch, FiFilter, FiDownload, FiEye, FiTrash2, FiMoreVertical, 
@@ -264,7 +265,7 @@ export default function Vieworder() {
         endDate,
       }
 
-      const response = await orderService.getOrders(params)
+      const response = await ShopOrderService.getOrders(params)
       
       const newOrders = response.data || []
       const total = response.pagination?.total || 0
@@ -385,10 +386,10 @@ export default function Vieworder() {
 
     try {
       if (isEditing) {
-        await orderService.updateOrder(selectedOrder.id, orderForm)
+        await ShopOrderService.updateOrder(selectedOrder.id, orderForm)
         showToastNotification(`Đã cập nhật đơn hàng ${selectedOrder.id} thành công`)
       } else {
-        await orderService.createOrder(orderForm)
+        await ShopOrderService.createOrder(orderForm)
         showToastNotification("Tạo đơn hàng mới thành công")
       }
       setShowCreateModal(false)
@@ -428,7 +429,7 @@ export default function Vieworder() {
 
   const handleDeleteOrder = async () => {
     try {
-      await orderService.deleteOrder(selectedOrder.id)
+      await ShopOrderService.deleteOrder(selectedOrder.id)
       showToastNotification(`Đã xóa đơn hàng ${selectedOrder.id}`)
       setShowDeleteModal(false)
       fetchOrders(currentPage, false)
@@ -440,7 +441,7 @@ export default function Vieworder() {
   const handleDeleteSelected = async () => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedOrders.length} đơn hàng đã chọn?`)) {
       try {
-        await Promise.all(selectedOrders.map(id => orderService.deleteOrder(id)))
+        await Promise.all(selectedOrders.map(id => ShopOrderService.deleteOrder(id)))
         showToastNotification(`Đã xóa ${selectedOrders.length} đơn hàng`)
         setSelectedOrders([])
         fetchOrders(1, false)

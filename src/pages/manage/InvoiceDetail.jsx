@@ -29,12 +29,12 @@ const formatCurrency = (amount) =>
 
 const mapStatusToVn = (status) => {
   switch ((status || '').trim().toLowerCase()) {
-    case 'pending':   return 'Chờ xác nhận';
+    case 'pending': return 'Chờ xác nhận';
     case 'confirmed': return 'Đang chuẩn bị';
-    case 'shipping':  return 'Đang giao hàng';
+    case 'shipping': return 'Đang giao hàng';
     case 'completed': return 'Giao hàng thành công';
     case 'cancelled': return 'Đã hủy';
-    default:          return status || 'Đang xử lý';
+    default: return status || 'Đang xử lý';
   }
 };
 
@@ -132,9 +132,9 @@ export default function InvoiceDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
-  const [orderData, setOrderData]   = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
+  const [orderData, setOrderData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [dbCategories, setDbCategories] = useState([]);
   const [cancelling, setCancelling] = useState(false);
 
@@ -166,7 +166,7 @@ export default function InvoiceDetail() {
     try {
       const res = await CategoryService.getAllCategories();
       setDbCategories(Array.isArray(res) ? res : (res.data || []));
-    } catch {}
+    } catch { }
   };
 
   const handleCancelOrder = async () => {
@@ -211,10 +211,10 @@ export default function InvoiceDetail() {
 
   // ── Stepper ──
   const steps = [
-    { id: 'pending',   label: 'Chờ xác nhận', icon: <FaClock /> },
+    { id: 'pending', label: 'Chờ xác nhận', icon: <FaClock /> },
     { id: 'confirmed', label: 'Đang chuẩn bị', icon: <FaBox /> },
-    { id: 'shipping',  label: 'Đang giao',     icon: <FaTruck /> },
-    { id: 'completed', label: 'Đã nhận hàng',  icon: <FaRegCheckCircle /> },
+    { id: 'shipping', label: 'Đang giao', icon: <FaTruck /> },
+    { id: 'completed', label: 'Đã nhận hàng', icon: <FaRegCheckCircle /> },
   ];
 
   const statusLower = (orderData.orderStatus || '').trim().toLowerCase();
@@ -224,10 +224,10 @@ export default function InvoiceDetail() {
   const subtotalFromItems = (orderData.items || []).reduce(
     (acc, i) => acc + (Number(i.total) || Number(i.price) * Number(i.quantity) || 0), 0
   );
-  const subTotal      = Number(orderData.subTotal      ?? subtotalFromItems);
-  const discountAmount= Number(orderData.discountAmount ?? orderData.discount ?? 0);
-  const shippingFee   = Number(orderData.shippingFee   ?? 30000);
-  const totalAmount   = Number(orderData.totalAmount   ?? 0);
+  const subTotal = Number(orderData.subTotal ?? subtotalFromItems);
+  const discountAmount = Number(orderData.discountAmount ?? orderData.discount ?? 0);
+  const shippingFee = Number(orderData.shippingFee ?? 30000);
+  const totalAmount = Number(orderData.totalAmount ?? 0);
 
   const canCancel = ['pending', 'confirmed'].includes(statusLower);
 
@@ -276,7 +276,7 @@ export default function InvoiceDetail() {
                     className={[
                       'id-step',
                       idx <= currentStepIndex ? 'active' : '',
-                      idx <  currentStepIndex ? 'completed' : '',
+                      idx < currentStepIndex ? 'completed' : '',
                     ].join(' ')}
                   >
                     <div className="id-step-icon">
@@ -310,8 +310,8 @@ export default function InvoiceDetail() {
                   {orderData.paymentStatus?.toLowerCase() === 'paid'
                     ? '✅ Đã thanh toán'
                     : orderData.payment?.status?.toLowerCase() === 'success'
-                    ? '✅ Đã thanh toán'
-                    : '⏳ Chưa thanh toán'}
+                      ? '✅ Đã thanh toán'
+                      : '⏳ Chưa thanh toán'}
                 </span>
                 {orderData.payment?.transactionCode && (
                   <span>Mã GD: {orderData.payment.transactionCode}</span>

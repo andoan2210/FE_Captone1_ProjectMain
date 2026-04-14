@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { FiUploadCloud, FiCheck } from 'react-icons/fi';
-import { CuahangService } from '@/services/CuahangService';
+import { ShopCuahangService } from '@/services/ShopCuahangService';
 
 export default function FormCuaHang({ initialData, onUpdateSuccess }) {
   const [formData, setFormData] = useState({ name: '', description: '', isActive: true, logoUrl: '' });
@@ -93,7 +93,7 @@ export default function FormCuaHang({ initialData, onUpdateSuccess }) {
     try {
       // Gọi PATCH /store/me với multipart/form-data (storeName, description, logo)
       const dto = { storeName: formData.name, description: formData.description };
-      await CuahangService.updateMyStore(dto, selectedFile || undefined);
+      await ShopCuahangService.updateMyStore(dto, selectedFile || undefined);
 
       setMessage({ type: 'success', text: 'Đã lưu thay đổi thành công!' });
       setSelectedFile(null);

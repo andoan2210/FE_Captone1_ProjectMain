@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch, FiX, FiLoader, FiExternalLink } from "react-icons/fi";
-import { ProductService } from "../../services/ProductService";
+import { ShopProductService } from "../../services/ShopProductService";
 import "./ProductSelectorModal.css";
 
 const ProductSelectorModal = ({ isOpen, onClose, onSelect, shopId }) => {
@@ -19,7 +19,7 @@ const ProductSelectorModal = ({ isOpen, onClose, onSelect, shopId }) => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await ProductService.getProductShop(shopId, 20);
+      const data = await ShopProductService.getProductShop(shopId, 20);
       setProducts(data || []);
     } catch (error) {
       console.error("Error loading products for chat:", error);

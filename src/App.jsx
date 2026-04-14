@@ -23,6 +23,7 @@ import AIVirtualTryOn from "./pages/AIVirtualTryOn/AIVirtualTryOn";
 import ShoppingCart from "./pages/ShoppingCart-AddtoCart/ShoppingCart";
 import ChatPage from "./pages/chat/ChatPage";
 import Checkout from "./pages/checkout/Checkout";
+import SearchPage from "./pages/search/SearchPage";
 import MomoCallback from "./pages/checkout/MomoCallback";
 
 // Shop Owner components
@@ -57,9 +58,10 @@ function App() {
         <Route path="/ai-virtual-tryon" element={<AIVirtualTryOn />} />
 
         <Route path="/category/:id" element={<CategoryProducts />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/cart" element={<ShoppingCart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order" element={<MomoCallback />} />
+        <Route path="/callback" element={<MomoCallback />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />

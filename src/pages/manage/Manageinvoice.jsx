@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FaUser, FaClipboardList, FaBell, FaTicketAlt, FaCoins, 
+import {
+  FaUser, FaClipboardList, FaBell, FaTicketAlt, FaCoins,
   FaSearch, FaStore, FaTruck, FaRegCheckCircle, FaEdit,
   FaShoppingCart, FaUserCircle, FaBox, FaSignOutAlt,
   FaFacebookF, FaInstagram, FaYoutube, FaTimesCircle
 } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
-import invoiceService from '../../services/invoiceService';
+import InvoiceService from '../../services/InvoiceService';
 import { CategoryService } from '../../services/CategoryService';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
@@ -112,9 +112,6 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                 {cat.name}
               </span>
             ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>
@@ -211,15 +208,15 @@ export default function Manageinvoice() {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await invoiceService.getAllInvoices();
+      const response = await InvoiceService.getAllInvoices();
       if (response.success) {
         const rawData = response.data || [];
-        
+
         // Ánh xạ dữ liệu từ Backend sang định dạng FE mong đợi
         const mappedInvoices = rawData.map(order => {
           // Các trạng thái đơn hàng từ Backend (giả định)
           const beStatus = (order.orderStatus || 'pending').toLowerCase();
-          
+
           let feStatus = 'pending_payment';
           let feStatusText = 'Chờ xử lý';
 
@@ -246,12 +243,12 @@ export default function Manageinvoice() {
             status: feStatus,
             statusText: feStatusText,
             items: (order.orderItems || order.items || []).map(item => ({
-                id: item.variantId || item.id,
-                name: item.productName || item.name || 'Sản phẩm',
-                image: item.productImage || item.thumbnailUrl || item.image || 'https://via.placeholder.com/150',
-                variant: `${item.size || ''} ${item.color ? '| ' + item.color : ''}`.trim() || 'Mặc định',
-                price: item.price || 0,
-                quantity: item.quantity || 1
+              id: item.variantId || item.id,
+              name: item.productName || item.name || 'Sản phẩm',
+              image: item.productImage || item.thumbnailUrl || item.image || 'https://via.placeholder.com/150',
+              variant: `${item.size || ''} ${item.color ? '| ' + item.color : ''}`.trim() || 'Mặc định',
+              price: item.price || 0,
+              quantity: item.quantity || 1
             })),
             finalAmount: order.totalAmount || 0,
             date: order.createdAt
@@ -271,20 +268,20 @@ export default function Manageinvoice() {
   // ==================== FILTERED DATA ====================
   const filteredInvoices = useMemo(() => {
     let result = [...invoices];
-    
+
     if (activeTab !== 'all') {
       result = result.filter(inv => inv.status?.toLowerCase() === activeTab);
     }
-    
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      result = result.filter(inv => 
+      result = result.filter(inv =>
         (inv.id || '').toString().toLowerCase().includes(term) ||
         (inv.shopName || '').toLowerCase().includes(term) ||
         (inv.items || []).some(item => (item.name || '').toLowerCase().includes(term))
       );
     }
-    
+
     return result;
   }, [invoices, activeTab, searchTerm]);
 
@@ -307,7 +304,7 @@ export default function Manageinvoice() {
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return;
     try {
-      const res = await invoiceService.cancelOrder(orderId);
+      const res = await InvoiceService.cancelOrder(orderId);
       if (res.success) {
         // Cập nhật local state ngay lập tức
         setInvoices(prev => prev.map(inv =>
@@ -338,10 +335,10 @@ export default function Manageinvoice() {
   }
 
   const tabs = [
-    { id: 'all',       label: 'Tất cả' },
-    { id: 'pending',   label: 'Chờ xác nhận' },
+    { id: 'all', label: 'Tất cả' },
+    { id: 'pending', label: 'Chờ xác nhận' },
     { id: 'confirmed', label: 'Đang chuẩn bị' },
-    { id: 'shipping',  label: 'Đang giao' },
+    { id: 'shipping', label: 'Đang giao' },
     { id: 'completed', label: 'Hoàn thành' },
     { id: 'cancelled', label: 'Đã hủy' },
   ];
@@ -349,7 +346,7 @@ export default function Manageinvoice() {
   return (
     <div className="pd-page-wrapper">
       <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
-      
+
       <main className="manage-invoice-main">
         <div className="container">
           {/* Breadcrumbs */}
@@ -415,7 +412,7 @@ export default function Manageinvoice() {
               {/* TABS */}
               <nav className="orders-tabs-nav">
                 {tabs.map(tab => (
-                  <button 
+                  <button
                     key={tab.id}
                     className={`tab-btn-item ${activeTab === tab.id ? 'active' : ''}`}
                     onClick={() => setActiveTab(tab.id)}
@@ -431,9 +428,9 @@ export default function Manageinvoice() {
               {/* SEARCH */}
               <div className="orders-search-input-wrap">
                 <FaSearch className="search-icon-fixed" />
-                <input 
-                  type="text" 
-                  placeholder="Bạn có thể tìm kiếm theo tên Shop, ID đơn hàng hoặc Tên Sản phẩm" 
+                <input
+                  type="text"
+                  placeholder="Bạn có thể tìm kiếm theo tên Shop, ID đơn hàng hoặc Tên Sản phẩm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -502,7 +499,7 @@ export default function Manageinvoice() {
                             </button>
                           )}
                           <button className="pd-btn pd-btn-outline btn-sm">Liên hệ người bán</button>
-                          <button 
+                          <button
                             className="pd-btn pd-btn-outline btn-sm"
                             onClick={() => navigate(`/manage/invoice-detail/${order.id}`)}
                           >

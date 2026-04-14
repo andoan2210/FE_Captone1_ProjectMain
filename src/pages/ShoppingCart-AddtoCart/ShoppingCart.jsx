@@ -93,9 +93,6 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               {cat.name}
             </span>
           ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>
@@ -145,24 +142,24 @@ function PageFooter() {
 
 /* ── Map raw API response → UI item ─────────────── */
 function mapCartItem(item) {
-  const variant  = item.ProductVariants || item.productVariants || item.variant || {};
-  const product  = variant.Products     || variant.products     || variant.product || item.Product || item.product || {};
-  const images   = product.ProductImages || product.productImages || [];
+  const variant = item.ProductVariants || item.productVariants || item.variant || {};
+  const product = variant.Products || variant.products || variant.product || item.Product || item.product || {};
+  const images = product.ProductImages || product.productImages || [];
   const thumbnail = product.ThumbnailUrl || product.thumbnailUrl
     || (images[0]?.ImageUrl || images[0]?.imageUrl)
     || 'https://placehold.co/88x108/1e1b4b/818cf8?text=No+Image';
 
   return {
-    cartItemId : item.CartItemId  || item.cartItemId  || item.id,
-    variantId  : item.VariantId   || item.variantId,
-    name       : product.ProductName || product.productName || product.name || 'Sản phẩm',
-    price      : Number(variant.Price ?? variant.price ?? product.Price ?? product.price ?? 0),
-    quantity   : Number(item.Quantity  || item.quantity  || 1),
-    size       : variant.Size  || variant.size  || '—',
-    color      : variant.Color || variant.color || 'Mặc định',
-    image      : thumbnail,
-    stock      : Number(variant.Stock || variant.stock || 99),
-    aiSuggest  : item.aiSuggest || null,
+    cartItemId: item.CartItemId || item.cartItemId || item.id,
+    variantId: item.VariantId || item.variantId,
+    name: product.ProductName || product.productName || product.name || 'Sản phẩm',
+    price: Number(variant.Price ?? variant.price ?? product.Price ?? product.price ?? 0),
+    quantity: Number(item.Quantity || item.quantity || 1),
+    size: variant.Size || variant.size || '—',
+    color: variant.Color || variant.color || 'Mặc định',
+    image: thumbnail,
+    stock: Number(variant.Stock || variant.stock || 99),
+    aiSuggest: item.aiSuggest || null,
   };
 }
 
@@ -170,21 +167,21 @@ function mapCartItem(item) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════ */
 export default function ShoppingCart() {
-  const [cartItems,    setCartItems]    = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [voucherCode,  setVoucherCode]  = useState('');
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [voucherCode, setVoucherCode] = useState('');
   const [dbCategories, setDbCategories] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]); // cartItemId[]
 
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [isDeleting,   setIsDeleting]   = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Preview state ──
-  const [previewData,    setPreviewData]    = useState(null);  // data từ BE
+  const [previewData, setPreviewData] = useState(null);  // data từ BE
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError,   setPreviewError]   = useState(null);
+  const [previewError, setPreviewError] = useState(null);
   const [voucherApplied, setVoucherApplied] = useState('');    // voucher đã xác thực
-  const [voucherStatus,  setVoucherStatus]  = useState(null);  // { ok, msg }
+  const [voucherStatus, setVoucherStatus] = useState(null);  // { ok, msg }
   const previewDebounce = useRef(null);
 
   const navigate = useNavigate();
@@ -205,7 +202,7 @@ export default function ShoppingCart() {
 
   const fetchCategories = async () => {
     try {
-      const res  = await CategoryService.getAllCategories();
+      const res = await CategoryService.getAllCategories();
       const list = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
       setDbCategories(list);
     } catch (err) {
@@ -283,10 +280,10 @@ export default function ShoppingCart() {
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
-    
+
     // Tìm item info
     const itemInfo = cartItems.find(i => i.cartItemId === itemToDelete);
-    
+
     const prev = cartItems;
     const next = cartItems.filter(i => i.cartItemId !== itemToDelete);
     setCartItems(next);
@@ -406,15 +403,15 @@ export default function ShoppingCart() {
 
   /* ── Totals — ưu tiên dùng data từ BE preview, fallback tính local ── */
   const selectedCartItems = cartItems.filter(i => selectedItems.includes(i.cartItemId));
-  const localSubtotal  = selectedCartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const localDiscount  = localSubtotal > 500000 ? 50000 : 0;
-  const localShipping  = localSubtotal > 0 ? 30000 : 0;
-  const localTotal     = localSubtotal > 0 ? localSubtotal - localDiscount + localShipping : 0;
+  const localSubtotal = selectedCartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  const localDiscount = localSubtotal > 500000 ? 50000 : 0;
+  const localShipping = localSubtotal > 0 ? 30000 : 0;
+  const localTotal = localSubtotal > 0 ? localSubtotal - localDiscount + localShipping : 0;
 
-  const subtotal   = previewData ? previewData.total       : localSubtotal;
-  const discount   = previewData ? previewData.discount    : localDiscount;
+  const subtotal = previewData ? previewData.total : localSubtotal;
+  const discount = previewData ? previewData.discount : localDiscount;
   const shippingFee = previewData ? previewData.shippingFee : localShipping;
-  const total      = previewData ? previewData.finalTotal  : localTotal;
+  const total = previewData ? previewData.finalTotal : localTotal;
 
 
   /* ── Loading state ── */
@@ -698,15 +695,15 @@ export default function ShoppingCart() {
             <h3 className="cart-modal-title">Xác nhận xóa</h3>
             <p className="cart-modal-msg">Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?</p>
             <div className="cart-modal-actions">
-              <button 
-                className="btn-modal-cancel" 
+              <button
+                className="btn-modal-cancel"
                 onClick={() => setItemToDelete(null)}
                 disabled={isDeleting}
               >
                 Hủy
               </button>
-              <button 
-                className="btn-modal-confirm" 
+              <button
+                className="btn-modal-confirm"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >

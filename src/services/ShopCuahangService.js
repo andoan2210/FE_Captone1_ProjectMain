@@ -1,6 +1,6 @@
 import api from './api';
 
-export const CuahangService = {
+export const ShopCuahangService = {
   getMyStore: async () => {
     const response = await api.get('/store/me');
     return response.data;

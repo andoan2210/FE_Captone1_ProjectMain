@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaShoppingCart,
@@ -23,6 +23,7 @@ import {
 } from "../../services/LandingPageService";
 import api from "../../services/api";
 import * as CartService from "../../services/CartService.js";
+import { ShopProductService } from "../../services/ShopProductService";
 import "./LandingPage.css";
 
 // LandingPage.jsx
@@ -231,6 +232,25 @@ function ProductCard({ product, onCategoryClick, compact = false }) {
         className="product-info"
         style={compact ? { padding: "8px 8px" } : {}}
       >
+        <Link to={`/products/${product.id}`} className="product-name-link">
+          <h3
+            className="product-name"
+            style={{
+              fontSize: compact ? "13px" : "inherit",
+              lineHeight: compact ? "1.3" : "inherit",
+              fontWeight: "bold",
+              color: "black"
+            }}
+          >
+            {product.name}
+          </h3>
+        </Link>
+        <p
+          className="product-price"
+          style={{ fontSize: compact ? "13px" : "inherit" }}
+        >
+          {product.price}
+        </p>
         {product.categoryId ? (
           onCategoryClick ? (
             <span
@@ -263,23 +283,6 @@ function ProductCard({ product, onCategoryClick, compact = false }) {
             {product.category}
           </p>
         )}
-        <Link to={`/products/${product.id}`} className="product-name-link">
-          <h3
-            className="product-name"
-            style={{
-              fontSize: compact ? "13px" : "inherit",
-              lineHeight: compact ? "1.3" : "inherit",
-            }}
-          >
-            {product.name}
-          </h3>
-        </Link>
-        <p
-          className="product-price"
-          style={{ fontSize: compact ? "13px" : "inherit" }}
-        >
-          {product.price}
-        </p>
         <div
           className="product-actions"
           style={{
@@ -323,6 +326,48 @@ export default function LandingPage() {
   const [activeCategory, setActiveCategory] = useState(
     location.state?.category || "all",
   );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const data = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error("Lỗi lấy gợi ý:", err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
 
   // Tự động chuyển hướng Shop Owner vào trang quản lý thay vì ở lại Trang Chủ
   useEffect(() => {
@@ -372,14 +417,14 @@ export default function LandingPage() {
           const profile = response.data;
           setUserLabel(
             profile.FullName ||
-              profile.fullName ||
-              profile.Email ||
-              profile.email ||
-              profile.UserName ||
-              profile.username ||
-              getUserDisplayNameFromToken(),
+            profile.fullName ||
+            profile.Email ||
+            profile.email ||
+            profile.UserName ||
+            profile.username ||
+            getUserDisplayNameFromToken(),
           );
-        } catch {}
+        } catch { }
       }
     }
 
@@ -451,69 +496,69 @@ export default function LandingPage() {
         const mappedNew =
           newRaw.length > 0
             ? newRaw.map((item) => ({
-                id: item.ProductId ?? item.id,
-                name: item.ProductName ?? item.name,
-                category: item.CategoryName ?? item.categoryName ?? "MỚI NHẤT",
-                categoryId: item.CategoryId ?? item.categoryId ?? null,
-                price: new Intl.NumberFormat("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                }).format(Number(item.Price ?? item.price ?? 0)),
-                tag: "MỚI",
-                image:
-                  item.ThumbnailUrl ??
-                  item.thumbnail ??
-                  "https://via.placeholder.com/520x580?text=No+Image",
-              }))
+              id: item.ProductId ?? item.id,
+              name: item.ProductName ?? item.name,
+              category: item.CategoryName ?? item.categoryName ?? "MỚI NHẤT",
+              categoryId: item.CategoryId ?? item.categoryId ?? null,
+              price: new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(Number(item.Price ?? item.price ?? 0)),
+              tag: "MỚI",
+              image:
+                item.ThumbnailUrl ??
+                item.thumbnail ??
+                "https://via.placeholder.com/520x580?text=No+Image",
+            }))
             : mockProducts; // fallback mock nếu API lỗi
 
         // Map sản phẩm bán chạy — BE trả về: { id, name, price, thumbnail, categoryName, sold }
         const mappedBest =
           bestRaw.length > 0
             ? bestRaw.map((item) => ({
-                id: item.id ?? item.ProductId,
-                name: item.name ?? item.ProductName,
-                category: item.categoryName ?? item.CategoryName ?? "BÁN CHẠY",
-                categoryId: item.categoryId ?? item.CategoryId ?? null,
-                price: new Intl.NumberFormat("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                }).format(Number(item.price ?? item.Price ?? 0)),
-                tag: "🔥 HOT",
-                image:
-                  item.thumbnail ??
-                  item.ThumbnailUrl ??
-                  "https://via.placeholder.com/520x580?text=No+Image",
-              }))
+              id: item.id ?? item.ProductId,
+              name: item.name ?? item.ProductName,
+              category: item.categoryName ?? item.CategoryName ?? "BÁN CHẠY",
+              categoryId: item.categoryId ?? item.CategoryId ?? null,
+              price: new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(Number(item.price ?? item.Price ?? 0)),
+              tag: "HOT",
+              image:
+                item.thumbnail ??
+                item.ThumbnailUrl ??
+                "https://via.placeholder.com/520x580?text=No+Image",
+            }))
             : mockPersonalized; // fallback mock nếu API lỗi
 
         // Map top stores — BE trả về: { StoreId, StoreName, LogoUrl, ... } hoặc chưa có API
         const mappedStores =
           storesRaw.length > 0
             ? storesRaw.map((store) => ({
-                id: store.StoreId ?? store.id,
-                name: store.StoreName ?? store.name,
-                logo: store.LogoUrl ?? store.logo ?? null,
-                followers: store.followers ?? "100K FOLLOWERS",
-                rating: store.rating ?? 4.9,
-              }))
+              id: store.StoreId ?? store.id,
+              name: store.StoreName ?? store.name,
+              logo: store.LogoUrl ?? store.logo ?? null,
+              followers: store.followers ?? "100K FOLLOWERS",
+              rating: store.rating ?? 4.9,
+            }))
             : mockBrands; // fallback mock nếu BE chưa có API
 
         // Map vouchers — BE trả về: { VoucherId, Code, DiscountPercent, ... } hoặc chưa có API
         const mappedVouchers =
           vouchersRaw.length > 0
             ? vouchersRaw.map((voucher) => ({
-                id: voucher.VoucherId ?? voucher.id,
-                discount: voucher.DiscountPercent
-                  ? `${voucher.DiscountPercent}%`
-                  : voucher.DiscountAmount
-                    ? `${Math.round(voucher.DiscountAmount / 1000)}k`
-                    : "SALE",
-                code: voucher.Code ?? voucher.code ?? "VOUCHER",
-                desc:
-                  voucher.Description ??
-                  `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString("vi-VN")}đ`,
-              }))
+              id: voucher.VoucherId ?? voucher.id,
+              discount: voucher.DiscountPercent
+                ? `${voucher.DiscountPercent}%`
+                : voucher.DiscountAmount
+                  ? `${Math.round(voucher.DiscountAmount / 1000)}k`
+                  : "SALE",
+              code: voucher.Code ?? voucher.code ?? "VOUCHER",
+              desc:
+                voucher.Description ??
+                `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString("vi-VN")}đ`,
+            }))
             : offers; // fallback mock nếu BE chưa có API
 
         setNewProductsData(mappedNew);
@@ -662,7 +707,7 @@ export default function LandingPage() {
           <Link to="/" className="logo">
             SmartAI Fashion
           </Link>
-          <label className="search-wrap">
+          <div className="search-wrap" ref={searchRef}>
             <span className="visually-hidden">Tìm kiếm sản phẩm</span>
             <FaSearch className="search-icon" aria-hidden />
             <input
@@ -671,8 +716,33 @@ export default function LandingPage() {
               placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar"
               autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setShowSuggestions(false);
+                  navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+                }
+              }}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
@@ -706,27 +776,27 @@ export default function LandingPage() {
                     .getItem("userRole")
                     ?.toLowerCase()
                     .includes("shop") && (
-                    <Link
-                      to="/shop-owner/store"
-                      className="profile-dropdown-item"
-                      style={{ color: "var(--lp-accent)" }}
-                    >
-                      <FaBox /> Kênh Shop{" "}
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          marginLeft: "auto",
-                          background: "var(--lp-accent)",
-                          color: "white",
-                          padding: "2px 6px",
-                          borderRadius: "10px",
-                        }}
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
                       >
-                        PRO
-                      </span>
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
 
-                    </Link>
-                  )}
+                      </Link>
+                    )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"
@@ -767,16 +837,32 @@ export default function LandingPage() {
               {cat.name}
             </span>
           ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
+          <Link
+            to={localStorage.getItem("userRole")?.toLowerCase().includes("shop") ? "/shop-owner/store" : "/register-shop"}
+            style={{
+              marginLeft: 'auto',
+              color: '#fff',
+              backgroundColor: 'var(--lp-accent, #2563eb)',
+              fontWeight: 800,
+              padding: '6px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase'
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
+          </Link>
         </div>
       </nav>
 
       <main id="main-content" className="container lp-main">
         <section className="hero-section" aria-labelledby="hero-title">
           <div className="hero-content">
-            <span className="badge-collection">BST THU ĐÔNG 2024</span>
+            <span className="badge-collection">BST MÙA HÈ 2025</span>
             <h1 id="hero-title">
               NÂNG TẦM <br />
               <span className="text-accent">PHONG CÁCH</span> <br />

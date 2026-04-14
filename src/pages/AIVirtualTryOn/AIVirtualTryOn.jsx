@@ -259,26 +259,26 @@ const AIVirtualTryOn = () => {
                       .getItem("userRole")
                       ?.toLowerCase()
                       .includes("shop") && (
-                      <Link
-                        to="/shop-owner/store"
-                        className="profile-dropdown-item"
-                        style={{ color: "var(--lp-accent)" }}
-                      >
-                        <FaBox /> Kênh Shop{" "}
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            marginLeft: "auto",
-                            background: "var(--lp-accent)",
-                            color: "white",
-                            padding: "2px 6px",
-                            borderRadius: "10px",
-                          }}
+                        <Link
+                          to="/shop-owner/store"
+                          className="profile-dropdown-item"
+                          style={{ color: "var(--lp-accent)" }}
                         >
-                          PRO
-                        </span>
-                      </Link>
-                    )}
+                          <FaBox /> Kênh Shop{" "}
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              marginLeft: "auto",
+                              background: "var(--lp-accent)",
+                              color: "white",
+                              padding: "2px 6px",
+                              borderRadius: "10px",
+                            }}
+                          >
+                            PRO
+                          </span>
+                        </Link>
+                      )}
                     <button
                       type="button"
                       className="profile-dropdown-item logout"
@@ -318,9 +318,6 @@ const AIVirtualTryOn = () => {
               {cat.name}
             </span>
           ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
 
@@ -762,15 +759,15 @@ const AIVirtualTryOn = () => {
                       >
                         {item.CreatedAt
                           ? new Date(item.CreatedAt).toLocaleDateString(
-                              "vi-VN",
-                              {
-                                year: "numeric",
-                                month: "2-digit",
-                                day: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )
+                            "vi-VN",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )
                           : "N/A"}
                       </p>
                       {item.Products && (

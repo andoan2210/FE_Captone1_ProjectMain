@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   FaShoppingCart,
@@ -18,6 +18,7 @@ import {
 import { FiMessageCircle } from "react-icons/fi";
 import { jwtDecode } from "jwt-decode";
 import api from "../../services/api";
+import { ShopProductService } from "../../services/ShopProductService";
 import * as LandingPageService from "../../services/LandingPageService";
 import "./CategoryProducts.css";
 
@@ -42,9 +43,59 @@ function getUserDisplayNameFromToken() {
 
 function PageHeader({ userLabel, dbCategories, onLogout }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
   const handleNavClick = (catId) => {
     navigate(`/category/${catId}`);
   };
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const suggestionData = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(suggestionData);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error("Lỗi lấy gợi ý:", err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <>
@@ -53,19 +104,42 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
           <Link to="/" className="logo">
             SmartAI Fashion
           </Link>
-          <label className="search-wrap">
-            <FaSearch className="search-icon" />
+          <div className="search-wrap" ref={searchRef}>
+            <span className="visually-hidden">Tìm kiếm sản phẩm</span>
+            <FaSearch className="search-icon" aria-hidden />
             <input
               type="search"
-              placeholder="Tìm kiếm sản phẩm..."
+              name="q"
+              placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar"
+              autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={handleSearch}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
-            <Link to="/cart" className="icon-link">
+            <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
-            <Link to="/chat" className="icon-link">
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
             </Link>
             {userLabel ? (
@@ -89,6 +163,31 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                   >
                     <FaUser /> Trang cá nhân
                   </Link>
+
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"
@@ -112,27 +211,48 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
         </div>
       </header>
 
-      <nav className="main-nav">
+      <nav className="main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
-            TRANG CHỦ
+          <span
+            onClick={() => handleNavClick("all")}
+            style={{ cursor: "pointer" }}
+          >
+            TẤT CẢ DANH MỤC
+          </span>
+          {dbCategories.map((cat) => (
+            <span
+              key={cat.id}
+              onClick={() => handleNavClick(cat.id)}
+              style={{ cursor: "pointer" }}
+            >
+              {cat.name}
+            </span>
+          ))}
+          <Link
+            to={localStorage.getItem("userRole")?.toLowerCase().includes("shop") ? "/shop-owner/store" : "/register-shop"}
+            style={{
+              marginLeft: "auto",
+              color: "#fff",
+              backgroundColor: "var(--lp-accent, #2563eb)",
+              fontWeight: 800,
+              padding: "6px 16px",
+              borderRadius: "20px",
+              textDecoration: "none",
+              boxShadow: "0 4px 6px rgba(37, 99, 235, 0.2)",
+              fontSize: "13px",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
           </Link>
-          {dbCategories &&
-            dbCategories.slice(0, 8).map((cat) => (
-              <span
-                key={cat.id}
-                onClick={() => handleNavClick(cat.id)}
-                style={{ cursor: "pointer" }}
-              >
-                {cat.name}
-              </span>
-            ))}
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>
   );
 }
+
 
 function Footer() {
   return (
@@ -209,10 +329,36 @@ function Footer() {
   );
 }
 
+
 export default function CategoryProducts() {
   const { id: categoryId } = useParams();
   const navigate = useNavigate();
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [userLabel, setUserLabel] = useState(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUserLabel(null);
+      } else {
+        setUserLabel(getUserDisplayNameFromToken());
+        try {
+          const response = await api.get("/auth/profile");
+          const profile = response.data;
+          setUserLabel(
+            profile.FullName ||
+            profile.fullName ||
+            profile.Email ||
+            profile.email ||
+            profile.UserName ||
+            profile.username ||
+            getUserDisplayNameFromToken(),
+          );
+        } catch { }
+      }
+    }
+    loadUser();
+  }, []);
 
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
@@ -462,6 +608,15 @@ export default function CategoryProducts() {
           )}
         </div>
       </main>
+
+      <button
+        className="floating-chat-btn"
+        onClick={() => navigate("/chat")}
+        title="Mở chat"
+        aria-label="Mở khung chat"
+      >
+        <FiMessageCircle size={24} />
+      </button>
 
       <Footer />
     </div>

@@ -28,17 +28,37 @@ const mapStatus = (beStatus) => {
     'completed': { label: 'Hoàn thành', type: 'completed' },
     'delivered': { label: 'Đã giao', type: 'completed' },
     'cancelled': { label: 'Đã hủy', type: 'cancelled' },
-    'refunded': { label: 'Đã hoàn tiền', type: 'cancelled' },
   };
   return mapping[statusLower] || { label: beStatus, type: 'pending' };
 };
 
-const orderService = {
-  // Lấy danh sách đơn hàng của cửa hàng
+const ShopOrderService = {
+  // Lấy danh sách đơn hàng của Shop
   getOrders: async (params = {}) => {
     try {
-      const response = await api.get('/order/order-shop');
-      let rawOrders = response.data?.data?.order || [];
+      let res = await api.get('/order/order-shop', { params: { ...params, limit: 1000 } });
+      
+      // Trích xuất mảng dữ liệu một cách an toàn
+      const body = res.data;
+      let rawOrders = [];
+      
+      if (Array.isArray(body)) {
+        rawOrders = body;
+      } else if (body?.data) {
+        if (Array.isArray(body.data)) {
+          rawOrders = body.data;
+        } else if (body.data.order && Array.isArray(body.data.order)) {
+          rawOrders = body.data.order;
+        } else if (body.data.items && Array.isArray(body.data.items)) {
+          rawOrders = body.data.items;
+        }
+      }
+
+      // Đảm bảo rawOrders là một mảng trước khi thực hiện các thao tác tiếp theo
+      if (!Array.isArray(rawOrders)) {
+        console.error('[ShopOrderService] Dữ liệu trả về không hợp lệ:', body);
+        rawOrders = [];
+      }
       
       // Sắp xếp đơn hàng mới nhất lên đầu (Mới nhất -> Cũ nhất)
       rawOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -163,7 +183,6 @@ const orderService = {
   // Xác thực thanh toán MoMo
   verifyMomoPayment: async (orderId, resultCode) => {
     try {
-      // Endpoint giả định dựa trên cấu trúc backend NestJS
       const response = await api.post('/order/verify-momo-payment', {
         orderId: String(orderId),
         resultCode: String(resultCode)
@@ -176,4 +195,4 @@ const orderService = {
   }
 };
 
-export default orderService;
+export default ShopOrderService;

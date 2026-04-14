@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import userService from '../../services/userService';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube, FaRegComment, FaUserCircle, FaBox, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import { FiMessageCircle } from "react-icons/fi";
 import { jwtDecode } from 'jwt-decode';
 import { CategoryService } from '../../services/CategoryService';
 import { ChevronRight, Bell, Info, Package, Camera } from 'lucide-react';
@@ -28,7 +29,14 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 
   return (
     <>
-      <header className="main-header">
+      <header className="main-header" style={{
+        '--lp-accent': '#2563eb',
+        '--lp-accent-soft': 'rgba(37, 99, 235, 0.1)',
+        '--lp-text': '#08060d',
+        '--lp-text-muted': '#6b6375',
+        '--lp-border': '#e5e4e7',
+        '--lp-bg-soft': '#f8fafc'
+      }}>
         <div className="container header-content">
           <Link to="/" className="logo" style={{ color: '#2563eb' }}>
             SmartAI Fashion
@@ -48,15 +56,64 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
+              <FiMessageCircle />
+            </Link>
             {userLabel ? (
-              <>
-                <Link to="/user/UserProfile" style={{ textDecoration: 'none' }}>
+              <div className="user-profile-wrapper">
+                <button type="button" className="user-profile-btn">
+                  <FaUserCircle
+                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                  />
                   <span className="user-profile">{userLabel}</span>
-                </Link>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
                 </button>
-              </>
+                <div className="profile-dropdown">
+                  <Link
+                    to="/manage/Manageinvoice"
+                    className="profile-dropdown-item"
+                  >
+                    <FaBox /> Đơn mua
+                  </Link>
+                  <Link
+                    to="/user/UserProfile"
+                    className="profile-dropdown-item"
+                  >
+                    <FaUser /> Trang cá nhân
+                  </Link>
+
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
+                  <button
+                    type="button"
+                    className="profile-dropdown-item logout"
+                    onClick={onLogout}
+                  >
+                    <FaSignOutAlt /> Đăng xuất
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
@@ -82,9 +139,6 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                 {cat.name}
               </span>
             ))}
-          <span className="text-red">BST Thu Đông</span>
-          <span className="text-red">Đồ hiệu sale</span>
-          <span className="flash-sale">⚡ Flash Sale</span>
         </div>
       </nav>
     </>
@@ -322,29 +376,32 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              {/* Additional Stats */}
+              {/* Additional Stats / MoMo Payment */}
               <div className="mt-14 border-t border-gray-100 pt-8">
-                <h3 className="text-xl font-bold text-gray-800 mb-6" style={{ fontFamily: '"Playfair Display", Times, serif' }}>Thông tin bổ sung</h3>
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="rounded-[14px] p-4 flex justify-between items-center text-white shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    <span className="text-sm opacity-95 ml-1">Ngày tham gia:</span>
-                    <span className="font-bold text-sm mr-1">15/01/2023</span>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-800" style={{ fontFamily: '"Playfair Display", Times, serif' }}>Phương thức thanh toán</h3>
+                  <button className="text-sm text-blue-600 font-medium hover:underline">+ Thêm phương thức</button>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col md:flex-row items-center justify-between p-5 hover:border-gray-300 transition">
+                  <div className="flex items-center gap-4">
+                    <img src="https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png" alt="MoMo Icon" className="w-12 h-12 object-contain rounded border border-gray-100 p-1" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-gray-800 text-base">Ví MoMo</h4>
+                        <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-semibold uppercase tracking-wider rounded border border-green-200">Đã liên kết</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">Số điện thoại: {basicInfo.phone ? basicInfo.phone.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2") : "090****123"}</p>
+                    </div>
                   </div>
-                  <div className="rounded-[14px] p-4 flex justify-between items-center text-white shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    <span className="text-sm opacity-95 ml-1">Tổng đơn hàng:</span>
-                    <span className="font-bold text-sm mr-1">24 đơn</span>
-                  </div>
-                  <div className="rounded-[14px] p-4 flex justify-between items-center text-white shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    <span className="text-sm opacity-95 ml-1">Điểm tích lũy:</span>
-                    <span className="font-bold text-sm mr-1">1,250 điểm</span>
-                  </div>
-                  <div className="rounded-[14px] p-4 flex justify-between items-center text-white shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    <span className="text-sm opacity-95 ml-1">Trạng thái tài khoản:</span>
-                    <span className="px-3 py-1 rounded bg-[#ffb703] text-white text-[11px] uppercase tracking-wide font-bold shadow-sm mr-1">Vàng</span>
-                  </div>
-                  <div className="col-span-1 rounded-[14px] p-4 flex justify-between items-center text-white shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    <span className="text-sm opacity-95 ml-1">Vai trò:</span>
-                    <span className="font-bold text-sm mr-1">Người dùng</span>
+
+                  <div className="flex items-center gap-4 mt-4 md:mt-0">
+                    <button className="px-4 py-1.5 bg-white text-gray-700 text-sm font-medium rounded border border-gray-300 hover:bg-gray-50 transition shadow-sm">
+                      Quản trị
+                    </button>
+                    <button className="text-sm font-medium text-red-500 hover:text-red-700 hover:underline transition">
+                      Hủy liên kết
+                    </button>
                   </div>
                 </div>
               </div>

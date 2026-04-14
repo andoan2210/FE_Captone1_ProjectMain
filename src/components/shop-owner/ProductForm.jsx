@@ -20,7 +20,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "./ConfirmModal";
-import { ProductService } from "../../services/ProductService";
+import { ShopProductService } from "../../services/ShopProductService";
 import { CategoryService } from "../../services/CategoryService";
 
 // =============================================================================
@@ -265,7 +265,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   // Xử lý Xóa sản phẩm
   const handleDeleteConfirmed = async () => {
     try {
-      await ProductService.deleteProduct(formData.id);
+      await ShopProductService.deleteProduct(formData.id);
       setSuccessMessage("Đã xóa sản phẩm thành công!");
       setShowDeleteModal(false);
       setTimeout(() => {
@@ -433,7 +433,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (infoFound) {
       try {
         setLoading(true);
-        await ProductService.deleteProductImage(infoFound.imageId);
+        await ShopProductService.deleteProductImage(infoFound.imageId);
         // ✅ Successful → remove from UI + state
         setExistingImagesInfo((prev) =>
           prev.filter((img) => img.imageId !== infoFound.imageId),
@@ -530,14 +530,14 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       let imagesToDelete = removeImageIds;
       console.log("📤 Images to delete (explicitly removed):", imagesToDelete);
 
-      console.log("📤 About to call ProductService.saveProduct with:", {
+      console.log("📤 About to call ShopProductService.saveProduct with:", {
         pendingFilesCount: pendingFiles.length,
         imagesToDeleteCount: imagesToDelete.length,
         hasThumbnailFile: !!thumbnailFile,
       });
 
       // Truyền thumbnailFile + imagesToDelete riêng biệt
-      await ProductService.saveProduct(
+      await ShopProductService.saveProduct(
         productToSave,
         isEdit,
         pendingFiles,
