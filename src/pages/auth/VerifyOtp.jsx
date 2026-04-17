@@ -2,8 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaShieldAlt } from 'react-icons/fa';
 import { FaCheck } from 'react-icons/fa6';
-import api from '../../services/api';
-import './Login.css';
+import userService from '../../services/userService';
 
 const VerifyOtp = () => {
     const inputRefs = useRef([]);
@@ -99,11 +98,7 @@ const VerifyOtp = () => {
 
         setLoading(true);
         try {
-            // Sử dụng api.post thay vì fetch
-            const response = await api.post('/users/verify-email', {
-                email,
-                code
-            });
+            await userService.verifyEmail(email, code);
 
             setSuccessMsg('Xác nhận thành công! Đang chuyển hướng...');
             setTimeout(() => {
@@ -124,11 +119,7 @@ const VerifyOtp = () => {
         setSuccessMsg('');
         setResendLoading(true);
         try {
-            // Sử dụng api.post thay vì fetch
-            await api.post('/users/resend-code', {
-                email
-            });
-
+            await userService.resendVerificationCode(email);
             setSuccessMsg('Mã xác nhận đã được gửi lại vào email của bạn.');
         } catch (err) {
             const data = err.response?.data;

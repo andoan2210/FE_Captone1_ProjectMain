@@ -20,7 +20,7 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
 
   const handleNavClick = (categoryId) => {
@@ -62,9 +62,13 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle
-                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
-                  />
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
@@ -243,16 +247,53 @@ export default function UserProfile() {
   ]);
   const [payments, setPayments] = useState([]);
 
+  const handleDeletePayment = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy liên kết phương thức thanh toán này?')) return;
+    try {
+      await userService.deletePayment(id);
+      setPayments(payments.filter(pay => (pay.id || pay.PaymentId) !== id));
+    } catch (err) {
+      console.error('Delete payment error:', err.message);
+      alert('Lỗi: ' + err.message);
+    }
+  };
+
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
         setLoading(true);
-        const profile = await userService.getUserProfile();
+        const [profile, adrResponse] = await Promise.all([
+          userService.getUserProfile(),
+          userService.getAddresses()
+        ]);
+
         if (profile) {
-          setBasicInfo(profile.basicInfo || basicInfo);
-          if (profile.addresses) setAddresses(profile.addresses);
-          if (profile.payments) setPayments(profile.payments);
+          setBasicInfo({
+            fullName: profile.fullName || '',
+            birthDate: profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('vi-VN') : '',
+            gender: profile.gender || 'Nam',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            avatar: profile.avatarUrl || null
+          });
         }
+
+        if (adrResponse) {
+          const adrList = Array.isArray(adrResponse) ? adrResponse : (adrResponse.data && Array.isArray(adrResponse.data) ? adrResponse.data : []);
+          setAddresses(adrList);
+        }
+
+        // Fetch payments separately
+        try {
+          const payResponse = await userService.getPayments();
+          if (payResponse) {
+            const payList = Array.isArray(payResponse) ? payResponse : (payResponse.data && Array.isArray(payResponse.data) ? payResponse.data : []);
+            setPayments(payList);
+          }
+        } catch (payErr) {
+          console.log('Payments load error:', payErr.message);
+        }
+
         setError(null);
       } catch (err) {
         console.log('[v0] Profile load error:', err.message);
@@ -266,7 +307,12 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#f0f8ff] to-[#dcf0fa] relative">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+      <PageHeader
+        userLabel={basicInfo.fullName || userLabel}
+        userAvatar={basicInfo.avatar}
+        dbCategories={dbCategories}
+        onLogout={handleLogout}
+      />
 
       {error && (
         <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '12px', margin: '12px', borderRadius: '6px', color: '#dc2626', fontSize: '14px', maxWidth: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
@@ -333,11 +379,8 @@ export default function UserProfile() {
                       <span className="text-4xl font-bold" style={{ color: '#1e40af' }}>{basicInfo.fullName ? basicInfo.fullName[0].toUpperCase() : 'U'}</span>
                     )}
                   </div>
-                  <button className="px-5 py-1.5 text-white rounded-full text-[13px] font-medium mb-4 shadow-sm" style={{ backgroundColor: '#3b82f6' }}>
-                    Thay ảnh
-                  </button>
                   <h2 className="text-[17px] font-bold text-gray-800 text-center uppercase tracking-wide mt-2" style={{ fontFamily: '"Playfair Display", Times, serif' }}>{basicInfo.fullName}</h2>
-                  <p className="text-gray-400 text-[13px] mt-1.5 font-medium">Thành viên MatFlow</p>
+                  <p className="text-gray-400 text-[13px] mt-1.5 font-medium"></p>
                 </div>
 
                 {/* Right Inner - Data Fields */}
@@ -365,44 +408,66 @@ export default function UserProfile() {
                     </div>
                     <div className="col-span-2 mt-1">
                       <label className="block text-[13px] font-semibold text-gray-600 mb-2 ml-1">Địa chỉ</label>
-                      <div className="flex gap-4 mb-3">
-                        <select className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:calc(100%-12px)_center] bg-[length:10px]"><option>Chọn tỉnh/thành</option></select>
-                        <select className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:calc(100%-12px)_center] bg-[length:10px]"><option>Chọn phường/xã</option></select>
-                      </div>
-                      <input type="text" placeholder="Số nhà, tên đường" className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl mb-3 text-gray-500" readOnly />
-                      <input type="text" readOnly className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-700" value={addresses[0]?.address || ''} placeholder="Đường/Phường/Xã/Tỉnh thành phố" />
+                      <input
+                        type="text"
+                        readOnly
+                        className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-700"
+                        value={addresses.length > 0 ? `${addresses[0].detailAddress}, ${addresses[0].ward}, ${addresses[0].district}, ${addresses[0].province}` : ''}
+                        placeholder="Chưa cập nhật địa chỉ"
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Additional Stats / MoMo Payment */}
+              {/* Payment Methods Section */}
               <div className="mt-14 border-t border-gray-100 pt-8">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-800" style={{ fontFamily: '"Playfair Display", Times, serif' }}>Phương thức thanh toán</h3>
-                  <button className="text-sm text-blue-600 font-medium hover:underline">+ Thêm phương thức</button>
+                  <Link to="/user/UpdateProfile" className="text-sm text-blue-600 font-medium hover:underline">+ Quản lý</Link>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col md:flex-row items-center justify-between p-5 hover:border-gray-300 transition">
-                  <div className="flex items-center gap-4">
-                    <img src="https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png" alt="MoMo Icon" className="w-12 h-12 object-contain rounded border border-gray-100 p-1" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-gray-800 text-base">Ví MoMo</h4>
-                        <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-semibold uppercase tracking-wider rounded border border-green-200">Đã liên kết</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">Số điện thoại: {basicInfo.phone ? basicInfo.phone.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2") : "090****123"}</p>
+                <div className="space-y-4">
+                  {payments.length === 0 ? (
+                    <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <p className="text-gray-400 text-sm">Chưa có phương thức thanh toán nào được liên kết</p>
                     </div>
-                  </div>
+                  ) : payments.map((payment) => (
+                    <div key={payment.id || payment.PaymentId} className="border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col md:flex-row items-center justify-between p-5 hover:border-gray-300 transition">
+                      <div className="flex items-center gap-4">
+                        <img 
+                          src={
+                            payment.provider?.toLowerCase().includes('momo') 
+                              ? "https://projectcapstone1-public.s3.ap-southeast-2.amazonaws.com/products/thumbnail/1776135360618-MoMo_Logo_App.svg.png"
+                              : "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" 
+                          } 
+                          alt="Provider Icon" 
+                          className="w-12 h-12 object-contain rounded border border-gray-100 p-1" 
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-800 text-base">
+                              {payment.type === 'CARD' ? 'Thẻ Ngân hàng' : 'Ví điện tử'} ({payment.provider})
+                            </h4>
+                            {payment.isDefault && (
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold uppercase tracking-wider rounded border border-blue-200">Mặc định</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">Số tài khoản: {payment.accountNumber}</p>
+                          <p className="text-[11px] text-gray-400 uppercase font-bold tracking-tight">Chủ thẻ: {payment.cardHolderName}</p>
+                        </div>
+                      </div>
 
-                  <div className="flex items-center gap-4 mt-4 md:mt-0">
-                    <button className="px-4 py-1.5 bg-white text-gray-700 text-sm font-medium rounded border border-gray-300 hover:bg-gray-50 transition shadow-sm">
-                      Quản trị
-                    </button>
-                    <button className="text-sm font-medium text-red-500 hover:text-red-700 hover:underline transition">
-                      Hủy liên kết
-                    </button>
-                  </div>
+                      <div className="flex items-center gap-4 mt-4 md:mt-0">
+                        <button 
+                          onClick={() => handleDeletePayment(payment.id || payment.PaymentId)}
+                          className="text-sm font-medium text-red-500 hover:text-red-700 hover:underline transition"
+                        >
+                          Hủy liên kết
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

@@ -41,7 +41,7 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -145,9 +145,17 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle
-                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
-                  />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
@@ -254,107 +262,29 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 }
 
 
-function Footer() {
-  return (
-    <footer className="lp-footer">
-      <div className="container lp-footer-grid">
-        <div className="lp-footer-brand">
-          <strong className="logo">SmartAI Fashion</strong>
-          <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
-        </div>
-        <div>
-          <h3 className="lp-footer-title">Hỗ trợ</h3>
-          <ul className="lp-footer-links">
-            <li>
-              <Link to="/login">Tài khoản</Link>
-            </li>
-            <li>
-              <a href="#main-content">Theo dõi đơn hàng</a>
-            </li>
-            <li>
-              <a href="#main-content">Đổi trả &amp; bảo hành</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="lp-footer-title">Công ty</h3>
-          <ul className="lp-footer-links">
-            <li>
-              <a href="#main-content">Về chúng tôi</a>
-            </li>
-            <li>
-              <a href="#main-content">Tuyển dụng</a>
-            </li>
-            <li>
-              <a href="#main-content">Điều khoản</a>
-            </li>
-          </ul>
-        </div>
-        <div className="lp-footer-social">
-          <h3 className="lp-footer-title">Kết nối</h3>
-          <div className="lp-social-icons">
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Facebook"
-            >
-              <FaFacebookF />
-            </a>
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram"
-            >
-              <FaInstagram />
-            </a>
-            <a
-              href="https://youtube.com"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="YouTube"
-            >
-              <FaYoutube />
-            </a>
-          </div>
-        </div>
-      </div>
-      <div className="lp-footer-bottom">
-        <div className="container">
-          © {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 
 export default function CategoryProducts() {
   const { id: categoryId } = useParams();
   const navigate = useNavigate();
   const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
 
   useEffect(() => {
     async function loadUser() {
       const token = localStorage.getItem("token");
       if (!token) {
         setUserLabel(null);
+        setUserAvatar(null);
       } else {
-        setUserLabel(getUserDisplayNameFromToken());
         try {
-          const response = await api.get("/auth/profile");
+          const response = await api.get("/users/profile");
           const profile = response.data;
-          setUserLabel(
-            profile.FullName ||
-            profile.fullName ||
-            profile.Email ||
-            profile.email ||
-            profile.UserName ||
-            profile.username ||
-            getUserDisplayNameFromToken(),
-          );
-        } catch { }
+          setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+          setUserAvatar(profile.avatarUrl || null);
+        } catch (err) {
+          console.error("Lỗi tải profile:", err);
+          setUserLabel(getUserDisplayNameFromToken());
+        }
       }
     }
     loadUser();
@@ -482,6 +412,7 @@ export default function CategoryProducts() {
     <div className="category-page">
       <PageHeader
         userLabel={userLabel}
+        userAvatar={userAvatar}
         dbCategories={dbCategories}
         onLogout={handleLogout}
       />
@@ -609,16 +540,76 @@ export default function CategoryProducts() {
         </div>
       </main>
 
-      <button
-        className="floating-chat-btn"
-        onClick={() => navigate("/chat")}
-        title="Mở chat"
-        aria-label="Mở khung chat"
-      >
-        <FiMessageCircle size={24} />
-      </button>
-
-      <Footer />
+      <footer className="lp-footer">
+        <div className="container lp-footer-grid">
+          <div className="lp-footer-brand">
+            <strong className="logo">SmartAI Fashion</strong>
+            <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
+          </div>
+          <div>
+            <h3 className="lp-footer-title">Hỗ trợ</h3>
+            <ul className="lp-footer-links">
+              <li>
+                <Link to="/login">Tài khoản</Link>
+              </li>
+              <li>
+                <a href="#main-content">Theo dõi đơn hàng</a>
+              </li>
+              <li>
+                <a href="#main-content">Đổi trả &amp; bảo hành</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="lp-footer-title">Công ty</h3>
+            <ul className="lp-footer-links">
+              <li>
+                <a href="#main-content">Về chúng tôi</a>
+              </li>
+              <li>
+                <a href="#main-content">Tuyển dụng</a>
+              </li>
+              <li>
+                <a href="#main-content">Điều khoản</a>
+              </li>
+            </ul>
+          </div>
+          <div className="lp-footer-social">
+            <h3 className="lp-footer-title">Kết nối</h3>
+            <div className="lp-social-icons">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+              >
+                <FaFacebookF />
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+              >
+                <FaInstagram />
+              </a>
+              <a
+                href="https://youtube.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="YouTube"
+              >
+                <FaYoutube />
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="lp-footer-bottom">
+          <div className="container">
+            © {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

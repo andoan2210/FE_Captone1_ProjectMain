@@ -27,7 +27,7 @@ function getUserDisplayNameFromToken() {
     }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
     const [suggestions, setSuggestions] = useState([]);
@@ -125,7 +125,15 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                         {userLabel ? (
                             <div className="user-profile-wrapper">
                                 <button type="button" className="user-profile-btn">
-                                    <FaUserCircle style={{ fontSize: "20px", color: "var(--lp-accent)" }} />
+                                    {userAvatar ? (
+                                        <img
+                                            src={userAvatar}
+                                            alt="Avatar"
+                                            style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                                        />
+                                    ) : (
+                                        <FaUserCircle style={{ fontSize: "20px", color: "var(--lp-accent)" }} />
+                                    )}
                                     <span className="user-profile">{userLabel}</span>
                                 </button>
                                 <div className="profile-dropdown">
@@ -160,7 +168,7 @@ export default function SearchPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const queryParams = new URLSearchParams(location.search);
-    
+
     const initialKeyword = queryParams.get("keyword") || "";
     const initialCategoryId = queryParams.get("categoryId") || "";
     const initialSortBy = queryParams.get("sortBy") || "relevance";
@@ -170,6 +178,7 @@ export default function SearchPage() {
     const [loading, setLoading] = useState(true);
     const [dbCategories, setDbCategories] = useState([]);
     const [userLabel, setUserLabel] = useState(null);
+    const [userAvatar, setUserAvatar] = useState(null);
 
     // Filter states
     const [minPrice, setMinPrice] = useState(queryParams.get("minPrice") || "");
@@ -179,7 +188,22 @@ export default function SearchPage() {
     const [page, setPage] = useState(parseInt(queryParams.get("page") || "1"));
 
     useEffect(() => {
-        setUserLabel(getUserDisplayNameFromToken());
+        async function loadUser() {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+            try {
+                const res = await api.get("/users/profile");
+                const profile = res.data;
+                setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+                setUserAvatar(profile.avatarUrl || null);
+            } catch (err) {
+                console.error("Lỗi tải profile:", err);
+                setUserLabel(getUserDisplayNameFromToken());
+            }
+        }
+
+        loadUser();
+
         async function loadData() {
             try {
                 const res = await LandingPageService.getCategories(100);
@@ -224,20 +248,20 @@ export default function SearchPage() {
         setMinPrice(params.get("minPrice") || "");
         setMaxPrice(params.get("maxPrice") || "");
     }, [location.search]);
-    
+
     // Remove the older redundant useEffect if it existed or modify it
 
     const handleApplyFilters = () => {
         const newParams = new URLSearchParams(location.search);
         if (minPrice) newParams.set("minPrice", minPrice);
         else newParams.delete("minPrice");
-        
+
         if (maxPrice) newParams.set("maxPrice", maxPrice);
         else newParams.delete("maxPrice");
-        
+
         if (selectedCategoryId) newParams.set("categoryId", selectedCategoryId);
         else newParams.delete("categoryId");
-        
+
         newParams.set("page", "1");
         navigate(`/search?${newParams.toString()}`);
     };
@@ -247,7 +271,7 @@ export default function SearchPage() {
         const newParams = new URLSearchParams(location.search);
         if (catId) newParams.set("categoryId", catId);
         else newParams.delete("categoryId");
-        
+
         newParams.set("page", "1");
         navigate(`/search?${newParams.toString()}`);
     };
@@ -300,20 +324,20 @@ export default function SearchPage() {
 
     return (
         <div className="search-page-container">
-            <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
-            
+            <PageHeader userLabel={userLabel} userAvatar={userAvatar} dbCategories={dbCategories} onLogout={handleLogout} />
+
             <main className="container search-main">
                 <aside className="search-sidebar">
                     <section className="filter-section">
                         <h3 className="filter-title"><FaFilter /> BỘ LỌC TÌM KIẾM</h3>
-                        
+
                         <div className="filter-group">
                             <h4>Theo Danh Mục</h4>
                             <div className="filter-list">
                                 <label className="filter-item">
-                                    <input 
-                                        type="radio" 
-                                        name="category" 
+                                    <input
+                                        type="radio"
+                                        name="category"
                                         checked={!selectedCategoryId}
                                         onChange={() => handleCategoryChange("")}
                                     />
@@ -321,9 +345,9 @@ export default function SearchPage() {
                                 </label>
                                 {dbCategories.map(cat => (
                                     <label key={cat.id} className="filter-item">
-                                        <input 
-                                            type="radio" 
-                                            name="category" 
+                                        <input
+                                            type="radio"
+                                            name="category"
                                             checked={String(selectedCategoryId) === String(cat.id)}
                                             onChange={() => handleCategoryChange(cat.id)}
                                         />
@@ -341,17 +365,17 @@ export default function SearchPage() {
                                 <button onClick={() => { setMinPrice("500000"); setMaxPrice(""); handleApplyPrice("500000", ""); }}>Trên 500k</button>
                             </div>
                             <div className="price-range">
-                                <input 
-                                    type="number" 
-                                    placeholder="TỪ" 
-                                    value={minPrice} 
+                                <input
+                                    type="number"
+                                    placeholder="TỪ"
+                                    value={minPrice}
                                     onChange={(e) => setMinPrice(e.target.value)}
                                 />
                                 <span className="range-sep">-</span>
-                                <input 
-                                    type="number" 
-                                    placeholder="ĐẾN" 
-                                    value={maxPrice} 
+                                <input
+                                    type="number"
+                                    placeholder="ĐẾN"
+                                    value={maxPrice}
                                     onChange={(e) => setMaxPrice(e.target.value)}
                                 />
                             </div>
@@ -386,19 +410,19 @@ export default function SearchPage() {
                         </div>
                         <div className="sort-options">
                             <span>Sắp xếp theo:</span>
-                            <button 
+                            <button
                                 className={`sort-btn ${sortBy === 'relevance' ? 'active' : ''}`}
                                 onClick={() => handleSortChange('relevance')}
                             >Phổ biến</button>
-                            <button 
+                            <button
                                 className={`sort-btn ${sortBy === 'ctime' ? 'active' : ''}`}
                                 onClick={() => handleSortChange('ctime')}
                             >Mới nhất</button>
-                            <button 
+                            <button
                                 className={`sort-btn ${sortBy === 'sales' ? 'active' : ''}`}
                                 onClick={() => handleSortChange('sales')}
                             >Bán chạy</button>
-                            <select 
+                            <select
                                 className={`sort-select ${sortBy.startsWith('price') ? 'active' : ''}`}
                                 value={sortBy.startsWith('price') ? sortBy : 'price-asc'}
                                 onChange={(e) => handleSortChange(e.target.value)}
@@ -442,8 +466,8 @@ export default function SearchPage() {
                                                 <span className="card-sold">Đã bán {product.sold}</span>
                                             </div>
                                             <div className="card-actions">
-                                                <Link 
-                                                    to={`/ai-virtual-tryon?productId=${product.id}&thumbnail=${encodeURIComponent(product.thumbnail)}&productName=${encodeURIComponent(product.name)}&price=${product.price}`} 
+                                                <Link
+                                                    to={`/ai-virtual-tryon?productId=${product.id}&thumbnail=${encodeURIComponent(product.thumbnail)}&productName=${encodeURIComponent(product.name)}&price=${product.price}`}
                                                     className="btn-vto-small"
                                                 >Thử đồ AI</Link>
                                             </div>
@@ -454,7 +478,7 @@ export default function SearchPage() {
 
                             {pagination && pagination.totalPages > 1 && (
                                 <div className="search-pagination">
-                                    <button 
+                                    <button
                                         disabled={page === 1}
                                         onClick={() => {
                                             const newParams = new URLSearchParams(location.search);
@@ -464,7 +488,7 @@ export default function SearchPage() {
                                         className="pag-btn"
                                     ><FaChevronLeft /></button>
                                     {[...Array(pagination.totalPages)].map((_, i) => (
-                                        <button 
+                                        <button
                                             key={i + 1}
                                             className={`pag-btn ${page === i + 1 ? 'active' : ''}`}
                                             onClick={() => {
@@ -474,7 +498,7 @@ export default function SearchPage() {
                                             }}
                                         >{i + 1}</button>
                                     ))}
-                                    <button 
+                                    <button
                                         disabled={page === pagination.totalPages}
                                         onClick={() => {
                                             const newParams = new URLSearchParams(location.search);

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUnlock } from 'react-icons/fa';
 import { FaRegEnvelope, FaPaperPlane } from 'react-icons/fa6';
 import './Login.css';
-import api from '../../services/api';
+import userService from '../../services/userService';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
@@ -22,7 +22,7 @@ const ForgotPassword = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('/users/forgot-password', { email });
+            await userService.forgotPassword(email);
             
             // Chuyển sang trang xác nhận mã OTP của forgot password
             navigate('/verify-forgot-password-otp', { state: { email } });

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaLock, FaShieldAlt } from 'react-icons/fa';
 import { FaRegEye, FaRegEyeSlash, FaCheck } from 'react-icons/fa6';
 import './Login.css';
-import api from '../../services/api';
+import userService from '../../services/userService';
 
 const ChangePassword = () => {
     const location = useLocation();
@@ -40,7 +40,7 @@ const ChangePassword = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('/users/change-forgot-password', { email, newPassword: password });
+            await userService.changeForgotPassword(email, password);
             
             setSuccessMsg('Đổi mật khẩu thành công! Chuyển hướng đến đăng nhập...');
             setTimeout(() => {
