@@ -13,6 +13,7 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
+import api from "../../services/api";
 import { getCategories } from "../../services/LandingPageService";
 import TryonService from "../../services/TryonService";
 import UploadPanel from "../../components/ai-virtual-tryon/UploadPanel";
@@ -44,6 +45,7 @@ const AIVirtualTryOn = () => {
   const [searchParams] = useSearchParams();
 
   const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -57,10 +59,24 @@ const AIVirtualTryOn = () => {
   const [historyError, setHistoryError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setUserLabel(getUserDisplayNameFromToken());
+    async function loadUser() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUserLabel(null);
+        setUserAvatar(null);
+      } else {
+        try {
+          const response = await api.get("/users/profile");
+          const profile = response.data;
+          setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+          setUserAvatar(profile.avatarUrl || null);
+        } catch (err) {
+          console.error("Lỗi tải profile:", err);
+          setUserLabel(getUserDisplayNameFromToken());
+        }
+      }
     }
+    loadUser();
 
     // Load categories
     async function loadCategories() {
@@ -235,9 +251,17 @@ const AIVirtualTryOn = () => {
                   className="user-profile-btn"
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
-                  <FaUserCircle
-                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
-                  />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
 
@@ -832,16 +856,6 @@ const AIVirtualTryOn = () => {
           to { transform: rotate(360deg); }
         }
       `}</style>
-
-      {/* FLOATING CHAT */}
-      <button
-        className="floating-chat-btn"
-        onClick={() => navigate("/chat")}
-        title="Mở chat"
-        aria-label="Mở khung chat"
-      >
-        <FiMessageCircle size={24} />
-      </button>
 
       {/* FOOTER */}
       <footer className="lp-footer">

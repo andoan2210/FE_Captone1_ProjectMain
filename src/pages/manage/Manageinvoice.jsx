@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaUser, FaClipboardList, FaBell, FaTicketAlt, FaCoins,
@@ -6,9 +6,12 @@ import {
   FaShoppingCart, FaUserCircle, FaBox, FaSignOutAlt,
   FaFacebookF, FaInstagram, FaYoutube, FaTimesCircle
 } from 'react-icons/fa';
+import { FiMessageCircle } from 'react-icons/fi';
 import { jwtDecode } from 'jwt-decode';
+import api from '../../services/api';
 import InvoiceService from '../../services/InvoiceService';
 import { CategoryService } from '../../services/CategoryService';
+import { ShopProductService } from '../../services/ShopProductService';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
 import '../ShoppingCart-AddtoCart/ShoppingCart.css';
@@ -32,16 +35,65 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
   const handleNavClick = (categoryId) => {
-    if (categoryId === 'all') {
-      navigate('/');
+    if (categoryId === "all") {
+      navigate("/", { state: { category: "all" } });
     } else {
-      navigate(`/category/${categoryId}`);
+      navigate("/", { state: { category: categoryId } });
     }
   };
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const data = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error("Lỗi lấy gợi ý:", err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <>
@@ -50,7 +102,7 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
           <Link to="/" className="logo">
             SmartAI Fashion
           </Link>
-          <label className="search-wrap">
+          <div className="search-wrap" ref={searchRef}>
             <span className="visually-hidden">Tìm kiếm sản phẩm</span>
             <FaSearch className="search-icon" aria-hidden />
             <input
@@ -59,25 +111,89 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar"
               autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={handleSearch}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
+              <FiMessageCircle />
+            </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle style={{ fontSize: "20px", color: "var(--lp-accent)" }} />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
-                  <Link to="/manage/Manageinvoice" className="profile-dropdown-item">
+                  <Link
+                    to="/manage/Manageinvoice"
+                    className="profile-dropdown-item"
+                  >
                     <FaBox /> Đơn mua
                   </Link>
-                  <Link to="/user/UserProfile" className="profile-dropdown-item">
+                  <Link
+                    to="/user/UserProfile"
+                    className="profile-dropdown-item"
+                  >
                     <FaUser /> Trang cá nhân
                   </Link>
+
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"
@@ -103,15 +219,40 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 
       <nav className="main-nav" aria-label="Danh mục chính">
         <div className="container nav-links">
-          <span onClick={() => handleNavClick('all')} style={{ cursor: 'pointer' }}>
+          <span
+            onClick={() => handleNavClick("all")}
+            style={{ cursor: "pointer" }}
+          >
             TẤT CẢ DANH MỤC
           </span>
-          {dbCategories &&
-            dbCategories.map((cat) => (
-              <span key={cat.id} onClick={() => handleNavClick(cat.id)} style={{ cursor: 'pointer' }}>
-                {cat.name}
-              </span>
-            ))}
+          {dbCategories && dbCategories.map((cat) => (
+            <span
+              key={cat.id}
+              onClick={() => handleNavClick(cat.id)}
+              style={{ cursor: "pointer" }}
+            >
+              {cat.name}
+            </span>
+          ))}
+          <Link
+            to={localStorage.getItem("userRole")?.toLowerCase().includes("shop") ? "/shop-owner/store" : "/register-shop"}
+            style={{
+              marginLeft: 'auto',
+              color: '#fff',
+              backgroundColor: 'var(--lp-accent, #2563eb)',
+              fontWeight: 800,
+              padding: '6px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase'
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
+          </Link>
         </div>
       </nav>
     </>
@@ -127,45 +268,27 @@ function PageFooter() {
           <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
         </div>
         <div>
-          <h3 className="lp-footer-title">Hỗ trợ</h3>
+          <h2 className="lp-footer-title">Hỗ trợ</h2>
           <ul className="lp-footer-links">
-            <li>
-              <Link to="/login">Tài khoản</Link>
-            </li>
-            <li>
-              <Link to="#">Theo dõi đơn hàng</Link>
-            </li>
-            <li>
-              <Link to="#">Đổi trả &amp; bảo hành</Link>
-            </li>
+            <li><Link to="/login">Tài khoản</Link></li>
+            <li><a href="#main-content">Theo dõi đơn hàng</a></li>
+            <li><a href="#main-content">Đổi trả &amp; bảo hành</a></li>
           </ul>
         </div>
         <div>
-          <h3 className="lp-footer-title">Công ty</h3>
+          <h2 className="lp-footer-title">Công ty</h2>
           <ul className="lp-footer-links">
-            <li>
-              <Link to="#">Về chúng tôi</Link>
-            </li>
-            <li>
-              <Link to="#">Tuyển dụng</Link>
-            </li>
-            <li>
-              <Link to="#">Điều khoản</Link>
-            </li>
+            <li><a href="#main-content">Về chúng tôi</a></li>
+            <li><a href="#main-content">Tuyển dụng</a></li>
+            <li><a href="#main-content">Điều khoản</a></li>
           </ul>
         </div>
         <div className="lp-footer-social">
-          <h3 className="lp-footer-title">Kết nối</h3>
+          <h2 className="lp-footer-title">Kết nối</h2>
           <div className="lp-social-icons">
-            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
-              <FaFacebookF />
-            </a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
-              <FaInstagram />
-            </a>
-            <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">
-              <FaYoutube />
-            </a>
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookF /></a>
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><FaInstagram /></a>
+            <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube"><FaYoutube /></a>
           </div>
         </div>
       </div>
@@ -187,13 +310,29 @@ export default function Manageinvoice() {
   const [userEmail, setUserEmail] = useState("");
 
   const [dbCategories, setDbCategories] = useState([]);
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
 
   // ==================== AUTH & DATA FETCHING ====================
   useEffect(() => {
     fetchInvoices();
     fetchCategories();
+    loadUser();
   }, []);
+
+  const loadUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await api.get("/users/profile");
+      const profile = res.data;
+      setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+      setUserAvatar(profile.avatarUrl || null);
+    } catch (err) {
+      console.error("Lỗi tải profile:", err);
+      setUserLabel(getUserDisplayNameFromToken());
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -344,8 +483,8 @@ export default function Manageinvoice() {
   ];
 
   return (
-    <div className="pd-page-wrapper">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+    <div className="pd-page-wrapper landing-page-container">
+      <PageHeader userLabel={userLabel} userAvatar={userAvatar} dbCategories={dbCategories} onLogout={handleLogout} />
 
       <main className="manage-invoice-main">
         <div className="container">

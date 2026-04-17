@@ -4,6 +4,7 @@ import { FaFingerprint, FaLock } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../services/api';
+import userService from '../../services/userService';
 import './Login.css';
 
 function Login() {
@@ -20,13 +21,8 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      // Sử dụng instance api tập trung thay vì fetch
-      const response = await api.post('/auth/login', {
-        username: email,
-        password
-      });
-
-      const data = response.data;
+      // Sử dụng userService.login tập trung
+      const data = await userService.login(email, password);
       console.log('Login response:', data);
 
       // Lưu token

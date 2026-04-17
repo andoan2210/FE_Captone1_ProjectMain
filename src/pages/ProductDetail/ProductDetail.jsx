@@ -28,7 +28,9 @@ import { ShopProductService } from "../../services/ShopProductService";
 import { ShopCuahangService } from "../../services/ShopCuahangService";
 import * as ProductDetailService from "../../services/ProductDetailService";
 import { CategoryService } from "../../services/CategoryService";
+import * as CartService from "../../services/CartService";
 import chatService from "../../services/chatService";
+import { FiMessageCircle } from "react-icons/fi";
 
 import "../LandingPage/LandingPage.css";
 import "./ProductDetail.css";
@@ -52,7 +54,7 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -61,9 +63,9 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 
   const handleNavClick = (categoryId) => {
     if (categoryId === "all") {
-      navigate("/");
+      navigate("/", { state: { category: "all" } });
     } else {
-      navigate(`/category/${categoryId}`);
+      navigate("/", { state: { category: categoryId } });
     }
   };
 
@@ -154,12 +156,23 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
             </Link>
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
+              <FiMessageCircle />
+            </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle
-                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
-                  />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
@@ -175,6 +188,30 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
                   >
                     <FaUser /> Trang cá nhân
                   </Link>
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"
@@ -206,23 +243,41 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
           >
             TẤT CẢ DANH MỤC
           </span>
-          {dbCategories &&
-            dbCategories.map((cat) => (
-              <span
-                key={cat.id}
-                onClick={() => handleNavClick(cat.id)}
-                style={{ cursor: "pointer" }}
-              >
-                {cat.name}
-              </span>
-            ))}
+          {dbCategories.map((cat) => (
+            <span
+              key={cat.id}
+              onClick={() => handleNavClick(cat.id)}
+              style={{ cursor: "pointer" }}
+            >
+              {cat.name}
+            </span>
+          ))}
+          <Link
+            to={localStorage.getItem("userRole")?.toLowerCase().includes("shop") ? "/shop-owner/store" : "/register-shop"}
+            style={{
+              marginLeft: 'auto',
+              color: '#fff',
+              backgroundColor: 'var(--lp-accent, #2563eb)',
+              fontWeight: 800,
+              padding: '6px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase'
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
+          </Link>
         </div>
       </nav>
     </>
   );
 }
 
-function Footer() {
+function PageFooter() {
   return (
     <footer className="lp-footer">
       <div className="container lp-footer-grid">
@@ -237,10 +292,10 @@ function Footer() {
               <Link to="/login">Tài khoản</Link>
             </li>
             <li>
-              <Link to="#">Theo dõi đơn hàng</Link>
+              <a href="#main-content">Theo dõi đơn hàng</a>
             </li>
             <li>
-              <Link to="#">Đổi trả &amp; bảo hành</Link>
+              <a href="#main-content">Đổi trả &amp; bảo hành</a>
             </li>
           </ul>
         </div>
@@ -248,13 +303,13 @@ function Footer() {
           <h3 className="lp-footer-title">Công ty</h3>
           <ul className="lp-footer-links">
             <li>
-              <Link to="#">Về chúng tôi</Link>
+              <a href="#main-content">Về chúng tôi</a>
             </li>
             <li>
-              <Link to="#">Tuyển dụng</Link>
+              <a href="#main-content">Tuyển dụng</a>
             </li>
             <li>
-              <Link to="#">Điều khoản</Link>
+              <a href="#main-content">Điều khoản</a>
             </li>
           </ul>
         </div>
@@ -300,7 +355,27 @@ function Footer() {
 export default function ProductDetail() {
   const { id: idParam } = useParams();
   const navigate = useNavigate();
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUserLabel(null);
+        setUserAvatar(null);
+        return;
+      }
+      try {
+        const profile = await api.get("/users/profile").then(res => res.data);
+        setUserLabel(profile.fullName || profile.email || profile.username);
+        setUserAvatar(profile.avatarUrl || null);
+      } catch (err) {
+        console.error("Lỗi tải profile:", err);
+      }
+    }
+    loadUser();
+  }, []);
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -590,9 +665,10 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="pd-page-wrapper">
+    <div className="pd-page-wrapper landing-page-container">
       <PageHeader
         userLabel={userLabel}
+        userAvatar={userAvatar}
         dbCategories={dbCategories}
         onLogout={handleLogout}
       />
@@ -916,7 +992,8 @@ export default function ProductDetail() {
         </div>
       </main>
 
-      <Footer />
+      <PageFooter />
     </div>
   );
 }
+

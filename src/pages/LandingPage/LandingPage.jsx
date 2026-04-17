@@ -403,6 +403,7 @@ export default function LandingPage() {
   const [hasMoreCategory, setHasMoreCategory] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
   const [dbCategories, setDbCategories] = useState([]);
 
   useEffect(() => {
@@ -410,21 +411,17 @@ export default function LandingPage() {
       const token = localStorage.getItem("token");
       if (!token) {
         setUserLabel(null);
+        setUserAvatar(null);
       } else {
-        setUserLabel(getUserDisplayNameFromToken());
         try {
-          const response = await api.get("/auth/profile");
+          const response = await api.get("/users/profile");
           const profile = response.data;
-          setUserLabel(
-            profile.FullName ||
-            profile.fullName ||
-            profile.Email ||
-            profile.email ||
-            profile.UserName ||
-            profile.username ||
-            getUserDisplayNameFromToken(),
-          );
-        } catch { }
+          setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+          setUserAvatar(profile.avatarUrl || null);
+        } catch (err) {
+          console.error("Lỗi tải profile:", err);
+          setUserLabel(getUserDisplayNameFromToken());
+        }
       }
     }
 
@@ -753,9 +750,17 @@ export default function LandingPage() {
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle
-                    style={{ fontSize: "20px", color: "var(--lp-accent)" }}
-                  />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
@@ -1137,16 +1142,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
-      {/* ──── FLOATING CHAT BUTTON ──── */}
-      <button
-        className="floating-chat-btn"
-        onClick={() => navigate("/chat")}
-        title="Mở chat"
-        aria-label="Mở khung chat"
-      >
-        <FiMessageCircle size={24} />
-      </button>
 
       <footer className="lp-footer">
         <div className="container lp-footer-grid">

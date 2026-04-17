@@ -35,6 +35,7 @@ import CuaHang from "./pages/shop-owner/CuaHang";
 import Vouchers from "./pages/shop-owner/Vouchers";
 
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
+import ChatbotWidget from "./pages/chat/ChatbotWidget";
 
 const RootRedirect = () => {
 
@@ -131,6 +132,7 @@ function App() {
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatbotWidget />
     </>
   );
 }

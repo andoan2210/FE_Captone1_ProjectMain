@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUserPlus, FaLock, FaShieldAlt, FaRegUser } from 'react-icons/fa';
 import { FaRegEnvelope, FaRegEye, FaRegEyeSlash, FaArrowRight } from 'react-icons/fa6';
 import './Login.css';
-import api from '../../services/api';
+import userService from '../../services/userService';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -29,8 +29,7 @@ const Register = () => {
 
         setLoading(true);
         try {
-            // Dùng api (axios) thay vì fetch
-            const response = await api.post('/users', { name, email, password });
+            await userService.register(name, email, password);
             
             // Chuyển sang trang xác nhận OTP và truyền email
             navigate('/verify-otp', { state: { email } });

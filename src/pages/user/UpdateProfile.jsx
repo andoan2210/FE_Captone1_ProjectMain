@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import userService from '../../services/userService';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube, FaUserCircle, FaBox, FaUser, FaSignOutAlt } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
 import { CategoryService } from '../../services/CategoryService';
 import { ChevronRight, Bell, Info, MapPin, Plus, Trash2, Edit3, Camera, Save, X, AlertTriangle } from 'lucide-react';
@@ -18,7 +18,7 @@ function getUserDisplayNameFromToken() {
   }
 }
 
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
 
   const handleNavClick = (categoryId) => {
@@ -27,7 +27,14 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
 
   return (
     <>
-      <header className="main-header">
+      <header className="main-header" style={{
+        '--lp-accent': '#2563eb',
+        '--lp-accent-soft': 'rgba(37, 99, 235, 0.1)',
+        '--lp-text': '#08060d',
+        '--lp-text-muted': '#6b6375',
+        '--lp-border': '#e5e4e7',
+        '--lp-bg-soft': '#f8fafc'
+      }}>
         <div className="container header-content">
           <Link to="/" className="logo" style={{ color: '#2563eb' }}>
             SmartAI Fashion
@@ -48,14 +55,64 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
               <FaShoppingCart />
             </Link>
             {userLabel ? (
-              <>
-                <Link to="/user/UserProfile" style={{ textDecoration: 'none' }}>
+              <div className="user-profile-wrapper">
+                <button type="button" className="user-profile-btn">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <FaUserCircle
+                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                    />
+                  )}
                   <span className="user-profile">{userLabel}</span>
-                </Link>
-                <button type="button" className="btn-link logout-btn" style={{ background: 'transparent', border: 'none', color: '#6b6375', fontWeight: 500, cursor: 'pointer', fontSize: '14px', textDecoration: 'none' }} onClick={onLogout}>
-                  Đăng xuất
                 </button>
-              </>
+                <div className="profile-dropdown">
+                  <Link
+                    to="/manage/Manageinvoice"
+                    className="profile-dropdown-item"
+                  >
+                    <FaBox /> Đơn mua
+                  </Link>
+                  <Link
+                    to="/user/UserProfile"
+                    className="profile-dropdown-item"
+                  >
+                    <FaUser /> Trang cá nhân
+                  </Link>
+
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
+                  <button
+                    type="button"
+                    className="profile-dropdown-item logout"
+                    onClick={onLogout}
+                  >
+                    <FaSignOutAlt /> Đăng xuất
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="auth-links">
                 <Link to="/login" className="link-muted">
@@ -174,7 +231,7 @@ const UpdateProfile = () => {
 
   const [formData, setFormData] = useState({
     fullName: '',
-    birthDate: '',
+    dateOfBirth: '',
     gender: 'Nam',
     email: '',
     phone: ''
@@ -185,10 +242,25 @@ const UpdateProfile = () => {
 
   // Modals state
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [newAddress, setNewAddress] = useState({ type: '', address: '' });
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [newAddress, setNewAddress] = useState({
+    fullName: '',
+    phone: '',
+    province: '',
+    district: '',
+    ward: '',
+    detailAddress: '',
+    isDefault: false
+  });
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [newPayment, setNewPayment] = useState({ type: 'VISA', number: '' });
+  const [newPayment, setNewPayment] = useState({ 
+    type: 'CARD', 
+    provider: 'VISA', 
+    accountNumber: '', 
+    cardHolderName: '', 
+    isDefault: false 
+  });
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
@@ -197,6 +269,7 @@ const UpdateProfile = () => {
   });
 
   const [avatarUrl, setAvatarUrl] = useState('https://i.pinimg.com/originals/a9/71/d8/a971d8b69fdc16c9ca3222a38e895226.jpg');
+  const [avatarFile, setAvatarFile] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   // Load profile data on mount
@@ -204,13 +277,38 @@ const UpdateProfile = () => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const profile = await userService.getUserProfile();
+        const [profile, adrResponse] = await Promise.all([
+          userService.getUserProfile(),
+          userService.getAddresses()
+        ]);
+
         if (profile) {
-          setFormData(profile.basicInfo || formData);
-          if (profile.addresses) setAddresses(profile.addresses);
-          if (profile.payments) setPayments(profile.payments);
-          if (profile.avatar) setAvatarUrl(profile.avatar);
+          setFormData({
+            fullName: profile.fullName || '',
+            dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '',
+            gender: profile.gender || 'Nam',
+            email: profile.email || '',
+            phone: profile.phone || ''
+          });
+          if (profile.avatarUrl) setAvatarUrl(profile.avatarUrl);
         }
+
+        if (adrResponse) {
+          const adrList = Array.isArray(adrResponse) ? adrResponse : (adrResponse.data && Array.isArray(adrResponse.data) ? adrResponse.data : []);
+          setAddresses(adrList);
+        }
+
+        // Fetch payments separately if needed
+        try {
+          const payResponse = await userService.getPayments();
+          if (payResponse) {
+            const payList = Array.isArray(payResponse) ? payResponse : (payResponse.data && Array.isArray(payResponse.data) ? payResponse.data : []);
+            setPayments(payList);
+          }
+        } catch (payErr) {
+          console.log('Payments not supported or error:', payErr.message);
+        }
+
         setError(null);
       } catch (err) {
         console.log('[v0] Profile load error:', err.message);
@@ -236,43 +334,94 @@ const UpdateProfile = () => {
 
   // ADD Handlers
   const handleAddAddress = async () => {
-    if (!newAddress.address || !newAddress.type) {
-      setError('Vui lòng nhập đầy đủ loại địa chỉ và nội dung địa chỉ.');
+    if (!newAddress.fullName || !newAddress.phone || !newAddress.province || !newAddress.district || !newAddress.ward || !newAddress.detailAddress) {
+      setError('Vui lòng nhập đầy đủ tất cả các trường địa chỉ.');
       return;
     }
     try {
-      const added = await userService.addAddress(newAddress);
-      setAddresses([...addresses, added]);
+      if (editingAddressId) {
+        // Update existing address
+        await userService.updateAddress(editingAddressId, newAddress);
+        
+        // Update local state
+        setAddresses(addresses.map(addr => 
+          (addr.AddressId || addr.id) === editingAddressId ? { ...newAddress, AddressId: editingAddressId, id: editingAddressId } : addr
+        ));
+        
+        setSuccessMessage('Cập nhật địa chỉ thành công!');
+      } else {
+        // Add new address
+        const added = await userService.addAddress(newAddress);
+        setAddresses([...addresses, added]);
+        setSuccessMessage('Thêm địa chỉ thành công!');
+      }
+      
       setShowAddressModal(false);
-      setNewAddress({ type: '', address: '' });
-      setSuccessMessage('Thêm địa chỉ thành công!');
+      setEditingAddressId(null);
+      setNewAddress({
+        fullName: '',
+        phone: '',
+        province: '',
+        district: '',
+        ward: '',
+        detailAddress: '',
+        isDefault: false
+      });
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
   };
 
+  const handleEditAddressButtonClick = (addr) => {
+    setEditingAddressId(addr.AddressId || addr.id);
+    setNewAddress({
+      fullName: addr.fullName || '',
+      phone: addr.phone || '',
+      province: addr.province || '',
+      district: addr.district || '',
+      ward: addr.ward || '',
+      detailAddress: addr.detailAddress || '',
+      isDefault: addr.isDefault || false
+    });
+    setShowAddressModal(true);
+  };
+
   const handleAddPayment = async () => {
-    if (!newPayment.number) {
-      setError('Vui lòng nhập số thẻ hoặc tài khoản thanh toán.');
+    if (!newPayment.accountNumber || !newPayment.cardHolderName) {
+      setError('Vui lòng nhập đầy đủ Số tài khoản và Tên chủ sở hữu.');
       return;
     }
+    
+    // Validate account number length (8-20 as per BE)
+    if (newPayment.accountNumber.length < 8 || newPayment.accountNumber.length > 20) {
+      setError('Số tài khoản phải từ 8 đến 20 chữ số.');
+      return;
+    }
+
     try {
-      const added = await userService.addPayment(newPayment);
+      const response = await userService.addPayment(newPayment);
+      const added = response.data || response;
       setPayments([...payments, added]);
       setShowPaymentModal(false);
-      setNewPayment({ type: 'VISA', number: '' });
+      setNewPayment({ 
+        type: 'CARD', 
+        provider: 'VISA', 
+        accountNumber: '', 
+        cardHolderName: '', 
+        isDefault: false 
+      });
       setSuccessMessage('Thêm phương thức thành công!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
   };
 
   const handleDeleteAddress = async (id) => {
     try {
       await userService.deleteAddress(id);
-      setAddresses(addresses.filter(addr => addr.id !== id));
+      setAddresses(addresses.filter(addr => (addr.AddressId || addr.id) !== id));
       console.log('[v0] Address deleted:', id);
     } catch (err) {
       console.error('[v0] Delete address error:', err.message);
@@ -280,10 +429,42 @@ const UpdateProfile = () => {
     }
   };
 
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      setLoading(true);
+      // Tìm địa chỉ hiện tại để lấy lại các thông tin bắt buộc (fullName, phone, ...)
+      const currentAddr = addresses.find(addr => (addr.AddressId || addr.id) === id);
+      if (!currentAddr) throw new Error('Không tìm thấy địa chỉ');
+
+      // Gửi toàn bộ thông tin cùng với isDefault: true vì Backend yêu cầu đầy đủ các trường
+      await userService.updateAddress(id, {
+        fullName: currentAddr.fullName,
+        phone: currentAddr.phone,
+        province: currentAddr.province,
+        district: currentAddr.district,
+        ward: currentAddr.ward,
+        detailAddress: currentAddr.detailAddress,
+        isDefault: true 
+      });
+
+      // Reload addresses to reflect the change
+      const updatedAddresses = await userService.getAddresses();
+      const adrList = Array.isArray(updatedAddresses) ? updatedAddresses : (updatedAddresses.data && Array.isArray(updatedAddresses.data) ? updatedAddresses.data : []);
+      setAddresses(adrList);
+      setSuccessMessage('Đã thiết lập địa chỉ mặc định thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('[v0] Set default address error:', err.message);
+      setError(err.response?.data?.message || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeletePayment = async (id) => {
     try {
       await userService.deletePayment(id);
-      setPayments(payments.filter(pay => pay.id !== id));
+      setPayments(payments.filter(pay => (pay.PaymentId || pay.id) !== id));
       console.log('[v0] Payment deleted:', id);
     } catch (err) {
       console.error('[v0] Delete payment error:', err.message);
@@ -304,13 +485,17 @@ const UpdateProfile = () => {
     }
 
     try {
-      await userService.updateUserProfile(formData);
-      setSuccessMessage('Cập nhật thành công!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      await userService.updateUserProfile(formData, avatarFile);
+      setSuccessMessage('Cập nhật thành công! Đang chuyển hướng...');
+      setAvatarFile(null); // Reset file after upload
+      setTimeout(() => {
+        setSuccessMessage('');
+        navigate('/user/UserProfile');
+      }, 1500);
       console.log('[v0] Profile saved:', formData);
     } catch (err) {
       console.error('[v0] Save profile error:', err.message);
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
   };
 
@@ -329,35 +514,23 @@ const UpdateProfile = () => {
     }
 
     try {
-      await userService.updateUserProfile({
-        ...formData,
-        oldPassword: passwordData.oldPassword,
-        newPassword: passwordData.newPassword
-      });
+      await userService.changePassword(passwordData.oldPassword, passwordData.newPassword);
       setSuccessMessage('Cập nhật mật khẩu thành công!');
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(`Lỗi cập nhật mật khẩu: ${err.message}`);
+      setError(`Lỗi cập nhật mật khẩu: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setAvatarFile(file);
+      // Preview
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const newAvatarUrl = event.target.result;
-          setAvatarUrl(newAvatarUrl);
-          await userService.updateUserProfile({ avatar: newAvatarUrl });
-          setSuccessMessage('Ảnh đại diện đã được cập nhật!');
-          setTimeout(() => setSuccessMessage(''), 3000);
-          console.log('[v0] Avatar changed successfully');
-        } catch (err) {
-          console.error('[v0] Update avatar error:', err.message);
-          setError(err.message);
-        }
+      reader.onload = (event) => {
+        setAvatarUrl(event.target.result);
       };
       reader.readAsDataURL(file);
     }
@@ -371,7 +544,12 @@ const UpdateProfile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#f0f8ff] to-[#dcf0fa] relative">
       {/* Global Header */}
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+      <PageHeader
+        userLabel={formData.fullName || userLabel}
+        userAvatar={avatarUrl}
+        dbCategories={dbCategories}
+        onLogout={handleLogout}
+      />
 
       {!loading && (
         <>
@@ -414,7 +592,7 @@ const UpdateProfile = () => {
                     className="hidden"
                   />
                   <h2 className="text-center text-xl font-bold mb-1">{formData.fullName || 'Người dùng'}</h2>
-                  <p className="text-sm text-blue-100 mt-1">Thành viên MatFlow</p>
+                  <p className="text-sm text-blue-100 mt-1"></p>
                 </div>
 
                 <div className="border-t border-blue-400 pt-4">
@@ -458,12 +636,11 @@ const UpdateProfile = () => {
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-2 ml-1">Ngày sinh</label>
                     <input
-                      type="text"
-                      name="birthDate"
-                      value={formData.birthDate || ''}
+                      type="date"
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth || ''}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                      placeholder="DD/MM/YYYY"
                     />
                   </div>
                   <div>
@@ -516,25 +693,46 @@ const UpdateProfile = () => {
                 <div className="space-y-4">
                   {addresses.length === 0 ? (
                     <p className="text-gray-500 py-4 text-center">Chưa có địa chỉ nào được thêm</p>
-                  ) : addresses.map((addr) => (
-                    <div key={addr.id} className="flex items-center justify-between p-5 border border-gray-100 bg-gray-50 rounded-xl hover:border-blue-200 hover:shadow-sm transition group">
+                  ) : addresses.map((addr, index) => (
+                    <div key={addr.AddressId || addr.id || index} className="flex items-center justify-between p-5 border border-gray-100 bg-gray-50 rounded-xl hover:border-blue-200 hover:shadow-sm transition group">
                       <div className="flex items-start gap-4">
                         <div className="p-3 bg-white rounded-full text-blue-500 shadow-sm transition">
                           <MapPin size={18} />
                         </div>
                         <div>
-                          <p className="font-bold text-[15px] text-gray-800 tracking-wide">{addr.type}</p>
-                          <p className="text-gray-600 text-[13.5px] mt-1.5">{addr.address}</p>
+                          <p className="font-bold text-[15px] text-gray-800 tracking-wide">{addr.fullName} | {addr.phone}</p>
+                          <p className="text-gray-600 text-[13.5px] mt-1.5">
+                            {addr.detailAddress}, {addr.ward}, {addr.district}, {addr.province}
+                          </p>
+                          {addr.isDefault && (
+                            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full mt-1 inline-block">Mặc định</span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDeleteAddress(addr.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 transition tooltip rounded-md hover:bg-red-50"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          {!addr.isDefault && (
+                            <button
+                              onClick={() => handleSetDefaultAddress(addr.AddressId || addr.id)}
+                              className="text-[12px] font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition mr-2"
+                            >
+                              Thiết lập mặc định
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEditAddressButtonClick(addr)}
+                            className="p-2 text-gray-400 hover:text-blue-500 transition tooltip rounded-md hover:bg-blue-50"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAddress(addr.AddressId || addr.id)}
+                            className="p-2 text-gray-400 hover:text-red-500 transition tooltip rounded-md hover:bg-red-50"
+                            title="Xóa"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                     </div>
                   ))}
                 </div>
@@ -554,8 +752,8 @@ const UpdateProfile = () => {
                 <div className="space-y-4">
                   {payments.length === 0 ? (
                     <p className="text-gray-500 py-4 text-center">Chưa có phương thức thanh toán nào</p>
-                  ) : payments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-xl hover:border-gray-200 transition">
+                  ) : payments.map((payment, index) => (
+                    <div key={payment.PaymentId || payment.id || index} className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-xl hover:border-gray-200 transition">
                       <div className="flex items-center gap-4">
                         <span className="px-3 py-1 font-bold text-xs uppercase bg-white text-blue-600 shadow-sm rounded-md border border-gray-100">
                           {payment.type}
@@ -564,7 +762,7 @@ const UpdateProfile = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleDeletePayment(payment.id)}
+                          onClick={() => handleDeletePayment(payment.PaymentId || payment.id)}
                           className="p-2 text-gray-400 hover:text-red-500 transition rounded-md hover:bg-red-50"
                         >
                           <Trash2 size={18} />
@@ -633,18 +831,56 @@ const UpdateProfile = () => {
       {showAddressModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-7 shadow-2xl relative">
-            <button onClick={() => setShowAddressModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
+            <button onClick={() => {
+              setShowAddressModal(false);
+              setEditingAddressId(null);
+              setNewAddress({
+                fullName: '',
+                phone: '',
+                province: '',
+                district: '',
+                ward: '',
+                detailAddress: '',
+                isDefault: false
+              });
+            }} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
               <X size={22} />
             </button>
-            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">Thêm địa chỉ mới</h3>
-            <div className="space-y-5">
-              <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Tên gợi nhớ</label>
-                <input type="text" value={newAddress.type} onChange={(e) => { setNewAddress({ ...newAddress, type: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="VD: Nhà riêng, Công ty..." />
+            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">
+              {editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới'}
+            </h3>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Họ tên người nhận</label>
+                  <input type="text" value={newAddress.fullName} onChange={(e) => { setNewAddress({ ...newAddress, fullName: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Tên người nhận" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Số điện thoại</label>
+                  <input type="text" value={newAddress.phone} onChange={(e) => { setNewAddress({ ...newAddress, phone: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Số điện thoại" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Tỉnh/Thành</label>
+                  <input type="text" value={newAddress.province} onChange={(e) => { setNewAddress({ ...newAddress, province: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Tỉnh" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Quận/Huyện</label>
+                  <input type="text" value={newAddress.district} onChange={(e) => { setNewAddress({ ...newAddress, district: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Quận" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Phường/Xã</label>
+                  <input type="text" value={newAddress.ward} onChange={(e) => { setNewAddress({ ...newAddress, ward: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Phường" />
+                </div>
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Địa chỉ cụ thể</label>
-                <textarea value={newAddress.address} onChange={(e) => { setNewAddress({ ...newAddress, address: e.target.value }); setError(null); }} className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition min-h-[100px]" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh thành phố..."></textarea>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Địa chỉ chi tiết</label>
+                <textarea value={newAddress.detailAddress} onChange={(e) => { setNewAddress({ ...newAddress, detailAddress: e.target.value }); setError(null); }} className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition min-h-[80px]" placeholder="Số nhà, tên đường..."></textarea>
+              </div>
+              <div className="flex items-center gap-2 ml-1">
+                <input type="checkbox" id="is-default" checked={newAddress.isDefault} onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                <label htmlFor="is-default" className="text-sm font-medium text-gray-700">Đặt làm địa chỉ mặc định</label>
               </div>
 
               {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
@@ -665,21 +901,81 @@ const UpdateProfile = () => {
             <button onClick={() => setShowPaymentModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
               <X size={22} />
             </button>
-            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">Thêm thẻ / ví thanh toán</h3>
-            <div className="space-y-5">
-              <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Loại thẻ / Ví</label>
-                <select value={newPayment.type} onChange={(e) => { setNewPayment({ ...newPayment, type: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                  <option value="VISA">Thẻ VISA</option>
-                  <option value="MASTERCARD">Thẻ MasterCard</option>
-                  <option value="JCB">Thẻ JCB</option>
-                  <option value="MOMO">Ví điện tử MoMo</option>
-                  <option value="ZALOPAY">Ví điện tử ZaloPay</option>
-                </select>
+            <h3 className="text-[19px] font-extrabold text-gray-800 mb-6">Thêm phương thức thanh toán</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Loại hình</label>
+                  <select 
+                    value={newPayment.type} 
+                    onChange={(e) => { 
+                      const val = e.target.value;
+                      setNewPayment({ 
+                        ...newPayment, 
+                        type: val, 
+                        provider: val === 'CARD' ? 'VISA' : 'MOMO' 
+                      }); 
+                      setError(null); 
+                    }} 
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+                  >
+                    <option value="CARD">Thẻ Ngân hàng</option>
+                    <option value="EWALLET">Ví điện tử</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Nhà cung cấp</label>
+                  <select 
+                    value={newPayment.provider} 
+                    onChange={(e) => { setNewPayment({ ...newPayment, provider: e.target.value }); setError(null); }} 
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+                  >
+                    {newPayment.type === 'CARD' ? (
+                      <>
+                        <option value="VISA">VISA</option>
+                        <option value="MASTERCARD">MasterCard</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="MOMO">MoMo</option>
+                        <option value="ZALOPAY">ZaloPay</option>
+                      </>
+                    )}
+                  </select>
+                </div>
               </div>
+
               <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Số thẻ / Số điện thoại đăng ký ví</label>
-                <input type="text" value={newPayment.number} onChange={(e) => { setNewPayment({ ...newPayment, number: e.target.value }); setError(null); }} className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="Ví dụ: 4123 4567... hoặc 0901..." />
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Số tài khoản / Số thẻ / Số điện thoại ví</label>
+                <input 
+                  type="text" 
+                  value={newPayment.accountNumber} 
+                  onChange={(e) => { setNewPayment({ ...newPayment, accountNumber: e.target.value }); setError(null); }} 
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" 
+                  placeholder="Nhập số tài khoản hoặc số thẻ" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 ml-1">Tên chủ sở hữu (Không dấu)</label>
+                <input 
+                  type="text" 
+                  value={newPayment.cardHolderName} 
+                  onChange={(e) => { setNewPayment({ ...newPayment, cardHolderName: e.target.value.toUpperCase() }); setError(null); }} 
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" 
+                  placeholder="Ví dụ: NGUYEN VAN A" 
+                />
+              </div>
+
+              <div className="flex items-center gap-2 ml-1">
+                <input 
+                  type="checkbox" 
+                  id="pay-default" 
+                  checked={newPayment.isDefault} 
+                  onChange={(e) => setNewPayment({ ...newPayment, isDefault: e.target.checked })} 
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
+                />
+                <label htmlFor="pay-default" className="text-sm font-medium text-gray-700">Đặt làm mặc định</label>
               </div>
 
               {error && <p className="text-red-500 text-sm font-medium">{error}</p>}

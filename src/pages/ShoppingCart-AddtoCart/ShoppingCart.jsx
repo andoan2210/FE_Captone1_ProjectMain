@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import { BsStars } from 'react-icons/bs';
 import { jwtDecode } from 'jwt-decode';
+import api from '../../services/api';
 import * as CartService from '../../services/CartService.js';
 import CheckoutService from '../../services/CheckoutService';
 import { CategoryService } from '../../services/CategoryService';
@@ -33,7 +34,7 @@ function formatVND(amount) {
 }
 
 /* ── Page Header ─────────────────────────────────── */
-function PageHeader({ userLabel, dbCategories, onLogout }) {
+function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
   const handleNavClick = (categoryId) => navigate('/', { state: { category: categoryId } });
 
@@ -58,7 +59,15 @@ function PageHeader({ userLabel, dbCategories, onLogout }) {
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">
-                  <FaUserCircle style={{ fontSize: '20px', color: 'var(--lp-accent)' }} />
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Avatar"
+                      style={{ width: '24px', height: '24px', borderRadius: '50%', marginRight: '8px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <FaUserCircle style={{ fontSize: '20px', color: 'var(--lp-accent)' }} />
+                  )}
                   <span className="user-profile">{userLabel}</span>
                 </button>
                 <div className="profile-dropdown">
@@ -168,6 +177,8 @@ function mapCartItem(item) {
 ═══════════════════════════════════════════════════ */
 export default function ShoppingCart() {
   const [cartItems, setCartItems] = useState([]);
+  const [userLabel, setUserLabel] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [voucherCode, setVoucherCode] = useState('');
   const [dbCategories, setDbCategories] = useState([]);
@@ -186,7 +197,7 @@ export default function ShoppingCart() {
 
   const navigate = useNavigate();
 
-  const userLabel = useMemo(() => getUserDisplayNameFromToken(), []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -198,7 +209,22 @@ export default function ShoppingCart() {
   useEffect(() => {
     fetchCart();
     fetchCategories();
+    loadUser();
   }, []);
+
+  const loadUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await api.get('/users/profile');
+      const profile = res.data;
+      setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+      setUserAvatar(profile.avatarUrl || null);
+    } catch (err) {
+      console.error('Lỗi tải profile:', err);
+      setUserLabel(getUserDisplayNameFromToken());
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -431,7 +457,7 @@ export default function ShoppingCart() {
   /* ── Render ── */
   return (
     <div className="landing-page-container pd-shell">
-      <PageHeader userLabel={userLabel} dbCategories={dbCategories} onLogout={handleLogout} />
+      <PageHeader userLabel={userLabel} userAvatar={userAvatar} dbCategories={dbCategories} onLogout={handleLogout} />
 
       <div className="cart-page-bg">
         <div className="container cart-container-main">

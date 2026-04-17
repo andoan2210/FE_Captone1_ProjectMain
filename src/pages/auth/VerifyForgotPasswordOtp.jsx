@@ -2,8 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaShieldAlt } from 'react-icons/fa';
 import { FaCheck } from 'react-icons/fa6';
-import api from '../../services/api';
-import './Login.css';
+import userService from '../../services/userService';
 
 const VerifyForgotPasswordOtp = () => {
     const inputRefs = useRef([]);
@@ -92,11 +91,7 @@ const VerifyForgotPasswordOtp = () => {
 
         setLoading(true);
         try {
-            // Sử dụng api.post thay vì fetch
-            await api.post('/users/verify-forgot-password-code', {
-                email,
-                code
-            });
+            await userService.verifyForgotPasswordCode(email, code);
 
             setSuccessMsg('Xác nhận thành công! Đang chuyển hướng...');
             setTimeout(() => {
@@ -117,11 +112,7 @@ const VerifyForgotPasswordOtp = () => {
         setSuccessMsg('');
         setResendLoading(true);
         try {
-            // Sử dụng api.post thay vì fetch
-            await api.post('/users/forgot-password', {
-                email
-            });
-
+            await userService.forgotPassword(email);
             setSuccessMsg('Mã xác nhận đã được gửi lại vào email của bạn.');
         } catch (err) {
             const data = err.response?.data;
