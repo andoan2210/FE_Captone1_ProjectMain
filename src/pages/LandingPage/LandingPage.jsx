@@ -239,7 +239,7 @@ function ProductCard({ product, onCategoryClick, compact = false }) {
               fontSize: compact ? "13px" : "inherit",
               lineHeight: compact ? "1.3" : "inherit",
               fontWeight: "bold",
-              color: "black"
+              color: "black",
             }}
           >
             {product.name}
@@ -371,13 +371,11 @@ export default function LandingPage() {
 
   // Tự động chuyển hướng Shop Owner vào trang quản lý thay vì ở lại Trang Chủ
   useEffect(() => {
-
     const role = localStorage.getItem("userRole");
     // Nếu không muốn ép buộc chuyển hướng mỗi khi bấm logo Trang chủ, ta có thể thêm điều kiện kiểm tra URL
     // Nhưng hiện tại để đáp ứng yêu cầu "vào localhost tự động vào channel shop"
     if (role && role.toLowerCase().includes("shop")) {
       navigate("/shop-owner/store", { replace: true });
-
     }
   }, [navigate]);
 
@@ -416,7 +414,12 @@ export default function LandingPage() {
         try {
           const response = await api.get("/users/profile");
           const profile = response.data;
-          setUserLabel(profile.fullName || profile.email || profile.username || getUserDisplayNameFromToken());
+          setUserLabel(
+            profile.fullName ||
+              profile.email ||
+              profile.username ||
+              getUserDisplayNameFromToken(),
+          );
           setUserAvatar(profile.avatarUrl || null);
         } catch (err) {
           console.error("Lỗi tải profile:", err);
@@ -493,69 +496,69 @@ export default function LandingPage() {
         const mappedNew =
           newRaw.length > 0
             ? newRaw.map((item) => ({
-              id: item.ProductId ?? item.id,
-              name: item.ProductName ?? item.name,
-              category: item.CategoryName ?? item.categoryName ?? "MỚI NHẤT",
-              categoryId: item.CategoryId ?? item.categoryId ?? null,
-              price: new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              }).format(Number(item.Price ?? item.price ?? 0)),
-              tag: "MỚI",
-              image:
-                item.ThumbnailUrl ??
-                item.thumbnail ??
-                "https://via.placeholder.com/520x580?text=No+Image",
-            }))
+                id: item.ProductId ?? item.id,
+                name: item.ProductName ?? item.name,
+                category: item.CategoryName ?? item.categoryName ?? "MỚI NHẤT",
+                categoryId: item.CategoryId ?? item.categoryId ?? null,
+                price: new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(Number(item.Price ?? item.price ?? 0)),
+                tag: "MỚI",
+                image:
+                  item.ThumbnailUrl ??
+                  item.thumbnail ??
+                  "https://via.placeholder.com/520x580?text=No+Image",
+              }))
             : mockProducts; // fallback mock nếu API lỗi
 
         // Map sản phẩm bán chạy — BE trả về: { id, name, price, thumbnail, categoryName, sold }
         const mappedBest =
           bestRaw.length > 0
             ? bestRaw.map((item) => ({
-              id: item.id ?? item.ProductId,
-              name: item.name ?? item.ProductName,
-              category: item.categoryName ?? item.CategoryName ?? "BÁN CHẠY",
-              categoryId: item.categoryId ?? item.CategoryId ?? null,
-              price: new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              }).format(Number(item.price ?? item.Price ?? 0)),
-              tag: "HOT",
-              image:
-                item.thumbnail ??
-                item.ThumbnailUrl ??
-                "https://via.placeholder.com/520x580?text=No+Image",
-            }))
+                id: item.id ?? item.ProductId,
+                name: item.name ?? item.ProductName,
+                category: item.categoryName ?? item.CategoryName ?? "BÁN CHẠY",
+                categoryId: item.categoryId ?? item.CategoryId ?? null,
+                price: new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(Number(item.price ?? item.Price ?? 0)),
+                tag: "HOT",
+                image:
+                  item.thumbnail ??
+                  item.ThumbnailUrl ??
+                  "https://via.placeholder.com/520x580?text=No+Image",
+              }))
             : mockPersonalized; // fallback mock nếu API lỗi
 
         // Map top stores — BE trả về: { StoreId, StoreName, LogoUrl, ... } hoặc chưa có API
         const mappedStores =
           storesRaw.length > 0
             ? storesRaw.map((store) => ({
-              id: store.StoreId ?? store.id,
-              name: store.StoreName ?? store.name,
-              logo: store.LogoUrl ?? store.logo ?? null,
-              followers: store.followers ?? "100K FOLLOWERS",
-              rating: store.rating ?? 4.9,
-            }))
+                id: store.StoreId ?? store.id,
+                name: store.StoreName ?? store.name,
+                logo: store.LogoUrl ?? store.logo ?? null,
+                followers: store.followers ?? "100K FOLLOWERS",
+                rating: store.rating ?? 4.9,
+              }))
             : mockBrands; // fallback mock nếu BE chưa có API
 
         // Map vouchers — BE trả về: { VoucherId, Code, DiscountPercent, ... } hoặc chưa có API
         const mappedVouchers =
           vouchersRaw.length > 0
             ? vouchersRaw.map((voucher) => ({
-              id: voucher.VoucherId ?? voucher.id,
-              discount: voucher.DiscountPercent
-                ? `${voucher.DiscountPercent}%`
-                : voucher.DiscountAmount
-                  ? `${Math.round(voucher.DiscountAmount / 1000)}k`
-                  : "SALE",
-              code: voucher.Code ?? voucher.code ?? "VOUCHER",
-              desc:
-                voucher.Description ??
-                `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString("vi-VN")}đ`,
-            }))
+                id: voucher.VoucherId ?? voucher.id,
+                discount: voucher.DiscountPercent
+                  ? `${voucher.DiscountPercent}%`
+                  : voucher.DiscountAmount
+                    ? `${Math.round(voucher.DiscountAmount / 1000)}k`
+                    : "SALE",
+                code: voucher.Code ?? voucher.code ?? "VOUCHER",
+                desc:
+                  voucher.Description ??
+                  `Đơn tối thiểu ${(voucher.MinOrderValue || 0).toLocaleString("vi-VN")}đ`,
+              }))
             : offers; // fallback mock nếu BE chưa có API
 
         setNewProductsData(mappedNew);
@@ -608,7 +611,9 @@ export default function LandingPage() {
         if (currentActiveId === "all") {
           const limit = categoryPage * limitPerLoad;
           const res = await getNewProducts(limit);
-          newData = res.data || [];
+          newData = Array.isArray(res.data)
+            ? res.data
+            : res.data?.products || res.data?.data || [];
           totalCountFromBE = newData.length;
         } else {
           // Ép kiểu ID về Number để chắc chắn API nhận đúng
@@ -620,7 +625,9 @@ export default function LandingPage() {
             categoryPage,
             limitPerLoad,
           );
-          newData = res.data || [];
+          newData = Array.isArray(res.data)
+            ? res.data
+            : res.data?.products || res.data?.data || [];
           // Giả sử API trả về total hoặc lấy chiều dài mảng mới nhất làm căn cứ
           totalCountFromBE = newData.length;
         }
@@ -754,7 +761,13 @@ export default function LandingPage() {
                     <img
                       src={userAvatar}
                       alt="Avatar"
-                      style={{ width: "24px", height: "24px", borderRadius: "50%", marginRight: "8px", objectFit: "cover" }}
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        marginRight: "8px",
+                        objectFit: "cover",
+                      }}
                     />
                   ) : (
                     <FaUserCircle
@@ -781,27 +794,26 @@ export default function LandingPage() {
                     .getItem("userRole")
                     ?.toLowerCase()
                     .includes("shop") && (
-                      <Link
-                        to="/shop-owner/store"
-                        className="profile-dropdown-item"
-                        style={{ color: "var(--lp-accent)" }}
+                    <Link
+                      to="/shop-owner/store"
+                      className="profile-dropdown-item"
+                      style={{ color: "var(--lp-accent)" }}
+                    >
+                      <FaBox /> Kênh Shop{" "}
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          marginLeft: "auto",
+                          background: "var(--lp-accent)",
+                          color: "white",
+                          padding: "2px 6px",
+                          borderRadius: "10px",
+                        }}
                       >
-                        <FaBox /> Kênh Shop{" "}
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            marginLeft: "auto",
-                            background: "var(--lp-accent)",
-                            color: "white",
-                            padding: "2px 6px",
-                            borderRadius: "10px",
-                          }}
-                        >
-                          PRO
-                        </span>
-
-                      </Link>
-                    )}
+                        PRO
+                      </span>
+                    </Link>
+                  )}
                   <button
                     type="button"
                     className="profile-dropdown-item logout"
@@ -843,19 +855,23 @@ export default function LandingPage() {
             </span>
           ))}
           <Link
-            to={localStorage.getItem("userRole")?.toLowerCase().includes("shop") ? "/shop-owner/store" : "/register-shop"}
+            to={
+              localStorage.getItem("userRole")?.toLowerCase().includes("shop")
+                ? "/shop-owner/store"
+                : "/register-shop"
+            }
             style={{
-              marginLeft: 'auto',
-              color: '#fff',
-              backgroundColor: 'var(--lp-accent, #2563eb)',
+              marginLeft: "auto",
+              color: "#fff",
+              backgroundColor: "var(--lp-accent, #2563eb)",
               fontWeight: 800,
-              padding: '6px 16px',
-              borderRadius: '20px',
-              textDecoration: 'none',
-              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
-              fontSize: '13px',
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase'
+              padding: "6px 16px",
+              borderRadius: "20px",
+              textDecoration: "none",
+              boxShadow: "0 4px 6px rgba(37, 99, 235, 0.2)",
+              fontSize: "13px",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
             }}
             className="hover:opacity-90 transition-opacity"
           >

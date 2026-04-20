@@ -44,7 +44,10 @@ function Login() {
             const lowerRole = userRole.toLowerCase();
             if (lowerRole.includes('shop')) {
               console.log('Redirecting to Shop Owner Store');
-              navigate('/shop-owner/store');
+              navigate('/shop-owner/store');  
+            } else if (lowerRole.includes('admin')) {
+              console.log('Redirecting to Admin Dashboard');
+              navigate('/admin/accounts');
             } else {
               console.log('Redirecting to Home');
               navigate('/');
