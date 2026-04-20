@@ -29,20 +29,29 @@ import MomoCallback from "./pages/checkout/MomoCallback";
 // Shop Owner components
 import ShopOwnerLayout from "./components/shop-owner/ShopOwnerLayout";
 import Products from "./pages/shop-owner/Products";
+import ApprovalProducts from "./pages/shop-owner/ApprovalProducts";
 import AddProduct from "./pages/shop-owner/AddProduct";
 import EditProduct from "./pages/shop-owner/EditProduct";
 import CuaHang from "./pages/shop-owner/CuaHang";
 import Vouchers from "./pages/shop-owner/Vouchers";
 
+// Admin components
+import AdminLayout from "./components/admin/AdminLayout";
+import AccountManagement from "./pages/admin/AccountManagement";
+import ReportManagement from "./pages/admin/ReportManagement";
+import AdminProducts from "./pages/admin/AdminProducts";
+
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 import ChatbotWidget from "./pages/chat/ChatbotWidget";
 
 const RootRedirect = () => {
-
   const role = localStorage.getItem("userRole");
-  if (role && role.toLowerCase().includes("shop")) {
-
+  const lowerRole = (role || "").toLowerCase();
+  if (lowerRole.includes("shop")) {
     return <Navigate to="/shop-owner/store" replace />;
+  }
+  if (lowerRole.includes("admin")) {
+    return <Navigate to="/admin/accounts" replace />;
   }
   return <LandingPage />;
 };
@@ -87,7 +96,6 @@ function App() {
           element={<InvoiceDetail />}
         />
 
-
         {/* Chat Routes */}
         <Route path="/chat" element={<ChatPage />} />
 
@@ -98,13 +106,12 @@ function App() {
             <Route path="store" element={<CuaHang />} />
             <Route
               path="dashboard"
-
               element={
                 <div className="p-6">Trang Dashboard đang phát triển</div>
               }
-
             />
             <Route path="products" element={<Products />} />
+            <Route path="approval-products" element={<ApprovalProducts />} />
             <Route path="products/add" element={<AddProduct />} />
             <Route path="products/edit/:id" element={<EditProduct />} />
             <Route path="orders" element={<Vieworder />} />
@@ -119,15 +126,32 @@ function App() {
           </Route>
         </Route>
 
-        {/* Admin Routes - (Kept from user's attempt if they wanted it, otherwise focus on ShopOwner) */}
-        {/* <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="store" replace />} />
-        <Route path="store" element={<AdminQuanLyCuaHang />} />
-        <Route path="dashboard" element={<div className="p-6">Trang Dashboard Admin</div>} />
-        <Route path="products" element={<AdminProducts />} />
-        <Route path="products/add" element={<AdminAddProduct />} />
-        <Route path="products/edit/:id" element={<AdminEditProduct />} />
-      </Route> */}
+        {/* Admin Routes - Protected by Admin role */}
+        <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="accounts" replace />} />
+            <Route path="accounts" element={<AccountManagement />} />
+            <Route path="reports" element={<ReportManagement />} />
+            <Route
+              path="dashboard"
+              element={<div className="p-6">Trang Dashboard Admin</div>}
+            />
+            {/* Các quản lý khác có thể thêm vào đây */}
+            <Route
+              path="stores"
+              element={<div className="p-6">Quản lý Cửa hàng</div>}
+            />
+            <Route
+              path="categories"
+              element={<div className="p-6">Quản lý Danh mục</div>}
+            />
+            <Route path="products" element={<AdminProducts />} />
+            <Route
+              path="orders"
+              element={<div className="p-6">Đơn hàng toàn sàn</div>}
+            />
+          </Route>
+        </Route>
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />

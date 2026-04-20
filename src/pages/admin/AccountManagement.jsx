@@ -64,13 +64,15 @@ const AccountManagement = () => {
     }
   };
 
-  const handleDelete = async (accountId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản này khỏi hệ thống không? Hành động này không thể hoàn tác!")) return;
+  const handleDelete = async (account) => {
+    if (!account || !account.email) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản ${account.email} khỏi hệ thống không?`)) return;
 
     try {
-      await adminService.deleteAccount(accountId);
-      setAccounts(accounts.filter(acc => acc.id !== accountId));
+      await adminService.deleteAccount(account.email);
+      setAccounts(accounts.filter(acc => acc.id !== account.id));
       setSelectedAccount(null);
+      alert("Xóa tài khoản thành công!");
     } catch (err) {
       console.error("Lỗi khi xóa tài khoản:", err);
       alert("Không thể xóa tài khoản lúc này!");
@@ -350,7 +352,7 @@ const AccountManagement = () => {
                   {selectedAccount.status === 'Active' ? <><Ban size={16} /> Khóa tài khoản</> : <><CheckCircle2 size={16} /> Mở khóa tài khoản</>}
                 </button>
                 <button
-                  onClick={() => handleDelete(selectedAccount.id)}
+                  onClick={() => handleDelete(selectedAccount)}
                   disabled={selectedAccount.role === 'Admin'}
                   className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${selectedAccount.role === 'Admin' ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400'
                     : 'bg-red-100 text-red-700 hover:bg-red-200'

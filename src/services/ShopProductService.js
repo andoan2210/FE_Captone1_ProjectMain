@@ -9,6 +9,23 @@ export const ShopProductService = {
     return response.data;
   },
 
+  // Lấy danh sách sản phẩm theo trạng thái duyệt
+  // status: PENDING | APPROVED | REJECTED
+  getMyProductsByStatus: async (status, page = 1, limit = 10, search = "") => {
+    const params = {
+      status,
+      page,
+      limit,
+    };
+    if (search) {
+      params.search = search;
+    }
+    const response = await api.get("/product/my-products", {
+      params,
+    });
+    return response.data;
+  },
+
   // Lấy chi tiết sản phẩm theo ID (Dùng cho trang Detail hoặc Edit)
   getProductById: async (id) => {
     const response = await api.get(`/product/detail/${id}`);
