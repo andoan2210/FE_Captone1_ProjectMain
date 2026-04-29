@@ -25,6 +25,9 @@ import ChatPage from "./pages/chat/ChatPage";
 import Checkout from "./pages/checkout/Checkout";
 import SearchPage from "./pages/search/SearchPage";
 import MomoCallback from "./pages/checkout/MomoCallback";
+import ShopDetail from "./pages/ShopDetail/ShopDetail";
+import Compare from "./pages/Compare/Compare";
+import SellerApplications from "./pages/SellerApplications/SellerApplications";
 
 // Shop Owner components
 import ShopOwnerLayout from "./components/shop-owner/ShopOwnerLayout";
@@ -40,6 +43,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AccountManagement from "./pages/admin/AccountManagement";
 import ReportManagement from "./pages/admin/ReportManagement";
 import AdminProducts from "./pages/admin/AdminProducts";
+import SellerApprovals from "./pages/admin/SellerApprovals";
 
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 import ChatbotWidget from "./pages/chat/ChatbotWidget";
@@ -69,6 +73,8 @@ function App() {
 
         <Route path="/category/:id" element={<CategoryProducts />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/compare" element={<Compare />} />
+        <Route path="/register-shop" element={<SellerApplications />} />
         <Route path="/cart" element={<ShoppingCart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/callback" element={<MomoCallback />} />
@@ -95,6 +101,9 @@ function App() {
           path="/manage/invoice-detail/:orderId"
           element={<InvoiceDetail />}
         />
+
+        {/* Public Shop Profile */}
+        <Route path="/shop/:id" element={<ShopDetail />} />
 
         {/* Chat Routes */}
         <Route path="/chat" element={<ChatPage />} />
@@ -131,6 +140,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="accounts" replace />} />
             <Route path="accounts" element={<AccountManagement />} />
+            <Route path="seller-approvals" element={<SellerApprovals />} />
             <Route path="reports" element={<ReportManagement />} />
             <Route
               path="dashboard"

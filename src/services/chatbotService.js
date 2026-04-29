@@ -25,24 +25,6 @@ const chatbotService = {
     const res = await api.get("/chatbot/messages");
     return res.data;
   },
-
-  /**
-   * Đồng bộ dữ liệu sản phẩm vào AI (Ingest)
-   * GET /api/chatbot/ingest
-   */
-  ingestData: async () => {
-    const res = await api.get("/chatbot/ingest");
-    return res.data;
-  },
-
-  /**
-   * Xóa toàn bộ lịch sử chat của user
-   * DELETE /api/chatbot/messages
-   */
-  clearHistory: async () => {
-    const res = await api.delete("/chatbot/messages");
-    return res.data;
-  },
 };
 
 export default chatbotService;

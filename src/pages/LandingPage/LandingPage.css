@@ -1,4 +1,14 @@
-﻿/* Scoped theme â€” khÃ´ng ghi Ä‘Ã¨ :root toÃ n app */
+/* Global theme variables — dùng cho tất cả các trang */
+:root {
+  --lp-accent: #2563eb;
+  --lp-accent-soft: rgba(37, 99, 235, 0.1);
+  --lp-text: #08060d;
+  --lp-text-muted: #6b6375;
+  --lp-border: #e5e4e7;
+  --lp-bg-soft: #f8fafc;
+}
+
+/* Scoped theme — giữ cho landing page container */
 .landing-page-container {
   --lp-accent: var(--accent, #2563eb);
   --lp-accent-soft: var(--accent-bg, rgba(37, 99, 235, 0.1));
@@ -208,7 +218,7 @@ h4 {
 .logo {
   font-size: 22px;
   font-weight: 700;
-  color: var(--lp-accent);
+  color: #2563eb !important;
   text-decoration: none;
   letter-spacing: -0.02em;
 }
@@ -321,7 +331,7 @@ h4 {
   padding: 8px;
   border: none;
   background: transparent;
-  color: var(--lp-text);
+  color: var(--lp-accent);
   font-size: 20px;
   cursor: pointer;
   border-radius: 12px;
@@ -465,7 +475,8 @@ h4 {
 .nav-links span {
   white-space: nowrap;
   cursor: pointer;
-  color: var(--lp-text);
+  color: var(--lp-accent);
+  font-weight: 700;
 }
 
 .nav-links span:hover {
@@ -512,6 +523,13 @@ h4 {
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--lp-text);
+}
+
+.lp-footer-brand .logo {
+  color: #2563eb !important;
+  font-size: 24px;
+  display: block;
+  margin-bottom: 12px;
 }
 
 .hero-content p {

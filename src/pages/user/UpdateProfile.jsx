@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import userService from '../../services/userService';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaFacebookF, FaInstagram, FaYoutube, FaUserCircle, FaBox, FaUser, FaSignOutAlt } from 'react-icons/fa';
+import { FiMessageCircle } from 'react-icons/fi';
 import { jwtDecode } from 'jwt-decode';
 import { CategoryService } from '../../services/CategoryService';
+import { ShopProductService } from '../../services/ShopProductService';
 import { ChevronRight, Bell, Info, MapPin, Plus, Trash2, Edit3, Camera, Save, X, AlertTriangle } from 'lucide-react';
 import '../LandingPage/LandingPage.css';
 
@@ -20,26 +22,60 @@ function getUserDisplayNameFromToken() {
 
 function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
   const handleNavClick = (categoryId) => {
     navigate('/', { state: { category: categoryId } });
   };
 
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const data = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Lỗi lấy gợi ý:', err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <>
-      <header className="main-header" style={{
-        '--lp-accent': '#2563eb',
-        '--lp-accent-soft': 'rgba(37, 99, 235, 0.1)',
-        '--lp-text': '#08060d',
-        '--lp-text-muted': '#6b6375',
-        '--lp-border': '#e5e4e7',
-        '--lp-bg-soft': '#f8fafc'
-      }}>
+      <header className="main-header">
         <div className="container header-content">
-          <Link to="/" className="logo" style={{ color: '#2563eb' }}>
+          <Link to="/" className="logo">
             SmartAI Fashion
           </Link>
-          <label className="search-wrap">
+          <div className="search-wrap" ref={searchRef}>
             <span className="visually-hidden">Tìm kiếm sản phẩm</span>
             <FaSearch className="search-icon" aria-hidden />
             <input
@@ -48,11 +84,39 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
               placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar"
               autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setShowSuggestions(false);
+                  navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+                }
+              }}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+            </Link>
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
+              <FiMessageCircle />
             </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
@@ -138,6 +202,30 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                 {cat.name}
               </span>
             ))}
+        
+          <Link
+            to={
+              localStorage.getItem('userRole')?.toLowerCase().includes('shop')
+                ? '/shop-owner/store'
+                : '/register-shop'
+            }
+            style={{
+              marginLeft: 'auto',
+              color: '#fff',
+              backgroundColor: 'var(--lp-accent, #2563eb)',
+              fontWeight: 800,
+              padding: '6px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
+          </Link>
         </div>
       </nav>
     </>
@@ -149,7 +237,7 @@ function PageFooter() {
     <footer className="lp-footer">
       <div className="container lp-footer-grid">
         <div className="lp-footer-brand">
-          <strong className="logo" style={{ color: '#2563eb' }}>SmartAI Fashion</strong>
+          <strong className="logo">SmartAI Fashion</strong>
           <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
         </div>
         <div>
@@ -350,9 +438,11 @@ const UpdateProfile = () => {
         
         setSuccessMessage('Cập nhật địa chỉ thành công!');
       } else {
-        // Add new address
-        const added = await userService.addAddress(newAddress);
-        setAddresses([...addresses, added]);
+        await userService.addAddress(newAddress);
+        // Refresh list from server to get full object (AddressId, etc.)
+        const updated = await userService.getAddresses();
+        const adrList = Array.isArray(updated) ? updated : (updated.data && Array.isArray(updated.data) ? updated.data : []);
+        setAddresses(adrList);
         setSuccessMessage('Thêm địa chỉ thành công!');
       }
       
@@ -400,9 +490,12 @@ const UpdateProfile = () => {
     }
 
     try {
-      const response = await userService.addPayment(newPayment);
-      const added = response.data || response;
-      setPayments([...payments, added]);
+      await userService.addPayment(newPayment);
+      // Refresh list
+      const payResponse = await userService.getPayments();
+      const payList = Array.isArray(payResponse) ? payResponse : (payResponse.data && Array.isArray(payResponse.data) ? payResponse.data : []);
+      setPayments(payList);
+      
       setShowPaymentModal(false);
       setNewPayment({ 
         type: 'CARD', 
@@ -694,7 +787,7 @@ const UpdateProfile = () => {
                   {addresses.length === 0 ? (
                     <p className="text-gray-500 py-4 text-center">Chưa có địa chỉ nào được thêm</p>
                   ) : addresses.map((addr, index) => (
-                    <div key={addr.AddressId || addr.id || index} className="flex items-center justify-between p-5 border border-gray-100 bg-gray-50 rounded-xl hover:border-blue-200 hover:shadow-sm transition group">
+                    <div key={`address-${addr.AddressId || addr.id || index}`} className="flex items-center justify-between p-5 border border-gray-100 bg-gray-50 rounded-xl hover:border-blue-200 hover:shadow-sm transition group">
                       <div className="flex items-start gap-4">
                         <div className="p-3 bg-white rounded-full text-blue-500 shadow-sm transition">
                           <MapPin size={18} />
@@ -753,7 +846,7 @@ const UpdateProfile = () => {
                   {payments.length === 0 ? (
                     <p className="text-gray-500 py-4 text-center">Chưa có phương thức thanh toán nào</p>
                   ) : payments.map((payment, index) => (
-                    <div key={payment.PaymentId || payment.id || index} className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-xl hover:border-gray-200 transition">
+                    <div key={`payment-${payment.PaymentId || payment.id || index}`} className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-xl hover:border-gray-200 transition">
                       <div className="flex items-center gap-4">
                         <span className="px-3 py-1 font-bold text-xs uppercase bg-white text-blue-600 shadow-sm rounded-md border border-gray-100">
                           {payment.type}

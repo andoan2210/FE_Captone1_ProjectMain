@@ -426,9 +426,11 @@ export default function ProductDetail() {
 
         if (data) {
           setProduct(data);
-          setSelectedImage(
-            data.thumbnail || (data.images && data.images[0]) || "",
-          );
+          const initialImage = data.thumbnail || 
+            (data.images && data.images.length > 0 
+              ? (typeof data.images[0] === 'string' ? data.images[0] : data.images[0].imageUrl) 
+              : "");
+          setSelectedImage(initialImage);
 
           if (data.variants && data.variants.length > 0) {
             const firstVariant = data.variants[0];
@@ -511,7 +513,11 @@ export default function ProductDetail() {
   // --- LOGIC ẢNH ---
   const allImages = useMemo(() => {
     if (!product) return [];
-    return [product.thumbnail, ...(product.images || [])].filter(Boolean);
+    // ✅ Hỗ trợ cả trường hợp images là mảng string hoặc mảng object {imageUrl}
+    const secondaryImages = (product.images || []).map((img) =>
+      typeof img === "string" ? img : img.imageUrl,
+    );
+    return [product.thumbnail, ...secondaryImages].filter(Boolean);
   }, [product]);
 
   const handlePrevImage = () => {
@@ -603,7 +609,7 @@ export default function ProductDetail() {
 
     const productId = product.id;
     const thumbnailUrl =
-      product.thumbnail || (product.images && product.images[0]) || "";
+      product.thumbnail || (product.images && product.images.length > 0 ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].imageUrl) : "") || "";
     const productName = product.name || "Sản phẩm";
     const price = product.price || 0;
 
@@ -611,7 +617,10 @@ export default function ProductDetail() {
     navigate(url);
   };
 
-
+  const handleCompareNow = () => {
+    if (!product?.id) return;
+    navigate(`/compare?ids=${product.id}`);
+  };
 
   const handleChatNow = async () => {
     if (!userLabel) {
@@ -729,17 +738,15 @@ export default function ProductDetail() {
               </div>
               {product.images && product.images.length > 0 && (
                 <div className="pd-thumbnail-grid">
-                  {[product.thumbnail, ...product.images]
-                    .filter(Boolean)
-                    .map((img, idx) => (
-                      <div
-                        key={idx}
-                        className={`pd-thumb-item ${selectedImage === img ? "active" : ""}`}
-                        onClick={() => setSelectedImage(img)}
-                      >
-                        <img src={img} alt={`Xem thêm ${idx}`} />
-                      </div>
-                    ))}
+                  {allImages.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className={`pd-thumb-item ${selectedImage === img ? "active" : ""}`}
+                      onClick={() => setSelectedImage(img)}
+                    >
+                      <img src={img} alt={`Xem thêm ${idx}`} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -898,6 +905,10 @@ export default function ProductDetail() {
                 Thử đồ ngay với AI Magic Fit
               </button>
 
+              <button className="pd-compare-btn" onClick={handleCompareNow}>
+                So sánh sản phẩm này
+              </button>
+
               {/* Features */}
               <div className="pd-features-list">
                 <div className="pd-feature-item">
@@ -959,7 +970,10 @@ export default function ProductDetail() {
 
               <button
                 className="pd-btn-store pd-btn-view-store"
-                onClick={() => navigate(`/shop-owner/store`)}
+                onClick={() => {
+                  const shopIdToView = shopInfo?.StoreId || shopInfo?.storeId || product?.StoreId || product?.storeId;
+                  if (shopIdToView) navigate(`/shop/${shopIdToView}`);
+                }}
               >
                 Xem cửa hàng
               </button>

@@ -104,7 +104,7 @@ const Products = () => {
     if (!product || !product.productId) return;
     setLoading(true);
     try {
-      const detail = await ShopProductService.getProductById(product.productId);
+      const detail = await ShopProductService.getMyProductById(product.productId);
       setProductToView(detail);
       setIsViewModalOpen(true);
     } catch (error) {
@@ -685,8 +685,9 @@ const Products = () => {
                   <img
                     src={
                       productToView.images && productToView.images.length > 0
-                        ? productToView.images[0]
+                        ? (typeof productToView.images[0] === 'string' ? productToView.images[0] : productToView.images[0].imageUrl)
                         : productToView.image ||
+                          productToView.thumbnail ||
                           "https://via.placeholder.com/300"
                     }
                     alt={productToView.name}

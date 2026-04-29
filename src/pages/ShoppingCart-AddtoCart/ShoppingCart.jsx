@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { ShopProductService } from '../../services/ShopProductService';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaTrashAlt, FaArrowLeft, FaShoppingCart,
@@ -6,6 +7,7 @@ import {
   FaUserCircle, FaBox, FaSignOutAlt, FaUser,
   FaShoppingBag,
 } from 'react-icons/fa';
+import { FiMessageCircle } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../services/api';
@@ -36,25 +38,94 @@ function formatVND(amount) {
 /* ── Page Header ─────────────────────────────────── */
 function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
   const handleNavClick = (categoryId) => navigate('/', { state: { category: categoryId } });
+
+  const handleSelectSuggestion = (keyword) => {
+    setSearchTerm(keyword);
+    setShowSuggestions(false);
+    navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  // Xử lý gợi ý từ khóa (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchTerm.trim()) {
+        try {
+          const data = await ShopProductService.getSuggestions(searchTerm);
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Lỗi lấy gợi ý:', err);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <>
       <header className="main-header">
         <div className="container header-content">
           <Link to="/" className="logo">SmartAI Fashion</Link>
-          <label className="search-wrap">
+          <div className="search-wrap" ref={searchRef}>
             <span className="visually-hidden">Tìm kiếm sản phẩm</span>
             <FaSearch className="search-icon" aria-hidden />
             <input
               type="search" name="q"
               placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               className="search-bar" autoComplete="off"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setShowSuggestions(false);
+                  navigate(`/search?keyword=${encodeURIComponent(searchTerm)}`);
+                }
+              }}
             />
-          </label>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(item)}
+                  >
+                    <FaSearch className="suggestion-icon" />
+                    <span className="suggestion-keyword">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+            </Link>
+            <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
+              <FiMessageCircle />
             </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
@@ -77,6 +148,30 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                   <Link to="/user/UserProfile" className="profile-dropdown-item">
                     <FaUser /> Trang cá nhân
                   </Link>
+                  {localStorage
+                    .getItem("userRole")
+                    ?.toLowerCase()
+                    .includes("shop") && (
+                      <Link
+                        to="/shop-owner/store"
+                        className="profile-dropdown-item"
+                        style={{ color: "var(--lp-accent)" }}
+                      >
+                        <FaBox /> Kênh Shop{" "}
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            marginLeft: "auto",
+                            background: "var(--lp-accent)",
+                            color: "white",
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          PRO
+                        </span>
+                      </Link>
+                    )}
                   <button type="button" className="profile-dropdown-item logout" onClick={onLogout}>
                     <FaSignOutAlt /> Đăng xuất
                   </button>
@@ -102,6 +197,30 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
               {cat.name}
             </span>
           ))}
+        
+          <Link
+            to={
+              localStorage.getItem('userRole')?.toLowerCase().includes('shop')
+                ? '/shop-owner/store'
+                : '/register-shop'
+            }
+            style={{
+              marginLeft: 'auto',
+              color: '#fff',
+              backgroundColor: 'var(--lp-accent, #2563eb)',
+              fontWeight: 800,
+              padding: '6px 16px',
+              borderRadius: '20px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+            }}
+            className="hover:opacity-90 transition-opacity"
+          >
+            Trở thành Người bán hàng
+          </Link>
         </div>
       </nav>
     </>

@@ -216,7 +216,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     const initForm = async () => {
       try {
         const catData = await CategoryService.getAllCategories();
-        setCategories(Array.isArray(catData) ? catData : []);
+        setCategories(Array.isArray(catData) ? catData : Array.isArray(catData.data) ? catData.data : []);
 
         if (isEdit && initialData) {
           // ✅ Xử lý ảnh: thumbnail + images phụ RIÊNG BIỆT
@@ -374,18 +374,20 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     if (imageErrors.length > 0) {
       setErrors((prev) => ({ ...prev, images: imageErrors[0] }));
     } else if (newPendingFiles.length > 0) {
-      // ✅ FIX: THÊM ảnh mới vào ĐẦU danh sách (hiển thị trên trang chủ)
-      const newImages = newPendingFiles.map((file) =>
-        URL.createObjectURL(file),
-      );
+      // ✅ FIX: Attach preview URL to file object to reliably identify it later
+      const newImages = newPendingFiles.map((file) => {
+        const previewUrl = URL.createObjectURL(file);
+        file.previewUrl = previewUrl; // 🛠️ Store previewUrl on the file object
+        return previewUrl;
+      });
 
       // Add new images to BEGINNING so they appear first (homepage display)
       setFormData((prev) => ({
         ...prev,
-        images: [...newImages, ...prev.images], // ✅ New images first
+        images: [...newImages, ...prev.images],
       }));
 
-      // Track new pending files separately so we can send them to backend
+      // Track new pending files separately
       setPendingFiles((prev) => [...newPendingFiles, ...prev]);
 
       console.log("🎨 Updated UI - ADDED new images:", {
@@ -449,14 +451,11 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
     // ✅ Nếu ảnh đang xóa là ảnh mới (blob), xóa khỏi pendingFiles
     if (imageToRemove.startsWith("blob:")) {
-      // Find the File object in pendingFiles by matching the blob URL
-      const fileToRemove = pendingFiles.find(
-        (file) => URL.createObjectURL(file) === imageToRemove,
+      URL.revokeObjectURL(imageToRemove); // 🧹 Giải phóng bộ nhớ
+      setPendingFiles((prev) =>
+        prev.filter((file) => file.previewUrl !== imageToRemove),
       );
-      if (fileToRemove) {
-        setPendingFiles((prev) => prev.filter((file) => file !== fileToRemove));
-        console.log("🗑️  Removed pending file:", fileToRemove.name);
-      }
+      console.log("🗑️  Removed pending file from state");
     }
 
     // ✅ Remove from UI
@@ -1097,11 +1096,11 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 <div className="flex items-center justify-between pt-1">
                   <p className="text-blue-600 font-black">
                     {formData.variants &&
-                    formData.variants.length > 0 &&
-                    formData.variants[0].price
+                      formData.variants.length > 0 &&
+                      formData.variants[0].price
                       ? Number(formData.variants[0].price).toLocaleString(
-                          "vi-VN",
-                        ) + "đ"
+                        "vi-VN",
+                      ) + "đ"
                       : "0đ"}
                   </p>
                   <p className="text-[10px] text-slate-400 font-bold italic">

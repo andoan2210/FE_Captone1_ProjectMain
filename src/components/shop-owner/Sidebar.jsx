@@ -88,7 +88,7 @@ export default function Sidebar() {
     <div className="w-64 bg-white border-r border-slate-100/80 h-screen flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] sticky top-0 z-20 text-left">
       <div className="h-20 flex items-center px-6 border-b border-slate-100/50 mb-6">
         <div className="text-2xl font-extrabold tracking-tight text-slate-800">
-          ShopOwnerPanel<span className="text-blue-600">.</span>
+          Shop Owner
         </div>
       </div>
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
@@ -100,19 +100,17 @@ export default function Sidebar() {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `group flex items-center px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                isActive
-                  ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100/50"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              `group flex items-center px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive
+                ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100/50"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               }`
             }
           >
             <item.icon
               className={({ isActive }) =>
-                `mr-3 text-lg transition-transform duration-200 group-hover:scale-110 ${
-                  isActive
-                    ? "text-blue-600"
-                    : "text-slate-400 group-hover:text-slate-600"
+                `mr-3 text-lg transition-transform duration-200 group-hover:scale-110 ${isActive
+                  ? "text-blue-600"
+                  : "text-slate-400 group-hover:text-slate-600"
                 }`
               }
             />
@@ -137,11 +135,10 @@ export default function Sidebar() {
             onClick={handleLogout}
             disabled={isLoggingOut}
             title="Đăng xuất"
-            className={`p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center ${
-              isLoggingOut
+            className={`p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center ${isLoggingOut
                 ? "text-slate-300 cursor-not-allowed"
                 : "text-slate-400 hover:text-red-600 hover:bg-red-50"
-            }`}
+              }`}
           >
             {isLoggingOut ? (
               <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></div>
