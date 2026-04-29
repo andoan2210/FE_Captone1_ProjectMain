@@ -32,6 +32,11 @@ export const ShopProductService = {
     return response.data;
   },
 
+  getMyProductById: async (id) => {
+    const response = await api.get(`/product/my-product/${id}`);
+    return response.data;
+  },
+
   // Lưu sản phẩm (Add hoặc Update) chuẩn FormData khớp với NestJS Backend
   saveProduct: async (
     productData,

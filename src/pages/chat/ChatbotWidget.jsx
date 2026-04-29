@@ -17,24 +17,35 @@ function formatPrice(price) {
   return new Intl.NumberFormat("vi-VN").format(Number(price)) + "đ";
 }
 
-// ── Parse markdown đơn giản từ Gemini ──
 function parseMarkdown(text) {
   if (!text) return "";
   let html = text
-    // Escape HTML trước
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    // Bold: **text**
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    // Italic: *text*
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>")
-    // Bullet points: * item hoặc - item (đầu dòng)
-    .replace(/^[\*\-]\s+(.+)$/gm, "<li>$1</li>")
-    // Wrap consecutive <li> in <ul>
-    .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
-    // Line breaks
-    .replace(/\n/g, "<br/>");
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+
+  // Bullet points: *, -, +, •
+  html = html.replace(/^\s*[\*\-\+•]\s+(.+)$/gm, "<li>$1</li>");
+
+  // Robustly detect detail lines
+  html = html.replace(/<li>(.*?)<\/li>/gi, (match, innerText) => {
+    let textOnly = innerText.replace(/<[^>]+>/g, "");
+    let matchDetail = textOnly.match(/^\s*(Giá|Cửa hàng|Kích cỡ|Màu sắc|Chất liệu)\s*:\s*(.*)$/i);
+    if (matchDetail) {
+      return `<li class="detail-line">${matchDetail[1]}: ${matchDetail[2]}</li>`;
+    }
+    return match;
+  });
+
+  // Group consecutive <li> ignoring any whitespace/newlines between them
+  html = html.replace(/(?:<li[^>]*>.*?<\/li>\s*)+/g, (match) => {
+    return "<ul>" + match.replace(/\n/g, "") + "</ul>";
+  });
+
+  // Line breaks for remaining text
+  html = html.replace(/\n/g, "<br/>");
   return html;
 }
 
@@ -62,46 +73,7 @@ const ChatbotWidget = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Thêm state cho modal xóa
 
-  // ── Khôi phục session từ localStorage ──
-  const [currentChatStartIndex, setCurrentChatStartIndex] = useState(() => {
-    return Number(localStorage.getItem("chatbot_current_index")) || 0;
-  });
-  const [chatSessions, setChatSessions] = useState(() => {
-    try {
-      const saved = localStorage.getItem("chatbot_sessions");
-      return saved ? JSON.parse(saved) : [0];
-    } catch (e) {
-      return [0];
-    }
-  });
-
-  // ── Lưu session vào localStorage ──
-  useEffect(() => {
-    if (chatSessions.length > 0) {
-      localStorage.setItem("chatbot_sessions", JSON.stringify(chatSessions));
-    }
-    localStorage.setItem("chatbot_current_index", currentChatStartIndex.toString());
-  }, [chatSessions, currentChatStartIndex]);
-
-  // ── Hàm tự động tách phiên theo thời gian (1 giờ) ──
-  const autoDetectSessions = useCallback((msgs) => {
-    if (!msgs || msgs.length === 0) return [0];
-    const sessions = [0];
-    const HOUR_IN_MS = 60 * 60 * 1000;
-
-    for (let i = 1; i < msgs.length; i++) {
-      const prevTime = new Date(msgs[i - 1].timestamp || 0).getTime();
-      const currTime = new Date(msgs[i].timestamp || 0).getTime();
-      // Nếu cách nhau > 1 tiếng, coi là session mới
-      if (currTime - prevTime > HOUR_IN_MS) {
-        sessions.push(i);
-      }
-    }
-    return sessions;
-  }, []);
 
   const bodyRef = useRef(null);
   const textareaRef = useRef(null);
@@ -129,20 +101,6 @@ const ChatbotWidget = () => {
         const data = await chatbotService.getMessages();
         if (Array.isArray(data) && data.length > 0) {
           setMessages(data);
-          
-          // Nếu chưa có session nào trong localStorage hoặc chỉ có [0], 
-          // thử tự động nhận diện từ data trả về
-          setChatSessions(prev => {
-            if (prev.length <= 1) {
-              const detected = autoDetectSessions(data);
-              // Nếu tự động phát hiện được nhiều session, cập nhật luôn current view về session cuối
-              if (detected.length > prev.length) {
-                setCurrentChatStartIndex(detected[detected.length - 1]);
-                return detected;
-              }
-            }
-            return prev;
-          });
         }
       } catch (err) {
         console.error("[Chatbot] Error loading history:", err);
@@ -156,47 +114,6 @@ const ChatbotWidget = () => {
     loadHistory();
   }, [isOpen, historyLoaded]);
 
-  // ── Toggle sidebar ──
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  // ── Tạo cuộc trò chuyện mới ──
-  const handleNewChat = () => {
-    const nextIndex = messages.length;
-    // Chỉ tạo session mới nếu session hiện tại đã có tin nhắn
-    if (nextIndex > chatSessions[chatSessions.length - 1]) {
-      setChatSessions((prev) => [...prev, nextIndex]);
-      setCurrentChatStartIndex(nextIndex);
-    } else {
-      // Nếu session hiện tại đang trống, chỉ cần đảm bảo view đang ở đó
-      setCurrentChatStartIndex(chatSessions[chatSessions.length - 1]);
-    }
-    setIsSidebarOpen(false);
-    // Tự động cuộn xuống cuối khi chuyển session
-    scrollToBottom();
-  };
-
-  // ── Xóa toàn bộ lịch sử ──
-  const handleDeleteSession = async (startIndex, e) => {
-    if (e) e.stopPropagation();
-    setShowDeleteConfirm(true); // Mở modal thay vì window.confirm
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await chatbotService.clearHistory();
-      setMessages([]);
-      setChatSessions([0]);
-      setCurrentChatStartIndex(0);
-      localStorage.removeItem("chatbot_sessions");
-      localStorage.removeItem("chatbot_current_index");
-    } catch (err) {
-      console.error("Delete history error:", err);
-    } finally {
-      setShowDeleteConfirm(false);
-    }
-  };
 
   // ── Auto scroll khi có tin nhắn mới ──
   useEffect(() => {
@@ -230,11 +147,10 @@ const ChatbotWidget = () => {
       return;
     }
 
-    // Tạo conversationHistory từ messages của session hiện tại
-    const currentSessionMessages = messages.slice(currentChatStartIndex);
-    const conversationHistory = currentSessionMessages
+    // Tạo conversationHistory từ messages
+    const conversationHistory = messages
       .filter((m) => m.role === "user" || m.role === "model")
-      .slice(-10) // Giới hạn 10 tin nhắn gần nhất trong session này
+      .slice(-10) // Giới hạn 10 tin nhắn gần nhất
       .map((m) => ({
         role: m.role,
         parts: [{ text: m.content }],
@@ -324,17 +240,10 @@ const ChatbotWidget = () => {
 
       {/* ── Popup Panel ── */}
       {(isOpen || isClosing) && (
-        <div className={`chatbot-popup ${isClosing ? "closing" : ""} ${isSidebarOpen ? "sidebar-open" : ""}`}>
+        <div className={`chatbot-popup ${isClosing ? "closing" : ""}`}>
           {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-header-left">
-              <button
-                className="chatbot-menu-btn"
-                onClick={toggleSidebar}
-                title="Lịch sử chat"
-              >
-                <FiMenu size={20} />
-              </button>
               <div className="chatbot-avatar">🤖</div>
               <div className="chatbot-header-info">
                 <h3>AI Assistant</h3>
@@ -359,61 +268,7 @@ const ChatbotWidget = () => {
             </div>
           </div>
 
-          {/* History Sidebar */}
           <div className="chatbot-content-wrapper">
-            <div className={`chatbot-sidebar ${isSidebarOpen ? "open" : ""}`}>
-              <div className="chatbot-sidebar-header">
-                <h4>Lịch sử trò chuyện</h4>
-                <button onClick={toggleSidebar}>
-                  <FiX size={16} />
-                </button>
-              </div>
-              <div className="chatbot-sidebar-content">
-                <button className="chatbot-new-chat-btn" onClick={handleNewChat}>
-                  <FiPlus size={16} />
-                  Trò chuyện mới
-                </button>
-
-                {messages.length === 0 ? (
-                  <p className="empty-history">Chưa có lịch sử</p>
-                ) : (
-                  <div className="history-list">
-                    {/* Render danh sách các session */}
-                    {[...chatSessions].reverse().map((startIndex, idx) => {
-                      const sessionMessages = messages.slice(startIndex, chatSessions[chatSessions.indexOf(startIndex) + 1]);
-                      const firstUserMsg = sessionMessages.find(m => m.role === 'user')?.content || "Cuộc trò chuyện mới";
-                      const isActive = currentChatStartIndex === startIndex;
-                      
-                      return (
-                        <div 
-                          key={startIndex} 
-                          className={`history-item ${isActive ? "active" : ""}`}
-                          onClick={() => {
-                            setCurrentChatStartIndex(startIndex);
-                            setIsSidebarOpen(false);
-                            scrollToBottom();
-                          }}
-                        >
-                          <div className="history-item-icon">💬</div>
-                          <div className="history-item-info">
-                            <p className="history-item-title">{firstUserMsg}</p>
-                            <p className="history-item-date">{sessionMessages.length} tin nhắn</p>
-                          </div>
-                          <button 
-                            className="history-item-delete"
-                            onClick={(e) => handleDeleteSession(startIndex, e)}
-                            title="Xóa cuộc trò chuyện"
-                          >
-                            <FiTrash2 size={14} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className="chatbot-main-area">
               {/* Body */}
           <div className="chatbot-body" ref={bodyRef}>
@@ -447,7 +302,7 @@ const ChatbotWidget = () => {
             ) : (
               /* Messages */
               <>
-                {messages.slice(currentChatStartIndex).map((msg, idx) => (
+                {messages.map((msg, idx) => (
                   <div key={idx} className={`chatbot-msg ${msg.role}`}>
                     <div className="chatbot-msg-avatar">
                       {msg.role === "model" ? "🤖" : "👤"}
@@ -566,19 +421,6 @@ const ChatbotWidget = () => {
             </div>
           </div>
 
-          {/* Custom Delete Confirm Modal */}
-          {showDeleteConfirm && (
-            <div className="chatbot-modal-overlay">
-              <div className="chatbot-modal-content">
-                <div className="chatbot-modal-icon">⚠️</div>
-                <p>Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này?</p>
-                <div className="chatbot-modal-actions">
-                  <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>Hủy</button>
-                  <button className="delete-btn" onClick={confirmDelete}>Xóa</button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </>

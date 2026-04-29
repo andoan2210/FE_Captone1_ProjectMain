@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Store, List, Package,
-  ReceiptText, Sparkles, LogOut, Bell, Search, Box, AlertTriangle
+  ReceiptText, Sparkles, LogOut, Bell, Search, Box, AlertTriangle, ClipboardCheck
 } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
+import adminService from '../../services/adminService';
 
 function getUserDisplayNameFromToken() {
   const token = localStorage.getItem('token');
@@ -20,6 +21,19 @@ function getUserDisplayNameFromToken() {
 const AdminLayout = () => {
   const navigate = useNavigate();
   const userName = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const res = await adminService.getPendingStores();
+        setPendingCount((res.data || []).length);
+      } catch { setPendingCount(0); }
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -30,6 +44,7 @@ const AdminLayout = () => {
   const navItems = [
     { name: 'Tổng quan (Dashboard)', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
     { name: 'Tài khoản (Users)', icon: <Users size={18} />, path: '/admin/accounts' },
+    { name: 'Duyệt đơn (Approvals)', icon: <ClipboardCheck size={18} />, path: '/admin/seller-approvals', badge: pendingCount },
     { name: 'Cửa hàng (Stores)', icon: <Store size={18} />, path: '/admin/stores' },
     { name: 'Danh mục (Categories)', icon: <List size={18} />, path: '/admin/categories' },
     { name: 'Sản phẩm (Products)', icon: <Package size={18} />, path: '/admin/products' },
@@ -68,20 +83,25 @@ const AdminLayout = () => {
               display: none;
             }
           `}</style>
-          
+
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-[14px] font-medium ${isActive
+                `relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-[14px] font-medium ${isActive
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                   : 'hover:bg-white/5 hover:text-gray-200'
                 }`
               }
             >
               {item.icon}
-              <span>{item.name}</span>
+              <span className="flex-1">{item.name}</span>
+              {item.badge > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 shadow-sm animate-pulse">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

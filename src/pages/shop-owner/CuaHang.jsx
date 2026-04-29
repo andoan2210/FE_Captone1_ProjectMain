@@ -32,6 +32,9 @@ export default function CuaHang() {
           logoUrl: raw.logoUrl,
           isActive: raw.isActive,
           createdAt: raw.createdAt,
+          totalProducts: raw.totalProducts || 0,
+          totalOrders: raw.totalOrders || 0,
+          totalVouchers: raw.totalVouchers || 0,
         };
         setStoreInfo(data);
       } catch (error) {

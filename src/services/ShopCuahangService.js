@@ -27,4 +27,9 @@ export const ShopCuahangService = {
     const response = await api.get(`/store/getshopbyproduct/${productId}`);
     return response.data;
   },
+
+  getStoreById: async (id) => {
+    const response = await api.get(`/store/${id}`);
+    return response.data;
+  },
 };

@@ -16,7 +16,7 @@ const EditProduct = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const response = await ShopProductService.getProductById(id);
+        const response = await ShopProductService.getMyProductById(id);
         const product = response;
         if (product) {
           setInitialData(product.data || product);

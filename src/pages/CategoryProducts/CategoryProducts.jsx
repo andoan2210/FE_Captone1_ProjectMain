@@ -323,7 +323,7 @@ export default function CategoryProducts() {
     async function loadInitial() {
       try {
         const catRes = await LandingPageService.getCategories(100);
-        const categories = catRes.data || [];
+        const categories = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.data || []);
         setDbCategories(categories);
 
         if (categoryId === "all") {
@@ -364,7 +364,9 @@ export default function CategoryProducts() {
         );
       }
 
-      const rawData = res.data || [];
+      const rawData = Array.isArray(res.data)
+        ? res.data
+        : res.data?.products || res.data?.data || [];
       const newItems = rawData.map((p) => ({
         id: p.id ?? p.ProductId,
         name: p.name ?? p.ProductName,

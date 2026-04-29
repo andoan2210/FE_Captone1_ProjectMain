@@ -40,14 +40,11 @@ const apiGetAllAccounts = async () => {
   }
 };
 
-// ================= TOGGLE STATUS =================
-const apiToggleStatus = async (id, currentStatus) => {
+// ================= TOGGLE STATUS (Admin) =================
+const apiToggleStatus = async (userId) => {
   try {
-    // Lưu ý: BE hiện tại chưa có endpoint riêng cho toggleStatus của Admin trong UsersController
-    // Chúng ta tạm thời để đây hoặc bạn có thể bổ sung BE sau.
-    return await api.patch(`/users/profile`, {
-      isActive: currentStatus === "Active" ? false : true,
-    });
+    const res = await api.patch(`/users/admin/${userId}/toggle-status`);
+    return res.data;
   } catch (error) {
     console.error("TOGGLE STATUS ERROR:", error);
     throw new Error("Không thể thay đổi trạng thái");
@@ -64,26 +61,16 @@ const apiDeleteAccount = async (email) => {
   }
 };
 
-const apiUpdateAccount = async (id, data) => {
+// ================= UPDATE ROLE (Admin) =================
+const apiUpdateAccount = async (userId, data) => {
   try {
-    // Lưu ý: NestJS UsersController của bạn đang dùng @Patch('profile')
-    return await api.patch(`/users/profile`, data);
+    const res = await api.patch(`/users/admin/${userId}/update-role`, {
+      role: data.role,
+    });
+    return res.data;
   } catch (error) {
     console.error("UPDATE ERROR:", error);
     throw new Error("Không thể cập nhật tài khoản");
-  }
-};
-
-// ================= CREATE =================
-const apiCreateAccount = async (data) => {
-  try {
-    return await api.post(`/users`, {
-      ...data,
-      role: (data.role || "").toUpperCase(),
-    });
-  } catch (error) {
-    console.error("CREATE ERROR:", error);
-    throw new Error("Không thể tạo tài khoản");
   }
 };
 
@@ -139,14 +126,11 @@ const apiRejectProduct = async (id, reason) => {
 
 const apiGetApprovedProducts = async (page = 1, limit = 10) => {
   try {
-    // NOTE: Backend cần cung cấp endpoint này
-    // Temporarily fetch from /product/admin/pending để lấy pending
     const res = await api.get(`/product/admin/approved`, {
       params: { page, limit },
     });
     return res.data;
   } catch (error) {
-    // Fallback nếu backend chưa có endpoint approved
     console.error("GET APPROVED PRODUCTS ERROR:", error);
     return { data: [], pagination: { total: 0 } };
   }
@@ -154,15 +138,77 @@ const apiGetApprovedProducts = async (page = 1, limit = 10) => {
 
 const apiGetRejectedProducts = async (page = 1, limit = 10) => {
   try {
-    // NOTE: Backend cần cung cấp endpoint này
     const res = await api.get(`/product/admin/rejected`, {
       params: { page, limit },
     });
     return res.data;
   } catch (error) {
-    // Fallback nếu backend chưa có endpoint rejected
     console.error("GET REJECTED PRODUCTS ERROR:", error);
     return { data: [], pagination: { total: 0 } };
+  }
+};
+
+// ================= ADMIN CREATE USER =================
+const apiAdminCreateUser = async (data) => {
+  try {
+    const res = await api.post(`/users/admin/create`, data);
+    return res.data;
+  } catch (error) {
+    console.error("ADMIN CREATE USER ERROR:", error);
+    throw new Error(error.response?.data?.message || "Không thể tạo tài khoản");
+  }
+};
+
+// ================= ADMIN UPDATE USER INFO =================
+const apiAdminUpdateInfo = async (userId, data) => {
+  try {
+    const res = await api.patch(`/users/admin/${userId}/update-info`, data);
+    return res.data;
+  } catch (error) {
+    console.error("ADMIN UPDATE INFO ERROR:", error);
+    throw new Error(error.response?.data?.message || "Không thể cập nhật thông tin");
+  }
+};
+
+// ================= GET ACCOUNT DETAIL =================
+const apiGetAccountDetail = async (userId) => {
+  try {
+    const res = await api.get(`/users/${userId}`);
+    return res.data;
+  } catch (error) {
+    console.error("GET ACCOUNT DETAIL ERROR:", error);
+    throw new Error("Không thể tải chi tiết tài khoản");
+  }
+};
+
+// ================= SELLER APPROVALS (Store) =================
+const apiGetPendingStores = async () => {
+  try {
+    const res = await api.get(`/store/admin/pending`);
+    return res.data;
+  } catch (error) {
+    console.error("GET PENDING STORES ERROR:", error);
+    throw new Error("Không thể tải danh sách đơn đăng ký");
+  }
+};
+
+const apiApproveStore = async (storeId) => {
+  try {
+    const res = await api.patch(`/store/admin/${storeId}/approve`);
+    return res.data;
+  } catch (error) {
+    console.error("APPROVE STORE ERROR:", error);
+    throw new Error("Không thể duyệt đơn đăng ký");
+  }
+};
+
+const apiRejectStore = async (storeId) => {
+  try {
+    const res = await api.patch(`/store/admin/${storeId}/reject`);
+    return res.data;
+  } catch (error) {
+    console.error("REJECT STORE ERROR:", error);
+    throw new Error("Không thể từ chối đơn đăng ký");
   }
 };
 
@@ -172,13 +218,21 @@ export const adminService = {
   toggleAccountStatus: apiToggleStatus,
   deleteAccount: apiDeleteAccount,
   updateAccount: apiUpdateAccount,
-  createAccount: apiCreateAccount,
   getPendingProducts: apiGetPendingProducts,
   getProductDetail: apiGetProductDetail,
   approveProduct: apiApproveProduct,
   rejectProduct: apiRejectProduct,
   getApprovedProducts: apiGetApprovedProducts,
   getRejectedProducts: apiGetRejectedProducts,
+  // Seller Approvals
+  getPendingStores: apiGetPendingStores,
+  approveStore: apiApproveStore,
+  rejectStore: apiRejectStore,
+  // Account Detail
+  getAccountDetail: apiGetAccountDetail,
+  // Admin CRUD
+  createUser: apiAdminCreateUser,
+  updateUserInfo: apiAdminUpdateInfo,
 };
 
 export default adminService;

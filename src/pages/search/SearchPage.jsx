@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { FaSearch, FaFilter, FaSortAmountDown, FaShoppingCart, FaChevronLeft, FaChevronRight, FaStar, FaUserCircle, FaBox, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { FaSearch, FaFilter, FaSortAmountDown, FaShoppingCart, FaChevronLeft, FaChevronRight, FaStar, FaUserCircle, FaBox, FaUser, FaSignOutAlt, FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 import { FiMessageCircle } from "react-icons/fi";
 import { jwtDecode } from "jwt-decode";
 import api from "../../services/api";
 import { ShopProductService } from "../../services/ShopProductService";
 import * as LandingPageService from "../../services/LandingPageService";
+import "../LandingPage/LandingPage.css";
 import "./SearchPage.css";
 
 // Reuse user label logic
@@ -87,10 +88,12 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                         SmartAI Fashion
                     </Link>
                     <div className="search-wrap" ref={searchRef}>
+                        <span className="visually-hidden">Tìm kiếm sản phẩm</span>
                         <FaSearch className="search-icon" aria-hidden />
                         <input
                             type="search"
-                            placeholder="Tìm kiếm sản phẩm..."
+                            name="q"
+                            placeholder="Tìm kiếm sản phẩm, thương hiệu..."
                             className="search-bar"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,10 +119,10 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                         )}
                     </div>
                     <div className="user-actions">
-                        <Link to="/cart" className="icon-link">
+                        <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
                             <FaShoppingCart />
                         </Link>
-                        <Link to="/chat" className="icon-link">
+                        <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
                             <FiMessageCircle />
                         </Link>
                         {userLabel ? (
@@ -139,6 +142,30 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                                 <div className="profile-dropdown">
                                     <Link to="/manage/Manageinvoice" className="profile-dropdown-item"><FaBox /> Đơn mua</Link>
                                     <Link to="/user/UserProfile" className="profile-dropdown-item"><FaUser /> Trang cá nhân</Link>
+                                    {localStorage
+                                        .getItem("userRole")
+                                        ?.toLowerCase()
+                                        .includes("shop") && (
+                                            <Link
+                                                to="/shop-owner/store"
+                                                className="profile-dropdown-item"
+                                                style={{ color: "var(--lp-accent)" }}
+                                            >
+                                                <FaBox /> Kênh Shop{" "}
+                                                <span
+                                                    style={{
+                                                        fontSize: "10px",
+                                                        marginLeft: "auto",
+                                                        background: "var(--lp-accent)",
+                                                        color: "white",
+                                                        padding: "2px 6px",
+                                                        borderRadius: "10px",
+                                                    }}
+                                                >
+                                                    PRO
+                                                </span>
+                                            </Link>
+                                        )}
                                     <button type="button" className="profile-dropdown-item logout" onClick={onLogout}><FaSignOutAlt /> Đăng xuất</button>
                                 </div>
                             </div>
@@ -151,13 +178,39 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                     </div>
                 </div>
             </header>
-            <nav className="main-nav">
+            <nav className="main-nav" aria-label="Danh mục chính">
                 <div className="container nav-links">
-                    <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>TRANG CHỦ</Link>
-                    {dbCategories && dbCategories.slice(0, 8).map(cat => (
-                        <Link key={cat.id} to={`/category/${cat.id}`} style={{ color: "inherit", textDecoration: "none" }}>{cat.name}</Link>
+                    <span onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+                        TẤT CẢ DANH MỤC
+                    </span>
+                    {dbCategories && dbCategories.map((cat) => (
+                        <span key={cat.id} onClick={() => navigate(`/category/${cat.id}`)} style={{ cursor: "pointer" }}>
+                            {cat.name}
+                        </span>
                     ))}
-                    <span className="flash-sale">⚡ Flash Sale</span>
+                    <Link
+                        to={
+                            localStorage.getItem("userRole")?.toLowerCase().includes("shop")
+                                ? "/shop-owner/store"
+                                : "/register-shop"
+                        }
+                        style={{
+                            marginLeft: "auto",
+                            color: "#fff",
+                            backgroundColor: "var(--lp-accent, #2563eb)",
+                            fontWeight: 800,
+                            padding: "6px 16px",
+                            borderRadius: "20px",
+                            textDecoration: "none",
+                            boxShadow: "0 4px 6px rgba(37, 99, 235, 0.2)",
+                            fontSize: "13px",
+                            letterSpacing: "0.5px",
+                            textTransform: "uppercase",
+                        }}
+                        className="hover:opacity-90 transition-opacity"
+                    >
+                        Trở thành Người bán hàng
+                    </Link>
                 </div>
             </nav>
         </>
@@ -519,6 +572,43 @@ export default function SearchPage() {
                     )}
                 </section>
             </main>
+
+            {/* FOOTER */}
+            <footer className="lp-footer">
+                <div className="container lp-footer-grid">
+                    <div className="lp-footer-brand">
+                        <strong className="logo">SmartAI Fashion</strong>
+                        <p>Thời trang thông minh — thử đồ bằng AI, giao nhanh toàn quốc.</p>
+                    </div>
+                    <div>
+                        <h3 className="lp-footer-title">Hỗ trợ</h3>
+                        <ul className="lp-footer-links">
+                            <li><Link to="/login">Tài khoản</Link></li>
+                            <li><a href="#main-content">Theo dõi đơn hàng</a></li>
+                            <li><a href="#main-content">Đổi trả &amp; bảo hành</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="lp-footer-title">Công ty</h3>
+                        <ul className="lp-footer-links">
+                            <li><a href="#main-content">Về chúng tôi</a></li>
+                            <li><a href="#main-content">Tuyển dụng</a></li>
+                            <li><a href="#main-content">Điều khoản</a></li>
+                        </ul>
+                    </div>
+                    <div className="lp-footer-social">
+                        <h3 className="lp-footer-title">Kết nối</h3>
+                        <div className="lp-social-icons">
+                            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookF /></a>
+                            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><FaInstagram /></a>
+                            <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube"><FaYoutube /></a>
+                        </div>
+                    </div>
+                </div>
+                <div className="lp-footer-bottom">
+                    <div className="container">© {new Date().getFullYear()} SmartAI Fashion. Đồ án Capstone FE.</div>
+                </div>
+            </footer>
         </div>
     );
 }
