@@ -10,52 +10,57 @@ function GoogleCallback() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const token = searchParams.get('token');
     const code = searchParams.get('code');
-    if (!code) {
-      setError('Không tìm thấy mã xác thực từ Google.');
-      return;
-    }
 
-    // Gửi code đến backend để đổi lấy token
-    const fetchToken = async () => {
+    const handleLoginSuccess = (token) => {
+      localStorage.setItem('token', token);
       try {
-        // Sử dụng api.get thay vì fetch
-        const response = await api.get(`/auth/google/callback?code=${encodeURIComponent(code)}`);
-        const data = response.data;
+        const decoded = jwtDecode(token);
+        const userRole = decoded.role || (decoded.User && decoded.User.role);
         
-        console.log('Google login response:', data);
-
-        const token = data.accessToken || data.token || data.access_token;
-        if (token) {
-          localStorage.setItem('token', token);
-          
-          try {
-            const decoded = jwtDecode(token);
-            const userRole = decoded.role || data.role || (data.user && data.user.role);
-            if (userRole) {
-              localStorage.setItem('userRole', userRole);
-
-              if (userRole.toLowerCase().includes('shop')) {
-                navigate('/shop-owner/dashboard');
-              } else {
-                navigate('/');
-              }
-              return;
-            }
-          } catch (decodeErr) {
-            console.error('Lỗi giải mã token Google:', decodeErr);
+        if (userRole) {
+          localStorage.setItem('userRole', userRole);
+          const lowerRole = userRole.toLowerCase();
+          if (lowerRole.includes('shop')) {
+            navigate('/shop-owner/store');
+          } else if (lowerRole.includes('admin')) {
+            navigate('/admin/accounts');
+          } else {
+            navigate('/');
           }
+        } else {
+          navigate('/');
         }
-
-        // Chuyển hướng mặc định
+      } catch (decodeErr) {
+        console.error('Lỗi giải mã token Google:', decodeErr);
         navigate('/');
-
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Đăng nhập Google thất bại');
       }
     };
 
-    fetchToken();
+    if (token) {
+      // Trường hợp BE redirect về kèm token
+      handleLoginSuccess(token);
+    } else if (code) {
+      // Trường hợp cũ: FE nhận code rồi gọi BE (để dự phòng)
+      const fetchToken = async () => {
+        try {
+          const response = await api.get(`/auth/google/callback?code=${encodeURIComponent(code)}`);
+          const data = response.data;
+          const accessToken = data.accessToken || data.token;
+          if (accessToken) {
+            handleLoginSuccess(accessToken);
+          } else {
+            setError('Không nhận được mã truy cập.');
+          }
+        } catch (err) {
+          setError(err.response?.data?.message || err.message || 'Đăng nhập Google thất bại');
+        }
+      };
+      fetchToken();
+    } else {
+      setError('Không tìm thấy thông tin đăng nhập từ Google.');
+    }
   }, [searchParams, navigate]);
 
   return (

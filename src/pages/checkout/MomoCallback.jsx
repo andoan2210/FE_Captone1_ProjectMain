@@ -31,11 +31,12 @@ export default function MomoCallback() {
     // 2. Đồng bộ trạng thái với Backend
 
     const syncPaymentWithBE = async () => {
-      if (isSuccess && cleanId) {
+      if (isSuccess && orderId) {
         try {
-          console.log(`[MoMo] Đang yêu cầu BE kiểm tra trạng thái cho đơn hàng ID: ${cleanId}`);
+          console.log(`[MoMo] Đang yêu cầu BE xác thực cho đơn hàng: ${orderId}`);
 
-          await ShopOrderService.verifyMomoPayment(cleanId, resultCode);
+          // Gọi API verify mới hỗ trợ xử lý mã đơn hàng MoMo
+          await ShopOrderService.verifyMomoPayment(orderId, resultCode);
 
         } catch (err) {
           console.error("Lỗi khi đồng bộ với Backend:", err);
@@ -57,7 +58,7 @@ export default function MomoCallback() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, orderId, resultCode, isSuccess]);
 
   return (
     <div style={styles.shell}>
@@ -65,9 +66,9 @@ export default function MomoCallback() {
         {/* ICON */}
         <div style={styles.iconWrap}>
           {isSuccess ? (
-            <span style={{ ...styles.icon, color: '#10b981' }}></span>
+            <span style={{ ...styles.icon, color: '#10b981' }}>✅</span>
           ) : (
-            <span style={{ ...styles.icon, color: '#ef4444' }}></span>
+            <span style={{ ...styles.icon, color: '#ef4444' }}>❌</span>
           )}
         </div>
 
@@ -79,19 +80,19 @@ export default function MomoCallback() {
         {/* CHI TIẾT */}
         <p style={styles.sub}>
           {isSuccess
-            ? 'MoMo đã xác nhận giao dịch của bạn. Đơn hàng đang được xử lý.'
+            ? 'Giao dịch của bạn đã được ghi nhận. Hệ thống đang cập nhật trạng thái đơn hàng.'
             : (message || 'Giao dịch không thành công hoặc đã bị huỷ.')}
         </p>
 
         {orderId && (
           <div style={styles.infoBox}>
             <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Mã đơn hàng</span>
+              <span style={styles.infoLabel}>Mã giao dịch MoMo</span>
               <span style={styles.infoValue}>{orderId}</span>
             </div>
             {amount && (
               <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Số tiền</span>
+                <span style={styles.infoLabel}>Tổng tiền</span>
                 <span style={{ ...styles.infoValue, color: '#0061ff', fontWeight: 700 }}>
                   {new Intl.NumberFormat('vi-VN').format(Number(amount))}đ
                 </span>

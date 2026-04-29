@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import adminService from '../../services/adminService';
+import userService from '../../services/userService';
+
 
 function getUserDisplayNameFromToken() {
   const token = localStorage.getItem('token');
@@ -21,7 +23,33 @@ function getUserDisplayNameFromToken() {
 const AdminLayout = () => {
   const navigate = useNavigate();
   const userName = useMemo(() => getUserDisplayNameFromToken(), []);
+  const [userProfile, setUserProfile] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
+
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await userService.getUserProfile();
+        setUserProfile(profile);
+      } catch (err) {
+        console.error('Error fetching admin profile:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return 'AD';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const displayName = userProfile?.fullName || userName || 'Admin System';
+  const userAvatar = userProfile?.avatarUrl;
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -59,11 +87,11 @@ const AdminLayout = () => {
       <aside className="w-[260px] bg-[#0A101D] text-gray-400 flex flex-col h-screen sticky top-0 overflow-hidden shrink-0">
 
         {/* LOGO */}
-        <div className="pt-8 pb-6 px-6 flex items-center gap-3">
-          <div className="w-[30px] h-[30px] bg-blue-500 rounded-md flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-            <Box className="text-white fill-white stroke-blue-500" size={18} />
+        <div className="pt-8 pb-6 px-6 flex items-center gap-3 border-b border-white/5">
+          <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
+            <Box className="text-white fill-white" size={20} />
           </div>
-          <h1 className="text-[17px] font-bold tracking-widest mt-1">
+          <h1 className="text-[16px] font-black tracking-tighter whitespace-nowrap flex items-center gap-1">
             <span className="text-white">CAPSTONE</span>
             <span className="text-blue-500">ADMIN</span>
           </h1>
@@ -139,13 +167,21 @@ const AdminLayout = () => {
               <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
             </button>
 
-            <div className="flex items-center gap-3 cursor-pointer pl-6 border-l border-gray-100 hover:opacity-80 transition">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md">
-                AS
-              </div>
+            <div className="group flex items-center gap-3 cursor-pointer pl-6 border-l border-gray-100 hover:bg-gray-50/80 py-1.5 px-4 rounded-xl transition-all duration-300">
+              {userAvatar ? (
+                <img 
+                  src={userAvatar} 
+                  alt={displayName}
+                  className="w-10 h-10 rounded-full object-cover shadow-lg border-2 border-white ring-1 ring-gray-100 group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg ring-2 ring-white group-hover:rotate-6 transition-all">
+                  {getInitials(displayName)}
+                </div>
+              )}
               <div className="flex flex-col">
-                <span className="text-[14px] font-bold text-gray-800 leading-tight">Admin System</span>
-                <span className="text-[12px] text-gray-500 font-medium">Quản trị viên</span>
+                <span className="text-[14px] font-bold text-gray-800 leading-tight group-hover:text-blue-600 transition-colors">{displayName}</span>
+                <span className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.1em] mt-0.5">Admin</span>
               </div>
             </div>
           </div>

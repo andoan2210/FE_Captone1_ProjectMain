@@ -6,7 +6,7 @@ const CheckoutService = {
    * @param {'CART'|'BUY_NOW'} type
    * @param {object} params - selectedItems | variantId + quantity + voucherCode
    */
-  preview: async ({ type, selectedItems, variantId, quantity, voucherCode }) => {
+  preview: async ({ type, selectedItems, variantId, quantity, voucherCode, storeVouchers }) => {
     const body = { type };
     if (type === 'CART') {
       body.selectedItems = selectedItems;
@@ -15,6 +15,7 @@ const CheckoutService = {
       body.quantity = quantity;
     }
     if (voucherCode) body.voucherCode = voucherCode;
+    if (storeVouchers) body.storeVouchers = storeVouchers;
 
 
     const response = await api.post('/order/preview', body);
@@ -27,7 +28,7 @@ const CheckoutService = {
    * @param {object} orderPayload - toàn bộ CreateOrderDto
    */
   createOrder: async (orderPayload) => {
-
+    // orderPayload đã bao gồm storeVouchers từ component gửi sang
     const response = await api.post('/order', orderPayload);
 
     return response.data;
