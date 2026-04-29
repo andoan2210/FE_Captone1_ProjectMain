@@ -1575,3 +1575,223 @@
   color: var(--ck-primary);
   border-color: var(--ck-primary);
 }
+
+/* ===== SHOP GROUP ===== */
+.ck-shop-group-card {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--ck-radius-sm);
+  background: #fff;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.ck-shop-group-card:last-child {
+  margin-bottom: 0;
+}
+
+.ck-shop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fafbff;
+}
+
+.ck-shop-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ck-shop-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.ck-shop-logo-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.ck-shop-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ck-text);
+}
+
+.ck-shop-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ck-primary);
+  text-decoration: none;
+}
+
+.ck-shop-link:hover {
+  text-decoration: underline;
+}
+
+.ck-shop-group-items {
+  padding: 16px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ck-shop-group-items .ck-item-row {
+  border: none;
+  background: none;
+  padding: 0 0 16px;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.ck-shop-group-footer {
+  padding: 16px 20px;
+  border-top: 1px dashed #e2e8f0;
+  background: #fafbff;
+}
+
+.ck-shop-shipping-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ck-shipping-label {
+  font-weight: 600;
+  color: #10b981;
+  font-size: 0.85rem;
+}
+
+.ck-shipping-method {
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.ck-shipping-method strong {
+  display: block;
+  font-weight: 700;
+  color: var(--ck-text);
+  margin-bottom: 2px;
+}
+
+.ck-shipping-fee {
+  color: var(--ck-text-muted);
+}
+
+.ck-shop-note-row {
+  margin-bottom: 16px;
+}
+
+.ck-shop-note-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--ck-text);
+  background: #fff;
+}
+
+.ck-shop-note-input:focus {
+  outline: none;
+  border-color: var(--ck-primary);
+}
+
+.ck-shop-total-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--ck-text-muted);
+}
+
+.ck-shop-total-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ck-primary);
+}
+
+/* PER-SHOP VOUCHER STYLES */
+.ck-shop-voucher-box {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.ck-shop-voucher-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ck-shop-voucher-input-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.ck-shop-voucher-input-row button {
+  padding: 8px 16px;
+  background: var(--ck-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.ck-shop-voucher-input-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ck-shop-voucher-applied {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #059669;
+}
+
+.ck-shop-voucher-applied button {
+  background: none;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ck-shop-voucher-status {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ck-shop-voucher-status.success {
+  color: #059669;
+}
+
+.ck-shop-voucher-status.error {
+  color: #dc2626;
+}

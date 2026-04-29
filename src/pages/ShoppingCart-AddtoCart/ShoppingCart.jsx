@@ -197,7 +197,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
               {cat.name}
             </span>
           ))}
-        
+
           <Link
             to={
               localStorage.getItem('userRole')?.toLowerCase().includes('shop')
@@ -272,6 +272,7 @@ function PageFooter() {
 function mapCartItem(item) {
   const variant = item.ProductVariants || item.productVariants || item.variant || {};
   const product = variant.Products || variant.products || variant.product || item.Product || item.product || {};
+  const store = product.Stores || product.stores || product.Store || product.store || {};
   const images = product.ProductImages || product.productImages || [];
   const thumbnail = product.ThumbnailUrl || product.thumbnailUrl
     || (images[0]?.ImageUrl || images[0]?.imageUrl)
@@ -288,6 +289,8 @@ function mapCartItem(item) {
     image: thumbnail,
     stock: Number(variant.Stock || variant.stock || 99),
     aiSuggest: item.aiSuggest || null,
+    storeId: item.storeId || store.StoreId || store.id || 0,
+    storeName: item.storeName || store.StoreName || store.name || 'Shop không tên',
   };
 }
 
@@ -299,7 +302,6 @@ export default function ShoppingCart() {
   const [userLabel, setUserLabel] = useState(null);
   const [userAvatar, setUserAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [voucherCode, setVoucherCode] = useState('');
   const [dbCategories, setDbCategories] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]); // cartItemId[]
 
@@ -310,11 +312,36 @@ export default function ShoppingCart() {
   const [previewData, setPreviewData] = useState(null);  // data từ BE
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
-  const [voucherApplied, setVoucherApplied] = useState('');    // voucher đã xác thực
-  const [voucherStatus, setVoucherStatus] = useState(null);  // { ok, msg }
   const previewDebounce = useRef(null);
 
   const navigate = useNavigate();
+
+  // Nhóm giỏ hàng theo shop để hiển thị
+  const groupedCart = useMemo(() => {
+    const groups = {};
+    cartItems.forEach(item => {
+      const sId = item.storeId || 0;
+      if (!groups[sId]) {
+        groups[sId] = {
+          storeId: sId,
+          storeName: item.storeName || 'Shop không tên',
+          items: []
+        };
+      }
+      groups[sId].items.push(item);
+    });
+    return Object.values(groups);
+  }, [cartItems]);
+  
+
+  const handleToggleShop = (shopId, isChecked) => {
+    const shopItems = cartItems.filter(i => i.storeId === shopId).map(i => i.cartItemId);
+    if (isChecked) {
+      setSelectedItems(prev => [...new Set([...prev, ...shopItems])]);
+    } else {
+      setSelectedItems(prev => prev.filter(id => !shopItems.includes(id)));
+    }
+  };
 
 
 
@@ -365,12 +392,23 @@ export default function ShoppingCart() {
       const response = await CartService.getCart();
       const data = response.data;
 
-      // Backend có thể trả về: { cart, items, cartItems, totalAmount } hoặc trực tiếp []
+      // Backend có thể trả về: { cart, items, cartItems, totalAmount, shops } hoặc trực tiếp []
       let rawItems = [];
       if (Array.isArray(data)) {
         rawItems = data;
       } else if (data && typeof data === 'object') {
-        rawItems = data.cartItems || data.items || data.cart?.cartItems || [];
+        if (data.shops && Array.isArray(data.shops)) {
+          // Nếu backend trả về grouped (shops), ta flatten để lưu vào state cartItems
+          rawItems = data.shops.flatMap(shop =>
+            shop.items.map(item => ({
+              ...item,
+              storeId: shop.storeId,
+              storeName: shop.storeName
+            }))
+          );
+        } else {
+          rawItems = data.cartItems || data.items || data.cart?.cartItems || [];
+        }
       }
 
       const formatted = rawItems.map(mapCartItem);
@@ -474,7 +512,6 @@ export default function ShoppingCart() {
       const params = {
         type: 'CART',
         selectedItems,
-        ...(appliedVoucher ? { voucherCode: appliedVoucher } : {}),
       };
       const data = await CheckoutService.preview(params);
       setPreviewData(data);
@@ -492,42 +529,12 @@ export default function ShoppingCart() {
   useEffect(() => {
     if (previewDebounce.current) clearTimeout(previewDebounce.current);
     previewDebounce.current = setTimeout(() => {
-      callPreview(voucherApplied);
+      callPreview();
     }, 400);
     return () => clearTimeout(previewDebounce.current);
-  }, [selectedItems, voucherApplied, callPreview]);
+  }, [selectedItems, callPreview]);
 
-  /* ── Áp dụng Voucher ── */
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) return;
-    setPreviewLoading(true);
-    setVoucherStatus(null);
-    try {
-
-      const params = {
-        type: 'CART',
-        selectedItems,
-        voucherCode: voucherCode.trim(),
-      };
-      const data = await CheckoutService.preview(params);
-      setPreviewData(data);
-      setVoucherApplied(voucherCode.trim());
-      setVoucherStatus({ ok: true, msg: `Voucher "${voucherCode.trim()}" đã được áp dụng!` });
-    } catch (e) {
-      const msg = e.response?.data?.message || e.message || 'Voucher không hợp lệ';
-      setVoucherStatus({ ok: false, msg });
-      setVoucherApplied('');
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
-
-  const handleRemoveVoucher = () => {
-    setVoucherCode('');
-    setVoucherApplied('');
-    setVoucherStatus(null);
-    callPreview('');
-  };
+  /* Voucher handlers removed */
 
 
   /* ── Checkout ── */
@@ -541,7 +548,6 @@ export default function ShoppingCart() {
       state: {
         type: 'CART',
         selectedItems,
-        ...(voucherApplied ? { voucherCode: voucherApplied } : {}),
       },
     });
   };
@@ -622,65 +628,86 @@ export default function ShoppingCart() {
                     </label>
                   </div>
 
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.cartItemId}
-                      className={`cart-item-card${selectedItems.includes(item.cartItemId) ? ' is-selected' : ''}`}
-                    >
-                      {/* Checkbox */}
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(item.cartItemId)}
-                        onChange={() => handleToggleItem(item.cartItemId)}
-                        aria-label={`Chọn ${item.name}`}
-                      />
-
-                      {/* Image */}
-                      <img src={item.image} alt={item.name} className="cart-item-img" />
-
-                      {/* Details */}
-                      <div className="cart-item-details">
-                        <h3 className="cart-item-name">{item.name}</h3>
-                        <div className="cart-item-variant">
-                          <span className="cart-badge">Size: {item.size}</span>
-                          <span className="cart-badge">Màu: {item.color}</span>
-                        </div>
-
-                        {item.aiSuggest && (
-                          <div className="cart-ai-suggest">
-                            <BsStars className="ai-icon" /> Gợi ý AI: {item.aiSuggest}
-                          </div>
-                        )}
-
-                        {/* Quantity control */}
-                        <div className="cart-qty-wrapper">
-                          <button
-                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1, item.stock)}
-                            disabled={item.quantity <= 1}
-                            aria-label="Giảm số lượng"
-                          >−</button>
-                          <input type="text" value={item.quantity} readOnly aria-label="Số lượng" />
-                          <button
-                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1, item.stock)}
-                            disabled={item.quantity >= item.stock}
-                            aria-label="Tăng số lượng"
-                          >+</button>
-                        </div>
+                  {groupedCart.map((shop) => (
+                    <div key={shop.storeId} className="cart-shop-group">
+                      {/* Shop Header */}
+                      <div className="cart-shop-header">
+                        <input
+                          type="checkbox"
+                          id={`shop-${shop.storeId}`}
+                          checked={shop.items.every(i => selectedItems.includes(i.cartItemId))}
+                          onChange={(e) => handleToggleShop(shop.storeId, e.target.checked)}
+                        />
+                        <label htmlFor={`shop-${shop.storeId}`} className="cart-shop-name">
+                          <FaShoppingBag className="shop-icon" />
+                          {shop.storeName}
+                        </label>
                       </div>
 
-                      {/* Right: price + delete */}
-                      <div className="cart-item-right">
-                        <button
-                          className="cart-btn-trash"
-                          onClick={() => handleRemoveItem(item.cartItemId)}
-                          aria-label={`Xóa ${item.name}`}
-                        >
-                          <FaTrashAlt />
-                        </button>
-                        <div className="cart-price-info">
-                          <span className="cart-unit-price">Đơn giá: {formatVND(item.price)}</span>
-                          <span className="cart-total-line">{formatVND(item.price * item.quantity)}</span>
-                        </div>
+                      {/* Items in this shop */}
+                      <div className="cart-shop-items">
+                        {shop.items.map((item) => (
+                          <div
+                            key={item.cartItemId}
+                            className={`cart-item-card${selectedItems.includes(item.cartItemId) ? ' is-selected' : ''}`}
+                          >
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.includes(item.cartItemId)}
+                              onChange={() => handleToggleItem(item.cartItemId)}
+                              aria-label={`Chọn ${item.name}`}
+                            />
+
+                            {/* Image */}
+                            <img src={item.image} alt={item.name} className="cart-item-img" />
+
+                            {/* Details */}
+                            <div className="cart-item-details">
+                              <h3 className="cart-item-name">{item.name}</h3>
+                              <div className="cart-item-variant">
+                                <span className="cart-badge">Size: {item.size}</span>
+                                <span className="cart-badge">Màu: {item.color}</span>
+                              </div>
+
+                              {item.aiSuggest && (
+                                <div className="cart-ai-suggest">
+                                  <BsStars className="ai-icon" /> Gợi ý AI: {item.aiSuggest}
+                                </div>
+                              )}
+
+                              {/* Quantity control */}
+                              <div className="cart-qty-wrapper">
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1, item.stock)}
+                                  disabled={item.quantity <= 1}
+                                  aria-label="Giảm số lượng"
+                                >−</button>
+                                <input type="text" value={item.quantity} readOnly aria-label="Số lượng" />
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1, item.stock)}
+                                  disabled={item.quantity >= item.stock}
+                                  aria-label="Tăng số lượng"
+                                >+</button>
+                              </div>
+                            </div>
+
+                            {/* Right: price + delete */}
+                            <div className="cart-item-right">
+                              <button
+                                className="cart-btn-trash"
+                                onClick={() => handleRemoveItem(item.cartItemId)}
+                                aria-label={`Xóa ${item.name}`}
+                              >
+                                <FaTrashAlt />
+                              </button>
+                              <div className="cart-price-info">
+                                <span className="cart-unit-price">Đơn giá: {formatVND(item.price)}</span>
+                                <span className="cart-total-line">{formatVND(item.price * item.quantity)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
@@ -697,74 +724,18 @@ export default function ShoppingCart() {
               <div className="cart-summary-box">
                 <h2 className="summary-title">Tóm tắt đơn hàng</h2>
 
-                {/* Voucher */}
-                <div className="summary-voucher">
-                  <label>MÃ GIẢM GIÁ</label>
-
-                  {voucherApplied ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>
-                        ✓ Đang áp dụng: <strong>{voucherApplied}</strong>
-                      </span>
-                      <button
-                        onClick={handleRemoveVoucher}
-                        style={{
-                          background: 'none',
-                          border: '1px solid #fca5a5',
-                          borderRadius: 8,
-                          padding: '3px 10px',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          fontSize: '0.78rem',
-                          fontFamily: 'inherit',
-                          fontWeight: 600,
-                        }}
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="voucher-input-group">
-                        <input
-                          type="text"
-                          placeholder="Nhập mã voucher..."
-                          value={voucherCode}
-                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
-                          disabled={selectedItems.length === 0}
-                        />
-                        <button
-                          className="btn-apply"
-                          onClick={handleApplyVoucher}
-                          disabled={!voucherCode.trim() || previewLoading || selectedItems.length === 0}
-                        >
-                          {previewLoading ? '...' : 'Áp dụng'}
-                        </button>
-                      </div>
-                      {voucherStatus && (
-                        <p style={{
-                          fontSize: '0.8rem',
-                          marginTop: 6,
-                          color: voucherStatus.ok ? '#4ade80' : '#f87171',
-                        }}>
-                          {voucherStatus.ok ? '✓' : '✗'} {voucherStatus.msg}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
+                {/* Voucher section removed */}
 
                 {/* Preview error banner */}
                 {previewError && !previewLoading && (
                   <div style={{
-                    background: 'rgba(239,68,68,0.12)',
-                    border: '1px solid rgba(239,68,68,0.4)',
+                    background: '#fef2f2',
+                    border: '1px solid #fecdd3',
                     borderRadius: 8,
                     padding: '8px 12px',
                     marginBottom: 10,
                     fontSize: '0.8rem',
-                    color: '#f87171',
+                    color: '#dc2626',
                   }}>
                     ⚠️ {previewError}
                   </div>
@@ -784,9 +755,9 @@ export default function ShoppingCart() {
                   </div>
                   {discount > 0 && (
                     <div className="calc-row discount-row">
-                      <span>
-                        {previewData && voucherApplied ? `Voucher (${voucherApplied})` : 'Giảm giá đơn >500k'}
-                      </span>
+                    <span>
+                      Giảm giá
+                    </span>
 
                       <span>−{formatVND(discount)}</span>
                     </div>
@@ -817,8 +788,10 @@ export default function ShoppingCart() {
                     onClick={handleCheckout}
                     disabled={selectedItems.length === 0}
                   >
-                    🛒 Thanh toán ({selectedItems.length} sản phẩm)
+                    <FaShoppingBag />
+                    Thanh toán ({selectedItems.length} sản phẩm)
                   </button>
+
 
                   <div className="summary-notice">
                     <span className="notice-icon">🔒</span>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CheckoutService from "../../services/CheckoutService";
 import "./Checkout.css";
@@ -405,7 +405,7 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
     >
       <div className="ck-success-box">
         <div className="ck-success-icon" aria-hidden>
-          
+
         </div>
         <h2 className="ck-success-title">Đặt hàng thành công!</h2>
         <p className="ck-success-msg">
@@ -413,9 +413,19 @@ function SuccessOverlay({ orderId, payUrl, onGoOrders, onGoHome }) {
           của bạn ngay.
 
         </p>
-        {orderId && (
+        {orderId && !Array.isArray(orderId) && (
           <div className="ck-success-order-id">
             Mã đơn hàng: <strong>#{orderId}</strong>
+          </div>
+        )}
+        {Array.isArray(orderId) && orderId.length > 0 && (
+          <div className="ck-success-order-ids-list">
+            <p>Mã đơn hàng của bạn:</p>
+            <div className="ck-success-order-ids-tags">
+              {orderId.map((id) => (
+                <span key={id} className="ck-success-id-tag">#{id}</span>
+              ))}
+            </div>
           </div>
         )}
         {hasMomo && (
@@ -457,15 +467,9 @@ export default function Checkout() {
 
 
   const [paymentMethod, setPaymentMethod] = useState("MOMO");
-  // Kế thừa voucher đã áp dụng từ Cart page (nếu có)
-  const [voucherCode, setVoucherCode] = useState(
-    checkoutState.voucherCode || "",
-  );
-  const [voucherApplied, setVoucherApplied] = useState(
-    checkoutState.voucherCode || "",
-  );
-
-  const [voucherStatus, setVoucherStatus] = useState(null); // {ok, msg}
+  // Voucher cho từng shop: { [storeId]: { code: string, applied: string, status: { ok, msg } } }
+  const [storeVouchers, setStoreVouchers] = useState({});
+  
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
@@ -516,12 +520,23 @@ export default function Checkout() {
 
   // ── Gọi Preview mỗi khi voucher / loại đặt thay đổi ──
 
+  const appliedVouchers = useMemo(() => {
+    const obj = {};
+    Object.entries(storeVouchers).forEach(([sId, v]) => {
+      if (v.applied) obj[sId] = v.applied;
+    });
+    return obj;
+  }, [storeVouchers]);
+
   const callPreview = useCallback(
-    async (appliedVoucher = "") => {
+    async (vouchersMap = {}) => {
       if (!isValid) return;
       setPreviewLoading(true);
       setPreviewError(null);
       try {
+        const storeVouchersList = Object.entries(vouchersMap)
+          .map(([sId, code]) => ({ storeId: Number(sId), code }));
+
         const params = {
           type: checkoutState.type,
           ...(checkoutState.type === "CART"
@@ -530,7 +545,7 @@ export default function Checkout() {
               variantId: checkoutState.variantId,
               quantity: checkoutState.quantity,
             }),
-          ...(appliedVoucher ? { voucherCode: appliedVoucher } : {}),
+          storeVouchers: storeVouchersList,
         };
         const data = await CheckoutService.preview(params);
         setPreviewData(data);
@@ -547,55 +562,75 @@ export default function Checkout() {
     [checkoutState, isValid],
   );
 
-
   useEffect(() => {
-    callPreview(voucherApplied);
-  }, [callPreview, voucherApplied]);
+    callPreview(appliedVouchers);
+  }, [callPreview, appliedVouchers]);
 
-  // ── Áp dụng voucher ──
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) return;
+  // ── Áp dụng voucher cho từng shop ──
+  const handleApplyVoucher = async (storeId) => {
+    const code = storeVouchers[storeId]?.code?.trim();
+    if (!code) return;
+
     setPreviewLoading(true);
-    setVoucherStatus(null);
     try {
+      const newVouchers = {
+        ...storeVouchers,
+        [storeId]: { ...storeVouchers[storeId], applied: code, status: null }
+      };
+      
+      const storeVouchersList = Object.entries(newVouchers)
+        .filter(([_, v]) => v.applied)
+        .map(([sId, v]) => ({ storeId: Number(sId), code: v.applied }));
+
       const params = {
         type: checkoutState.type,
-
         ...(checkoutState.type === "CART"
           ? { selectedItems: checkoutState.selectedItems }
           : {
             variantId: checkoutState.variantId,
             quantity: checkoutState.quantity,
           }),
-
-        voucherCode: voucherCode.trim(),
+        storeVouchers: storeVouchersList,
       };
+
       const data = await CheckoutService.preview(params);
       setPreviewData(data);
-      setVoucherApplied(voucherCode.trim());
-
-      setVoucherStatus({
-        ok: true,
-        msg: `Voucher "${voucherCode.trim()}" đã được áp dụng thành công!`,
+      
+      setStoreVouchers({
+        ...newVouchers,
+        [storeId]: {
+          ...newVouchers[storeId],
+          status: { ok: true, msg: "Áp dụng thành công!" }
+        }
       });
     } catch (e) {
-      const msg =
-        e.response?.data?.message || e.message || "Voucher không hợp lệ";
-      setVoucherStatus({ ok: false, msg });
-      setVoucherApplied("");
-
+      let msg = e.response?.data?.message || e.message || "Voucher không hợp lệ";
+      
+      // Việt hóa các lỗi hệ thống hoặc lỗi chung
+      if (msg === "Internal server error" || e.response?.status === 500) {
+        msg = "Mã giảm giá không áp dụng được cho cửa hàng này hoặc đã hết hạn";
+      }
+      
+      setStoreVouchers({
+        ...storeVouchers,
+        [storeId]: {
+          ...storeVouchers[storeId],
+          applied: "",
+          status: { ok: false, msg }
+        }
+      });
     } finally {
       setPreviewLoading(false);
     }
   };
 
-  const handleRemoveVoucher = () => {
-
-    setVoucherCode("");
-    setVoucherApplied("");
-    setVoucherStatus(null);
-    callPreview("");
-
+  const handleRemoveVoucher = (storeId) => {
+    const newVouchers = {
+      ...storeVouchers,
+      [storeId]: { code: "", applied: "", status: null }
+    };
+    setStoreVouchers(newVouchers);
+    // callPreview sẽ tự chạy qua useEffect
   };
 
   const handleSaveAddr = async (data) => {
@@ -633,6 +668,10 @@ export default function Checkout() {
     }
     setSubmitError(null);
     setSubmitting(true);
+    const storeVouchersList = Object.entries(storeVouchers)
+      .filter(([_, v]) => v.applied)
+      .map(([sId, v]) => ({ storeId: Number(sId), code: v.applied }));
+
     try {
       // Đảm bảo các field là đúng kiểu số theo yêu cầu của backend DTO
       const payload = {
@@ -646,21 +685,28 @@ export default function Checkout() {
             variantId: Number(checkoutState.variantId),
             quantity: Number(checkoutState.quantity),
           }),
-        ...(voucherApplied ? { voucherCode: voucherApplied } : {}),
+        storeVouchers: storeVouchersList,
       };
       console.log("[Checkout] Gửi payload:", JSON.stringify(payload, null, 2));
 
       const res = await CheckoutService.createOrder(payload);
+
+      // Backend trả về res.orders là mảng các { order, payment }
+      const orderIds = res.orders?.map(o => o.order.OrderId) || (res.order?.OrderId ? [res.order.OrderId] : []);
+
       setSuccess({
-        orderId: res.order?.OrderId,
+        orderId: orderIds.length > 1 ? orderIds : orderIds[0],
         payUrl: res.payUrl,
       });
     } catch (e) {
-
-      const msg =
+      let msg =
         e.response?.data?.message ||
         e.message ||
         "Đặt hàng thất bại. Vui lòng thử lại.";
+
+      if (msg === "Internal server error" || e.response?.status === 500) {
+        msg = "Có lỗi xảy ra trong quá trình xử lý đơn hàng. Vui lòng thử lại sau.";
+      }
 
       setSubmitError(msg);
     } finally {
@@ -836,10 +882,94 @@ export default function Checkout() {
                 <div className="ck-btn-spin" />
                 Đang tải thông tin sản phẩm...
               </div>
-            ) : previewData?.items?.length > 0 ? (
+            ) : previewData?.storeGroups?.length > 0 ? (
               <div className="ck-items-list">
-                {previewData.items.map((item, i) => (
-                  <OrderItemRow key={item.variantId ?? i} item={item} />
+                {previewData.storeGroups.map((group, i) => (
+                  <div key={group.storeId || i} className="ck-shop-group-card">
+                    <div className="ck-shop-group-header">
+                      <div className="ck-shop-info">
+                        {group.storeLogo ? (
+                          <img
+                            src={group.storeLogo}
+                            alt={group.storeName}
+                            className="ck-shop-logo"
+                          />
+                        ) : (
+                          <div className="ck-shop-logo-placeholder">🏬</div>
+                        )}
+                        <span className="ck-shop-name">{group.storeName}</span>
+                      </div>
+                      <Link to={`/shop/${group.storeId}`} className="ck-shop-link">
+                        Xem Shop
+                      </Link>
+                    </div>
+
+                    <div className="ck-shop-group-items">
+                      {group.items.map((item, idx) => (
+                        <OrderItemRow key={item.variantId ?? idx} item={item} />
+                      ))}
+                    </div>
+
+                    <div className="ck-shop-group-footer">
+                      <div className="ck-shop-shipping-row">
+                        <span className="ck-shipping-label">
+                          Phương thức vận chuyển:
+                        </span>
+                        <div className="ck-shipping-method">
+                          <strong>Nhanh</strong>
+                          <div className="ck-shipping-fee">30.000đ</div>
+                        </div>
+                      </div>
+
+                      {/* Voucher cho Shop này */}
+                      <div className="ck-shop-voucher-box">
+                         {storeVouchers[group.storeId]?.applied ? (
+                           <div className="ck-shop-voucher-applied">
+                              <span>Mã giảm giá shop: <strong>{storeVouchers[group.storeId].applied}</strong></span>
+                              <button onClick={() => handleRemoveVoucher(group.storeId)}>Gỡ</button>
+                           </div>
+                         ) : (
+                           <div className="ck-shop-voucher-input-row">
+                              <input 
+                                type="text" 
+                                placeholder="Mã giảm giá của Shop"
+                                value={storeVouchers[group.storeId]?.code || ""}
+                                onChange={(e) => setStoreVouchers({
+                                  ...storeVouchers,
+                                  [group.storeId]: { ...storeVouchers[group.storeId], code: e.target.value.toUpperCase() }
+                                })}
+                              />
+                              <button 
+                                onClick={() => handleApplyVoucher(group.storeId)}
+                                disabled={!storeVouchers[group.storeId]?.code || previewLoading}
+                              >
+                                Áp dụng
+                              </button>
+                           </div>
+                         )}
+                         {storeVouchers[group.storeId]?.status && (
+                           <div className={`ck-shop-voucher-status ${storeVouchers[group.storeId].status.ok ? 'success' : 'error'}`}>
+                              {storeVouchers[group.storeId].status.msg}
+                           </div>
+                         )}
+                      </div>
+
+                      <div className="ck-shop-note-row">
+                        <input
+                          type="text"
+                          className="ck-shop-note-input"
+                          placeholder="Lưu ý cho Người bán..."
+                        />
+                      </div>
+
+                      <div className="ck-shop-total-row">
+                        Tổng số tiền ({group.items.length} sản phẩm):{" "}
+                        <span className="ck-shop-total-price">
+                          {formatVND(group.shopTotal)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : !previewLoading ? (
@@ -857,75 +987,7 @@ export default function Checkout() {
             ) : null}
           </section>
 
-          {/* ── 3. Voucher ── */}
-          <section className="ck-card" aria-labelledby="voucher-title">
-            <h2 className="ck-card-title" id="voucher-title">
-              Mã giảm giá
-            </h2>
-
-            {voucherApplied ? (
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: "0.88rem", color: "var(--ck-green)" }}>
-
-                  ✓ Đang áp dụng: <strong>{voucherApplied}</strong>
-                </span>
-                <button
-                  onClick={handleRemoveVoucher}
-                  style={{
-
-                    background: "none",
-                    border: "1px solid #fca5a5",
-                    borderRadius: 8,
-                    padding: "4px 12px",
-                    color: "#ef4444",
-                    cursor: "pointer",
-                    fontSize: "0.78rem",
-                    fontFamily: "inherit",
-
-                    fontWeight: 600,
-                  }}
-                >
-                  Xóa
-                </button>
-              </div>
-            ) : (
-              <div className="ck-voucher-row">
-                <input
-                  id="voucher-input"
-                  type="text"
-                  className="ck-voucher-input"
-                  placeholder="Nhập mã voucher (VD: SALE10)"
-                  value={voucherCode}
-
-                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === "Enter" && handleApplyVoucher()}
-
-                  aria-label="Mã giảm giá"
-                  autoComplete="off"
-                />
-                <button
-                  className="ck-voucher-btn"
-                  onClick={handleApplyVoucher}
-                  disabled={!voucherCode.trim() || previewLoading}
-                  aria-label="Áp dụng voucher"
-                >
-                  Áp dụng
-                </button>
-              </div>
-            )}
-
-            {voucherStatus && (
-
-              <div
-                className={`ck-voucher-status ${voucherStatus.ok ? "success" : "error"}`}
-                role="status"
-              >
-                {voucherStatus.ok ? "✓" : "✗"} {voucherStatus.msg}
-
-              </div>
-            )}
-          </section>
+          {/* Voucher tổng đã bị loại bỏ theo yêu cầu */}
 
           {/* ── 4. Phương thức thanh toán ── */}
           <section className="ck-card" aria-labelledby="pay-title">

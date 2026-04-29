@@ -377,12 +377,13 @@ export default function ShopDetail() {
             return;
         }
         try {
-            // Truyền ownerId (userId của shop owner) thay vì storeId
-            const shopOwnerId = shop?.ownerId || id;
-            const res = await chatService.startChat(shopOwnerId);
+            // Truyền storeId để backend tạo/tìm conversation
+            const shopIdToChat = shop?.storeId || id;
+            const res = await chatService.startChat(shopIdToChat);
             if (res && res.ConversationId) navigate("/chat", { state: { conversationId: res.ConversationId } });
             else navigate("/chat");
         } catch (err) {
+            console.error("Lỗi khi bắt đầu chat:", err);
             navigate("/chat");
         }
     };
