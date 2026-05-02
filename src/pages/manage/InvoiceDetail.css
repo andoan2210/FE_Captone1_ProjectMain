@@ -298,6 +298,17 @@
   gap: 14px;
 }
 
+.id-actions-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .id-actions-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Summary Card ── */
 .id-summary-card {
   background: var(--id-card);

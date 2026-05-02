@@ -14,6 +14,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiAlertCircle,
+  FiInfo,
   FiEdit2,
 } from "react-icons/fi";
 import ApprovalBadge from "../../components/shop-owner/ApprovalBadge";
@@ -321,18 +322,22 @@ const ApprovalProducts = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
                         <ApprovalBadge status={product.approvalStatus} />
-                        {product.approvalStatus === "REJECTED" &&
-                          product.rejectReason && (
-                            <div className="flex items-start gap-2 bg-rose-50 p-2 rounded-lg border border-rose-200">
-                              <FiAlertCircle
-                                className="text-rose-600 mt-0.5 flex-shrink-0"
-                                size={16}
-                              />
-                              <p className="text-xs text-rose-700 font-medium">
-                                {product.rejectReason}
-                              </p>
-                            </div>
-                          )}
+                        {product.rejectReason && (
+                          <div className={`flex items-start gap-2 p-2 rounded-lg border ${
+                            product.approvalStatus === "REJECTED" 
+                              ? "bg-rose-50 border-rose-200 text-rose-700" 
+                              : "bg-blue-50 border-blue-200 text-blue-700"
+                          }`}>
+                            {product.approvalStatus === "REJECTED" ? (
+                              <FiAlertCircle className="text-rose-600 mt-0.5 flex-shrink-0" size={16} />
+                            ) : (
+                              <FiInfo className="text-blue-600 mt-0.5 flex-shrink-0" size={16} />
+                            )}
+                            <p className="text-xs font-medium">
+                              {product.rejectReason}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </td>
 

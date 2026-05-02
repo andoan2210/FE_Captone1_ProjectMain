@@ -344,10 +344,31 @@
   letter-spacing: 0.5px;
 }
 
+.shop-logo-link {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.shop-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--invoice-border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
 .shop-name-text {
   font-weight: 700;
   font-size: 15px;
   color: var(--invoice-text-main);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.shop-name-text:hover {
+  color: var(--invoice-accent);
 }
 
 .visit-shop-btn {

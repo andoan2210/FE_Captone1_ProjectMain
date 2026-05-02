@@ -1,56 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Filter, Calendar, Download, AlertCircle, Info, Image as ImageIcon,
-  CheckCircle2, XCircle, Search, History, Trash2, EyeOff, Lock, Edit3, 
-  ChevronDown, ChevronUp, Eye
+  AlertCircle, Info, Image as ImageIcon,
+  CheckCircle2, XCircle, Search, History, Trash2, EyeOff, Lock, 
+  ChevronDown, ChevronUp, Eye, Loader2, Clock, AlertTriangle
 } from 'lucide-react';
+import adminService from '../../services/adminService';
+import { toast } from 'react-hot-toast';
 
-const initialMockReports = [
-  {
-    id: 'RP-001',
-    productName: 'iPhone 15 Pro Max 256GB Titanium',
-    productImage: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=40&q=80',
-    shopName: 'Apple Store Official',
-    shopViolations: 3,
-    priority: 'Cao',
-    sla: 'QUÁ HẠN 174.9H',
-    reporterName: 'Lê Văn Tám',
-    reporterEmail: 'levantam.92@gmail.com',
-    type: 'Hàng giả/nhái',
-    description: 'Sản phẩm nhận được không giống như mô tả...',
-    date: '14/04/2024',
-    status: 'Chờ xử lý',
-    logs: [
-      { actor: 'Hệ thống', action: 'Tạo báo cáo tự động', time: '14/04/2024 09:20' },
-      { actor: 'Admin System', action: 'Tiếp nhận báo cáo (Pending)', time: '14/04/2024 09:03' }
-    ],
-    evidence: [
-      'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=50&q=80',
-      'https://images.unsplash.com/photo-1592890288564-76628a30a657?w=50&q=80'
-    ]
-  },
-  {
-    id: 'RP-002',
-    productName: 'Tai nghe Sony WH-1000XM5',
-    productImage: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=40&q=80',
-    shopName: 'Sony Center',
-    shopViolations: 0,
-    priority: 'Trung bình',
-    sla: 'CÒN HẠN 17H',
-    reporterName: 'Nguyễn Thị Hoa',
-    reporterEmail: 'hoanguyen_tech@yahoo.com',
-    type: 'Thông tin sai lệch',
-    description: 'Mô tả ghi là bảo hành chính hãng 24...',
-    date: '13/04/2024',
-    status: 'Đang xem xét',
-    logs: [
-      { actor: 'Admin System', action: 'Đang xem xét chi tiết (Reviewing)', time: '13/04/2024 15:00' }
-    ],
-    evidence: [
-      'https://images.unsplash.com/photo-1620189507185-177b94154e56?w=50&q=80'
-    ]
-  }
-];
 
 const getTypeBadge = (type) => {
   switch (type) {
@@ -79,34 +35,145 @@ const getStatusBadge = (status) => {
 };
 
 const ReportManagement = () => {
-  const [reports, setReports] = useState(initialMockReports);
-  const [selectedReport, setSelectedReport] = useState(initialMockReports[0]);
+  const [reports, setReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [banProduct, setBanProduct] = useState(false);
   
-  const [filterType, setFilterType] = useState('Tất cả ưu tiên');
   const [filterStatus, setFilterStatus] = useState('Mọi trạng thái');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
+  const [totalItems, setTotalItems] = useState(0);
 
-  const filteredReports = reports.filter(r => {
-    const matchStatus = filterStatus === 'Mọi trạng thái' || r.status === filterStatus;
-    const matchPriority = filterType === 'Tất cả ưu tiên' || r.priority === filterType;
-    const matchSearch = r.productName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        r.reporterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        r.reporterEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        r.shopName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        r.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchStatus && matchPriority && matchSearch;
-  });
+  const statusMap = {
+    'PENDING': 'Chờ xử lý',
+    'REVIEWING': 'Đang xem xét',
+    'RESOLVED': 'Đã giải quyết',
+    'REJECTED': 'Từ chối'
+  };
 
-  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
-  const currentItems = filteredReports.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const reverseStatusMap = {
+    'Chờ xử lý': 'PENDING',
+    'Đang xem xét': 'REVIEWING',
+    'Đã giải quyết': 'RESOLVED',
+    'Từ chối': 'REJECTED'
+  };
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const statusParam = filterStatus === 'Mọi trạng thái' ? undefined : reverseStatusMap[filterStatus];
+      const res = await adminService.getReports({
+        page: currentPage,
+        limit: itemsPerPage,
+        status: statusParam,
+        searchTerm: searchTerm || undefined
+      });
+
+      if (res && res.data) {
+        const mappedReports = res.data.map(item => ({
+          id: item.ReportId,
+          displayId: `RP-${(item.ReportId || 0).toString().padStart(3, '0')}`,
+          productName: item.Products?.ProductName || 'Sản phẩm không xác định',
+          productImage: item.Products?.ThumbnailUrl || null,
+          shopName: item.Stores?.StoreName || 'Cửa hàng không xác định',
+          shopId: item.StoreId,
+          shopViolations: 0,
+          reporterName: item.Reporter?.FullName || 'Ẩn danh',
+          reporterEmail: item.Reporter?.Email || '',
+          type: item.ReportType || 'Khác',
+          description: item.Description || '',
+          date: item.CreatedAt ? new Date(item.CreatedAt).toLocaleDateString('vi-VN') : 'N/A',
+          status: statusMap[item.Status] || item.Status || 'Chờ xử lý',
+          logs: [],
+          evidence: []
+        }));
+
+        setReports(mappedReports);
+        setTotalItems(res.meta?.total || 0);
+      } else {
+        setReports([]);
+        setTotalItems(0);
+      }
+    } catch (error) {
+      console.error("Fetch reports error:", error);
+      toast.error(error.message || "Không thể tải danh sách báo cáo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchReportDetail = async (reportId) => {
+    try {
+      const res = await adminService.getReportDetail(reportId);
+      
+      // Đồng bộ mapping với fetchReports
+      const detail = {
+        id: res.ReportId,
+        displayId: `RP-${(res.ReportId || 0).toString().padStart(3, '0')}`,
+        productName: res.Products?.ProductName || 'Sản phẩm không xác định',
+        productImage: res.Products?.ThumbnailUrl || null,
+        shopName: res.Stores?.StoreName || 'Cửa hàng không xác định',
+        shopId: res.StoreId,
+        reporterName: res.Reporter?.FullName || 'Ẩn danh',
+        reporterEmail: res.Reporter?.Email || '',
+        type: res.ReportType || 'Khác',
+        description: res.Description || '',
+        date: res.CreatedAt ? new Date(res.CreatedAt).toLocaleDateString('vi-VN') : 'N/A',
+        status: statusMap[res.Status] || res.Status || 'Chờ xử lý',
+        logs: res.ReportLogs?.map(log => ({
+          actor: log.AdminUser?.FullName || 'Hệ thống',
+          action: log.Action,
+          time: new Date(log.CreatedAt).toLocaleString('vi-VN')
+        })) || [],
+        evidence: res.ReportEvidences?.map(e => e.ImageUrl) || [],
+        productReportStats: res.productReportStats,
+        // Giữ lại các trường mock
+        shopViolations: 0,
+      };
+      
+      setReports(prev => prev.map(r => r.id === reportId ? detail : r));
+      setSelectedReport(detail);
+    } catch (error) {
+      console.error("Fetch report detail error:", error);
+      toast.error("Không thể tải chi tiết báo cáo");
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, [currentPage, filterStatus, searchTerm]);
+
+  const handleSelectReport = (report) => {
+    setSelectedReport(report);
+    fetchReportDetail(report.id);
+  };
+
+  const updateReportStatus = async (id, newStatusDisplay, note = '') => {
+    try {
+      const statusValue = reverseStatusMap[newStatusDisplay];
+      await adminService.updateReportStatus(id, { 
+        status: statusValue,
+        note: note,
+        banProduct: banProduct // Use the state value
+      });
+      toast.success(`Đã cập nhật trạng thái thành ${newStatusDisplay}`);
+      setBanProduct(false); // Reset after update
+      fetchReports(); // Refresh list
+      if (selectedReport?.id === id) {
+        fetchReportDetail(id); // Refresh detail
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   const toggleSelectAll = (e) => {
-    if (e.target.checked) setSelectedIds(currentItems.map(r => r.id));
+    if (e.target.checked) setSelectedIds(reports.map(r => r.id));
     else setSelectedIds([]);
   };
 
@@ -115,33 +182,21 @@ const ReportManagement = () => {
     else setSelectedIds([...selectedIds, id]);
   };
 
-  const handleBulkResolve = () => {
-    setReports(reports.map(r => selectedIds.includes(r.id) ? { ...r, status: 'Đã giải quyết' } : r));
-    setSelectedIds([]);
-  };
 
-  const handleBulkReject = () => {
-    setReports(reports.map(r => selectedIds.includes(r.id) ? { ...r, status: 'Từ chối' } : r));
-    setSelectedIds([]);
-  };
 
   const handleBulkDelete = () => {
-    if(!window.confirm('Bạn có chắc chắn muốn xóa báo cáo đã chọn?')) return;
-    setReports(reports.filter(r => !selectedIds.includes(r.id)));
-    setSelectedIds([]);
+    toast.error("Tính năng xóa hàng loạt đang được phát triển");
   };
 
   const handleExportCSV = () => {
     const headers = [
-      'ID', 'Sản phẩm', 'Cửa hàng', 'Ưu tiên', 'SLA', 'Người báo cáo', 'Email', 'Loại', 'Mô tả', 'Ngày gửi', 'Trạng thái'
+      'ID', 'Sản phẩm', 'Cửa hàng', 'Người báo cáo', 'Email', 'Loại', 'Mô tả', 'Ngày gửi', 'Trạng thái'
     ];
     
-    const rows = filteredReports.map(r => [
+    const rows = reports.map(r => [
       r.id,
       `"${r.productName}"`,
       `"${r.shopName}"`,
-      r.priority,
-      `"${r.sla}"`,
       `"${r.reporterName}"`,
       r.reporterEmail,
       `"${r.type}"`,
@@ -160,50 +215,31 @@ const ReportManagement = () => {
 
   const handleResolve = () => {
     if (!selectedReport) return;
-    const newLog = {
-      actor: 'Admin System',
-      action: `Đã giải quyết` + (feedback ? `: ${feedback}` : ''),
-      time: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) + ' ' + new Date().toLocaleDateString('vi-VN')
-    };
-    const updated = reports.map(r => r.id === selectedReport.id ? { 
-        ...r, 
-        status: 'Đã giải quyết',
-        logs: [...(r.logs || []), newLog]
-      } : r);
-    setReports(updated);
-    setSelectedReport(updated.find(r => r.id === selectedReport.id));
+    updateReportStatus(selectedReport.id, 'Đã giải quyết', feedback);
     setFeedback('');
   };
 
   const handleReject = () => {
     if (!selectedReport) return;
-    const newLog = {
-      actor: 'Admin System',
-      action: `Đã từ chối` + (feedback ? `: ${feedback}` : ''),
-      time: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) + ' ' + new Date().toLocaleDateString('vi-VN')
-    };
-    const updated = reports.map(r => r.id === selectedReport.id ? { 
-        ...r, 
-        status: 'Từ chối',
-        logs: [...(r.logs || []), newLog]
-      } : r);
-    setReports(updated);
-    setSelectedReport(updated.find(r => r.id === selectedReport.id));
+    updateReportStatus(selectedReport.id, 'Từ chối', feedback);
     setFeedback('');
   };
 
-  const updateReportStatus = (id, newStatus) => {
-    setReports(reports.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    if (selectedReport?.id === id) setSelectedReport(prev => ({ ...prev, status: newStatus }));
-  };
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fadeIn pb-10">
       
-      {/* HEADER TITTLE */}
-      <div className="bg-transparent">
-        <h2 className="text-xl font-bold text-gray-800">Quản lý Báo cáo Sản phẩm</h2>
-        <p className="text-sm text-gray-500 mt-1">Theo dõi, kiểm tra và xử lý các khiếu nại của người dùng về chất lượng sản phẩm và nội dung.</p>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="text-blue-600" size={24} />
+            Quản lý Báo cáo Sản phẩm
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Theo dõi, kiểm tra và xử lý các khiếu nại của người dùng về chất lượng sản phẩm và nội dung.
+          </p>
+        </div>
       </div>
 
       {/* FILTER & ACTIONS BOX */}
@@ -223,16 +259,7 @@ const ReportManagement = () => {
                />
              </div>
              
-             <select 
-               value={filterType}
-               onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
-               className="border border-gray-200 bg-white rounded-lg p-2 text-sm outline-none w-36 focus:ring-1 focus:ring-blue-500 font-medium text-gray-600"
-             >
-               <option>Tất cả ưu tiên</option>
-               <option>Cao</option>
-               <option>Trung bình</option>
-               <option>Thấp</option>
-             </select>
+
              
              <select 
                value={filterStatus}
@@ -261,12 +288,7 @@ const ReportManagement = () => {
         {selectedIds.length > 0 && (
           <div className="flex items-center gap-3 py-2 border-t border-gray-100 flex-wrap animate-fadeIn">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-2">Thao tác hàng loạt:</span>
-            <button onClick={handleBulkResolve} className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition">
-               <CheckCircle2 size={14} /> Giải quyết
-            </button>
-            <button onClick={handleBulkReject} className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition">
-               <XCircle size={14} /> Từ chối
-            </button>
+
             <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 shadow-md transition ml-2">
                <Trash2 size={14} /> Xóa
             </button>
@@ -279,11 +301,11 @@ const ReportManagement = () => {
             <thead className="bg-gray-50/50 text-gray-500 font-bold text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-4 w-10">
-                  <input type="checkbox" onChange={toggleSelectAll} checked={selectedIds.length === currentItems.length && currentItems.length > 0} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
+                  <input type="checkbox" onChange={toggleSelectAll} checked={selectedIds.length === reports.length && reports.length > 0} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
                 </th>
                 <th className="px-4 py-4">Sản phẩm</th>
                 <th className="px-4 py-4">Cửa hàng (Shop)</th>
-                <th className="px-4 py-4">Ưu tiên & SLA</th>
+
                 <th className="px-4 py-4">Người báo cáo</th>
                 <th className="px-4 py-4">Loại</th>
                 <th className="px-4 py-4">Mô tả</th>
@@ -291,10 +313,23 @@ const ReportManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {currentItems.map((report) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="animate-spin text-blue-500" size={32} />
+                      <span className="text-sm text-gray-500 font-medium">Đang tải danh sách báo cáo...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : reports.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-20 text-center text-gray-500">Không tìm thấy báo cáo nào</td>
+                </tr>
+              ) : reports.map((report) => (
                 <React.Fragment key={report.id}>
                   <tr 
-                    onClick={() => setSelectedReport(report)}
+                    onClick={() => handleSelectReport(report)}
                     className={`cursor-pointer transition-colors ${selectedReport?.id === report.id ? 'bg-blue-50/20' : 'hover:bg-gray-50/50'} align-top`}
                   >
                     <td className="px-4 py-4">
@@ -309,40 +344,29 @@ const ReportManagement = () => {
                     <td className="px-4 py-4 min-w-[220px]">
                        <div className="flex gap-3">
                           <div className="w-12 h-12 rounded bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
-                             {report.productImage ? <img src={report.productImage} className="w-full h-full object-cover" alt="product" /> : <ImageIcon size={20}/>}
+                             {report.productImage ? <img src={report.productImage} className="w-full h-full object-cover" alt="product" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon size={20}/></div>}
                           </div>
                           <div className="flex flex-col overflow-hidden max-w-[150px]">
                              <span className="font-bold text-gray-800 text-xs truncate whitespace-normal leading-tight">{report.productName}</span>
-                             <span className="text-[10px] text-gray-400 font-bold mt-1">ID: {report.id}</span>
+                             <span className="text-[10px] text-gray-400 font-bold mt-1">ID: {report.displayId}</span>
                           </div>
                        </div>
                     </td>
                     <td className="px-4 py-4">
                        <div className="flex flex-col gap-1.5 items-start max-w-[120px]">
-                         <div className="flex items-center gap-1.5">
-                            <span className="text-blue-600 font-bold text-[11px] hover:underline cursor-pointer leading-tight whitespace-normal">{report.shopName}</span>
-                            {report.shopViolations > 0 && (
-                               <span className="w-4 h-4 flex items-center justify-center bg-red-500 text-white rounded-full text-[9px] font-bold shrink-0">{report.shopViolations}</span>
-                            )}
-                         </div>
-                         <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium font-sans w-full">
-                            <AlertCircle size={11} className="text-gray-400 shrink-0" />
-                            <span className="truncate">Lịch sử vi phạm</span>
-                         </div>
+                          <div className="flex items-center gap-1.5">
+                             <span className="text-blue-600 font-bold text-[11px] hover:underline cursor-pointer leading-tight whitespace-normal">{report.shopName}</span>
+                             {report.shopViolations > 0 && (
+                                <span className="w-4 h-4 flex items-center justify-center bg-red-500 text-white rounded-full text-[9px] font-bold shrink-0">{report.shopViolations}</span>
+                             )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium font-sans w-full">
+                             <AlertCircle size={11} className="text-gray-400 shrink-0" />
+                             <span className="truncate">Lịch sử vi phạm</span>
+                          </div>
                        </div>
                     </td>
-                    <td className="px-4 py-4">
-                       <div className="flex flex-col gap-1.5 w-fit">
-                         {report.priority === 'Cao' ? (
-                           <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-600 border border-red-200 text-[9px] font-bold uppercase tracking-wider justify-center mx-auto text-center w-full">Cao</span>
-                         ) : (
-                           <span className="px-2 py-0.5 rounded-sm bg-gray-50 text-gray-600 border border-gray-200 text-[9px] font-bold uppercase tracking-wider justify-center mx-auto text-center w-full">Trung bình</span>
-                         )}
-                         <span className={`text-[9px] font-bold uppercase flex items-center gap-1 px-1.5 py-0.5 border rounded-sm tracking-wider ${report.sla.includes('QUÁ HẠN') ? 'text-red-500 border-red-100 bg-red-50/50' : 'text-gray-500 border-gray-100'}`}>
-                           {report.sla}
-                         </span>
-                       </div>
-                    </td>
+
                     <td className="px-4 py-4">
                        <div className="flex flex-col">
                           <span className="font-bold text-gray-800 text-[12px]">{report.reporterName}</span>
@@ -368,9 +392,9 @@ const ReportManagement = () => {
                            onChange={(e) => { e.stopPropagation(); updateReportStatus(report.id, e.target.value); }}
                            onClick={e => e.stopPropagation()}
                            className={`w-full bg-transparent outline-none text-[10px] font-bold px-1 appearance-none cursor-pointer ${
-                             report.status.includes('Chờ') ? 'text-gray-600' : 
-                             report.status.includes('Đang') ? 'text-blue-600' : 
-                             report.status.includes('Đã') ? 'text-emerald-600' : 'text-red-600'
+                             report.status?.includes('Chờ') ? 'text-gray-600' : 
+                             report.status?.includes('Đang') ? 'text-blue-600' : 
+                             report.status?.includes('Đã') ? 'text-emerald-600' : 'text-red-600'
                            }`}
                          >
                            <option>Chờ xử lý</option>
@@ -387,10 +411,10 @@ const ReportManagement = () => {
                     </td>
                   </tr>
 
-                  {/* LIÊN QUAN ĐẾN NHẬT KÝ (Luôn hiển thị nếu là mock đầu tiên hoặc đang selected để giống hình) */}
-                  {(selectedReport?.id === report.id || report.logs) && (
+                  {/* LIÊN QUAN ĐẾN NHẬT KÝ */}
+                  {selectedReport?.id === report.id && (
                     <tr className="bg-[#FBFCFD] border-b border-gray-100">
-                      <td colSpan="8" className="px-10 py-5">
+                      <td colSpan="7" className="px-10 py-5">
                         <div className="flex flex-col md:flex-row gap-8 lg:gap-16">
                           {/* Nhật ký xử lý */}
                           <div className="flex-1">
@@ -398,13 +422,15 @@ const ReportManagement = () => {
                                <History size={12} className="text-blue-600" /> NHẬT KÝ XỬ LÝ
                              </h5>
                              <div className="space-y-3">
-                                {report.logs?.map((log, idx) => (
+                                {report.logs?.length > 0 ? report.logs.map((log, idx) => (
                                    <div key={idx} className="flex gap-4 items-start w-full">
                                      <span className={`font-extrabold text-[11px] w-24 shrink-0 truncate ${log.actor === 'Hệ thống' ? 'text-blue-500' : 'text-blue-600'}`}>{log.actor}:</span>
                                      <span className="text-[11px] text-gray-600 font-medium">{log.action}</span>
                                      <span className="text-[10px] text-gray-400 ml-auto shrink-0 font-medium">{log.time}</span>
                                    </div>
-                                ))}
+                                )) : (
+                                   <span className="text-[11px] text-gray-400 italic">Chưa có lịch sử xử lý</span>
+                                )}
                              </div>
                           </div>
                           
@@ -421,12 +447,6 @@ const ReportManagement = () => {
                                 )) : (
                                    <span className="text-xs text-gray-400 italic">Không có hình ảnh đính kèm</span>
                                 )}
-                                {report.evidence?.length > 0 && (
-                                   <button className="w-16 h-12 rounded border border-gray-200 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition p-1">
-                                      <ImageIcon size={14}/>
-                                      <span className="text-[9px] font-bold mt-1 tracking-tighter">Xem tất cả</span>
-                                   </button>
-                                )}
                              </div>
                           </div>
                         </div>
@@ -440,10 +460,10 @@ const ReportManagement = () => {
         </div>
 
         <div className="flex justify-between items-center py-3 px-2 border-t border-gray-100">
-           <span className="text-[11px] text-gray-500 font-medium">Đang hiển thị <strong className="text-gray-700">{filteredReports.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredReports.length)}</strong> trên tổng số <strong className="text-gray-700">{filteredReports.length}</strong> báo cáo</span>
+           <span className="text-[11px] text-gray-500 font-medium">Đang hiển thị <strong className="text-gray-700">{reports.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalItems)}</strong> trên tổng số <strong className="text-gray-700">{totalItems}</strong> báo cáo</span>
            <div className="flex items-center gap-1">
              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50">&lt;</button>
-             {Array.from({ length: totalPages }, (_, i) => (
+             {Array.from({ length: Math.ceil(totalItems / itemsPerPage) }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
@@ -452,7 +472,7 @@ const ReportManagement = () => {
                   {i + 1}
                 </button>
              ))}
-             <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">&gt;</button>
+             <button disabled={currentPage === Math.ceil(totalItems / itemsPerPage) || totalItems === 0} onClick={() => setCurrentPage(p => p + 1)} className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">&gt;</button>
            </div>
         </div>
       </div>
@@ -460,29 +480,81 @@ const ReportManagement = () => {
       {/* BOTTOM PANELS */}
       <div className="flex flex-col lg:flex-row gap-6">
          
-         {/* LEFT PANEL: GHI CHÚ */}
-         <div className="lg:w-1/2 bg-[#F6F9FC] border border-blue-100 rounded-2xl p-6 shadow-sm flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-500 shrink-0 shadow-sm border border-blue-100">
-               <Info size={16} />
+         {/* LEFT PANEL: THỐNG KÊ BÁO CÁO */}
+         <div className="lg:w-1/2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
+            <div className="flex justify-between items-center mb-2">
+               <h4 className="font-bold text-gray-800 text-[14px] flex items-center gap-2">
+                  <History size={16} className="text-blue-500" /> Thống kê báo cáo sản phẩm
+               </h4>
+               {selectedReport?.productReportStats && (
+                  <span className="px-2 py-1 rounded bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">
+                     Bị báo cáo {selectedReport.productReportStats.totalReports} lần
+                  </span>
+               )}
             </div>
-            <div>
-               <h4 className="font-bold text-blue-800 text-[14px] mb-2">Ghi chú từ hệ thống</h4>
-               <p className="text-xs text-blue-700/80 font-medium leading-relaxed max-w-[400px]">
-                 Các báo cáo có nhãn "Hàng giả/nhái" cần được xử lý trong vòng 24h để đảm bảo uy tín của nền tảng. 
-                 Vui lòng kiểm tra kỹ bằng chứng đính kèm trước khi đưa ra quyết định khóa cửa hàng hoặc gỡ sản phẩm.
-               </p>
+
+            <div className="space-y-3">
+               {selectedReport ? (
+                  <>
+                     <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <p className="text-[11px] text-blue-700 font-medium mb-1 uppercase tracking-wider">Đang xem xét sản phẩm:</p>
+                        <p className="text-sm font-bold text-slate-800">{selectedReport.productName}</p>
+                     </div>
+
+                     <div className="mt-2">
+                        <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Lịch sử các lần báo cáo chi tiết</h5>
+                        <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                           {selectedReport.productReportStats?.history?.length > 0 ? (
+                              selectedReport.productReportStats.history.map((h, idx) => (
+                                 <div key={idx} className="p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-200 transition-all shadow-sm group">
+                                    <div className="flex justify-between items-center mb-2">
+                                       <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                          {h.reportType}
+                                       </span>
+                                       <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                          <Clock size={10} /> {new Date(h.createdAt).toLocaleDateString('vi-VN')}
+                                       </span>
+                                    </div>
+                                    <p className="text-[11px] text-gray-600 italic leading-relaxed font-medium">"{h.description}"</p>
+                                    <div className="mt-2 pt-2 border-t border-gray-50 flex justify-between items-center">
+                                       <span className="text-[10px] text-gray-400">Người báo cáo: <span className="font-bold text-gray-500">{h.reporterName}</span></span>
+                                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                          h.status === 'RESOLVED' ? 'bg-green-50 text-green-600' : 
+                                          h.status === 'PENDING' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
+                                       }`}>
+                                          {h.status === 'RESOLVED' ? 'Đã giải quyết' : h.status === 'PENDING' ? 'Chờ xử lý' : 'Từ chối'}
+                                       </span>
+                                    </div>
+                                 </div>
+                              ))
+                           ) : (
+                              <div className="py-10 text-center border-2 border-dashed border-gray-100 rounded-2xl">
+                                 <p className="text-xs text-gray-400 italic">Chọn một báo cáo để xem lịch sử</p>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  </>
+               ) : (
+                  <div className="py-20 text-center flex flex-col items-center gap-3">
+                     <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
+                        <AlertCircle size={24} />
+                     </div>
+                     <p className="text-xs text-gray-400 font-medium italic">Vui lòng chọn một báo cáo từ danh sách phía trên <br/> để xem thống kê chi tiết sản phẩm.</p>
+                  </div>
+               )}
             </div>
          </div>
 
          {/* RIGHT PANEL: CHI TIẾT */}
          <div className="lg:w-1/2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
             <div className="flex justify-between items-start mb-6">
-               <h3 className="text-[16px] font-bold text-gray-800">Chi tiết Báo cáo</h3>
-               <span className="px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 font-bold text-[10px] tracking-wider">#{selectedReport?.id.substring(3)}</span>
+               <h3 className="text-[16px] font-bold text-gray-800">Xử lý Báo cáo</h3>
+               <span className="px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 font-bold text-[10px] tracking-wider">#{selectedReport?.displayId?.substring(3) || '...'}</span>
             </div>
 
             <div className="space-y-4 text-[12px]">
-               <div className="border-b border-gray-100 pb-3">
+                <div className="border-b border-gray-100 pb-3">
                   <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">SẢN PHẨM BỊ BÁO CÁO</h5>
                   <p className="font-semibold text-gray-800">{selectedReport?.productName}</p>
                </div>
@@ -490,13 +562,25 @@ const ReportManagement = () => {
                   <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">NGƯỜI GỬI KHIẾU NẠI</h5>
                   <p className="font-bold text-gray-800">{selectedReport?.reporterName} <span className="font-medium text-gray-500">({selectedReport?.reporterEmail})</span></p>
                </div>
-               <div>
+                <div>
                   <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">NỘI DUNG CHI TIẾT</h5>
                   <p className="text-gray-600 italic leading-relaxed font-medium">"{selectedReport?.description}"</p>
                </div>
             </div>
 
             <div className="mt-8 flex flex-col gap-4">
+               <div className="flex items-center gap-2 px-1">
+                 <input 
+                   type="checkbox" 
+                   id="banProductCheck"
+                   checked={banProduct}
+                   onChange={(e) => setBanProduct(e.target.checked)}
+                   className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-gray-300 cursor-pointer"
+                 />
+                 <label htmlFor="banProductCheck" className="text-xs font-bold text-red-600 cursor-pointer uppercase tracking-tight">
+                    Khóa sản phẩm vi phạm (Ngừng kinh doanh)
+                 </label>
+               </div>
                <div>
                  <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">LÝ DO XỬ LÝ / PHẢN HỒI</h5>
                  <textarea 

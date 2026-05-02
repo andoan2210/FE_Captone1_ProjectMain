@@ -374,14 +374,14 @@ const realAPI = {
   // Get all invoices for the current user
   getAllInvoices: async () => {
     try {
-      // Backend: /order/order-user returns list of user's orders
-      const response = await api.get('/order/order-user');
-      // Assume structure is response.data.data.order or response.data.data
-      const rawData = response.data?.data?.order || response.data?.data || response.data || [];
+      // Backend: /order/my-orders returns list of user's orders
+      const response = await api.get('/order/my-orders');
+      // BE Returns: { data: { orders: [...], total: X }, message: "..." }
+      const rawData = response.data?.data?.orders || response.data?.data || response.data || [];
+      
       return {
         success: true,
-        data: rawData,
-
+        data: Array.isArray(rawData) ? rawData : [],
         message: 'Lấy danh sách đơn hàng thành công',
       };
     } catch (error) {
@@ -392,8 +392,8 @@ const realAPI = {
 
   getInvoiceById: async (id) => {
     try {
-
-      const response = await api.get(`/order/${id}`);
+      // Backend: /order/order-detail/:orderId
+      const response = await api.get(`/order/order-detail/${id}`);
       return {
         success: true,
         data: response.data?.data || response.data,
@@ -411,32 +411,22 @@ const realAPI = {
     }
   },
 
-  // Delete/Cancel invoice (Backend usually uses patch/delete)
-  deleteInvoice: async (id) => {
+  // Cancel order (Backend: PATCH /order/cancel-order/:orderId)
+  cancelOrder: async (id) => {
     try {
-      const response = await api.patch(`/order/${id}`, { orderStatus: 'cancelled' });
+      const response = await api.patch(`/order/cancel-order/${id}`);
       return {
         success: true,
         message: response.data.message || 'Hủy đơn hàng thành công',
-
+        data: response.data
       };
-
     } catch (error) {
-      console.warn('[Invoice] Real API failed, falling back to mock:', error.message);
-      return mockAPI.cancelOrder(id);
-    }
-  },
-
-  deleteInvoice: async (id) => {
-    try {
-      const response = await apiRequest.delete(`/invoices/${id}`);
-      return { success: true, message: response.data?.message || 'Xóa thành công' };
-    } catch (error) {
+      console.warn('[Invoice] Real API cancel failed, falling back to mock:', error.message);
+      const isNumericId = id && !isNaN(Number(id));
+      if (!isNumericId) return mockAPI.cancelOrder(id);
       return handleError(error);
     }
   },
-
-
 
   // Create invoice (Usually part of checkout)
   createInvoice: async (orderData) => {
@@ -447,7 +437,6 @@ const realAPI = {
         data: response.data.data || response.data,
         message: response.data.message || 'Tạo đơn hàng thành công',
       };
-
     } catch (error) {
       return handleError(error);
     }
@@ -455,15 +444,12 @@ const realAPI = {
 
   updateInvoice: async (id, updateData) => {
     try {
-
-
       const response = await api.patch(`/order/${id}`, updateData);
       return {
         success: true,
         data: response.data.data || response.data,
         message: response.data.message || 'Cập nhật đơn hàng thành công',
       };
-
     } catch (error) {
       return handleError(error);
     }
@@ -474,7 +460,11 @@ const realAPI = {
 const InvoiceService = {
   _getAPI: () => (API_CONFIG.USE_MOCK_API ? mockAPI : realAPI),
 
-
+  getMockInvoiceById: (id) => {
+    const detail = MOCK_INVOICE_DETAILS[id];
+    if (detail) return { success: true, data: detail };
+    return { success: false, error: 'Không tìm thấy mock data' };
+  },
 
   // Get all invoices
   getAllInvoices: async () => {
@@ -488,10 +478,10 @@ const InvoiceService = {
     return api.getInvoiceById(id);
   },
 
-  // Delete/Cancel invoice
-  deleteInvoice: async (id) => {
+  // Cancel invoice
+  cancelOrder: async (id) => {
     const api = InvoiceService._getAPI();
-    return api.deleteInvoice(id);
+    return api.cancelOrder(id);
   },
 
   // Create new invoice
@@ -506,17 +496,10 @@ const InvoiceService = {
     return api.updateInvoice(id, updateData);
   },
 
-  // Switch between Mock and Real API
-
-
   setUseMockAPI: (useMock) => {
     API_CONFIG.USE_MOCK_API = useMock;
     console.log(`[Invoice Service] Switched to ${useMock ? 'MOCK' : 'REAL'} API`);
   },
-
-
-
-  // Get current config
 
   getConfig: () => ({ ...API_CONFIG }),
 };

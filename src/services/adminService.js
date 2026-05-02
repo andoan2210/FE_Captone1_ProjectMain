@@ -148,6 +148,35 @@ const apiGetRejectedProducts = async (page = 1, limit = 10) => {
   }
 };
 
+const apiAdminUpdateProduct = async (id, data) => {
+  try {
+    const formData = new FormData();
+    if (data.productName) formData.append("productName", data.productName);
+    if (data.description) formData.append("description", data.description);
+    if (data.price) formData.append("price", data.price);
+    if (data.categoryId) formData.append("categoryId", data.categoryId);
+    if (data.isActive !== undefined) formData.append("isActive", data.isActive);
+    
+    // Nếu có thumbnail mới
+    if (data.thumbnailFile) {
+      formData.append("thumbnail", data.thumbnailFile);
+    }
+    
+    // Nếu có variants (json string)
+    if (data.variants) {
+      formData.append("variants", JSON.stringify(data.variants));
+    }
+
+    const res = await api.patch(`/product/admin/${id}/update`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    console.error("ADMIN UPDATE PRODUCT ERROR:", error);
+    throw new Error(error.response?.data?.message || "Không thể cập nhật sản phẩm");
+  }
+};
+
 // ================= ADMIN CREATE USER =================
 const apiAdminCreateUser = async (data) => {
   try {
@@ -211,6 +240,77 @@ const apiRejectStore = async (storeId) => {
     throw new Error("Không thể từ chối đơn đăng ký");
   }
 };
+// ================= STORE MANAGEMENT =================
+const apiGetAllStores = async () => {
+  try {
+    const res = await api.get(`/store/admin/all`);
+    return res.data;
+  } catch (error) {
+    console.error("GET ALL STORES ERROR:", error);
+    throw new Error("Không thể tải danh sách cửa hàng");
+  }
+};
+
+const apiGetStoreDetail = async (storeId) => {
+  try {
+    const res = await api.get(`/store/${storeId}`);
+    return res.data;
+  } catch (error) {
+    console.error("GET STORE DETAIL ERROR:", error);
+    throw new Error("Không thể tải chi tiết cửa hàng");
+  }
+};
+
+const apiToggleStoreStatus = async (storeId) => {
+  try {
+    const res = await api.patch(`/store/admin/${storeId}/toggle-status`);
+    return res.data;
+  } catch (error) {
+    console.error("TOGGLE STORE STATUS ERROR:", error);
+    throw new Error("Không thể thay đổi trạng thái cửa hàng");
+  }
+};
+
+// ================= REPORT MANAGEMENT =================
+const apiGetReports = async (filters = {}) => {
+  try {
+    const res = await api.get(`/report/admin`, { params: filters });
+    return res.data;
+  } catch (error) {
+    console.error("GET REPORTS ERROR:", error);
+    throw new Error("Không thể tải danh sách báo cáo");
+  }
+};
+
+const apiGetReportDetail = async (id) => {
+  try {
+    const res = await api.get(`/report/admin/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error("GET REPORT DETAIL ERROR:", error);
+    throw new Error("Không thể tải chi tiết báo cáo");
+  }
+};
+
+const apiUpdateReportStatus = async (id, data) => {
+  try {
+    const res = await api.patch(`/report/admin/${id}/status`, data);
+    return res.data;
+  } catch (error) {
+    console.error("UPDATE REPORT STATUS ERROR:", error);
+    throw new Error(error.response?.data?.message || "Không thể cập nhật trạng thái báo cáo");
+  }
+};
+
+const apiCreateReport = async (data) => {
+  try {
+    const res = await api.post(`/report`, data);
+    return res.data;
+  } catch (error) {
+    console.error("CREATE REPORT ERROR:", error);
+    throw new Error(error.response?.data?.message || "Không thể gửi báo cáo");
+  }
+};
 
 // ================= EXPORT =================
 export const adminService = {
@@ -224,6 +324,7 @@ export const adminService = {
   rejectProduct: apiRejectProduct,
   getApprovedProducts: apiGetApprovedProducts,
   getRejectedProducts: apiGetRejectedProducts,
+  updateProduct: apiAdminUpdateProduct,
   // Seller Approvals
   getPendingStores: apiGetPendingStores,
   approveStore: apiApproveStore,
@@ -233,6 +334,16 @@ export const adminService = {
   // Admin CRUD
   createUser: apiAdminCreateUser,
   updateUserInfo: apiAdminUpdateInfo,
+  // Store Management
+  getAllStores: apiGetAllStores,
+  getStoreDetail: apiGetStoreDetail,
+  toggleStoreStatus: apiToggleStoreStatus,
+  // Report Management
+  getReports: apiGetReports,
+  getReportDetail: apiGetReportDetail,
+  updateReportStatus: apiUpdateReportStatus,
+  createReport: apiCreateReport,
 };
+
 
 export default adminService;

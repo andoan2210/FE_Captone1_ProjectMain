@@ -13,6 +13,11 @@ export const ShopVoucherService = {
     return (await api.post('/voucher', data)).data;
   },
 
+  getVoucherById: async (id) => {
+    const res = await api.get(`/voucher/${id}`);
+    return res.data;
+  },
+
   deleteVoucher: async (id) => {
     return (await api.delete(`/voucher/${id}`)).data;
   },

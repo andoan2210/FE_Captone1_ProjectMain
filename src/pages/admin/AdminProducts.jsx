@@ -16,6 +16,7 @@ import {
   Store,
   Tag,
   Calendar,
+  Package,
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import toast from "react-hot-toast";
@@ -48,6 +49,45 @@ const AdminProducts = () => {
     message: "",
     action: null, // 'APPROVE' or 'REJECT'
   });
+
+  // Edit Mode state
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({
+    productName: "",
+    description: "",
+    price: 0,
+  });
+
+  useEffect(() => {
+    if (selectedProduct && editMode) {
+      setEditData({
+        productName: selectedProduct.productName || "",
+        description: selectedProduct.description || "",
+        price: selectedProduct.price || 0,
+      });
+    }
+  }, [selectedProduct, editMode]);
+
+  const handleSaveEdit = async () => {
+    if (!editData.productName.trim()) {
+      toast.error("Tên sản phẩm không được để trống");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await adminService.updateProduct(selectedProduct.productId, editData);
+      toast.success("Cập nhật sản phẩm thành công");
+      setEditMode(false);
+      // Refresh data
+      const response = await adminService.getProductDetail(selectedProduct.productId);
+      setSelectedProduct(response.data || response);
+      fetchProductsByStatus(activeStatus, currentPage);
+    } catch (error) {
+      toast.error(error.message || "Lỗi cập nhật sản phẩm");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Fetch Stats
   const fetchStats = async () => {
@@ -103,6 +143,8 @@ const AdminProducts = () => {
       setLoading(false);
     }
   };
+
+  const currentStatus = (selectedProduct?.approvalStatus || selectedProduct?.ApprovalStatus);
 
   useEffect(() => {
     fetchStats();
@@ -219,12 +261,17 @@ const AdminProducts = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Quản lý sản phẩm</h1>
-        <p className="text-slate-600 mt-1">
-          Duyệt hoặc từ chối sản phẩm từ các shop
-        </p>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Package className="text-blue-600" size={24} />
+            Quản lý Sản phẩm toàn sàn
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Kiểm soát danh mục sản phẩm từ tất cả các nhà bán hàng.
+          </p>
+        </div>
       </div>
 
       {/* Status Tabs */}
@@ -537,9 +584,18 @@ const AdminProducts = () => {
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                           Tên sản phẩm
                         </p>
-                        <p className="text-2xl font-bold text-slate-900 leading-tight">
-                          {selectedProduct.productName}
-                        </p>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={editData.productName}
+                            onChange={(e) => setEditData({ ...editData, productName: e.target.value })}
+                            className="w-full p-2 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
+                          />
+                        ) : (
+                          <p className="text-2xl font-bold text-slate-900 leading-tight">
+                            {selectedProduct.productName}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -577,9 +633,18 @@ const AdminProducts = () => {
                       <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-2">
                         💰 Giá bán
                       </p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {formatPrice(selectedProduct.price)}
-                      </p>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={editData.price}
+                          onChange={(e) => setEditData({ ...editData, price: Number(e.target.value) })}
+                          className="w-full p-2 border-2 border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg font-bold"
+                        />
+                      ) : (
+                        <p className="text-2xl font-bold text-green-900">
+                          {formatPrice(selectedProduct.price)}
+                        </p>
+                      )}
                     </div>
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-xl border-2 border-blue-200 shadow-sm">
                       <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">
@@ -616,9 +681,17 @@ const AdminProducts = () => {
                     <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                       📝 Mô tả sản phẩm
                     </p>
-                    <p className="text-slate-700 text-sm leading-relaxed line-clamp-4">
-                      {selectedProduct.description || "Không có mô tả"}
-                    </p>
+                    {editMode ? (
+                      <textarea
+                        value={editData.description}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                        className="w-full p-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-32 resize-none"
+                      />
+                    ) : (
+                      <p className="text-slate-700 text-sm leading-relaxed line-clamp-4">
+                        {selectedProduct.description || "Không có mô tả"}
+                      </p>
+                    )}
                   </div>
 
                   {/* Reject Reason */}
@@ -699,27 +772,70 @@ const AdminProducts = () => {
                 onClick={() => {
                   setShowDetailModal(false);
                   setSelectedProduct(null);
+                  setEditMode(false);
                 }}
                 className="flex-1 px-4 py-3 text-slate-700 font-bold border-2 border-slate-300 rounded-lg hover:bg-slate-200 transition-colors duration-200"
               >
                 Đóng
               </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                disabled={isProcessing}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
-              >
-                <XCircle size={18} />
-                Từ chối
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={isProcessing}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
-              >
-                <CheckCircle2 size={18} />
-                Duyệt
-              </button>
+
+              {editMode ? (
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                >
+                  {isProcessing ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                  >
+                    Chỉnh sửa
+                  </button>
+
+                  {currentStatus === "APPROVED" ? (
+                    <button
+                      onClick={() => setShowRejectModal(true)}
+                      disabled={isProcessing}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                    >
+                      <XCircle size={18} />
+                      Khóa sản phẩm
+                    </button>
+                  ) : currentStatus === "REJECTED" ? (
+                    <button
+                      onClick={handleApprove}
+                      disabled={isProcessing}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                    >
+                      <CheckCircle2 size={18} />
+                      Mở khóa
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setShowRejectModal(true)}
+                        disabled={isProcessing}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                      >
+                        <XCircle size={18} />
+                        Từ chối
+                      </button>
+                      <button
+                        onClick={handleApprove}
+                        disabled={isProcessing}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold rounded-lg transition-colors shadow-md hover:shadow-lg duration-200"
+                      >
+                        <CheckCircle2 size={18} />
+                        Duyệt
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

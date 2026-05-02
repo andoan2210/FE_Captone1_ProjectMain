@@ -113,19 +113,14 @@ code {
   background: var(--code-bg);
 }
 
-/* Custom scrollbar for Sidebar and Layout */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+
+/* Hide all internal scrollbars but keep scrolling functionality */
+::-webkit-scrollbar {
+  display: none;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* App.css original styles */

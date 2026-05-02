@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Search, Filter, Shield, User, Store, Ban, Trash2, CheckCircle2,
   AlertCircle, Edit, X, Eye, UserPlus, Mail, Phone, Calendar,
-  ChevronLeft, ChevronRight, RefreshCw, MoreHorizontal
+  ChevronLeft, ChevronRight, RefreshCw, MoreHorizontal, Users
 } from 'lucide-react';
 
 const ROLES = [
@@ -39,6 +39,16 @@ const AccountManagement = () => {
   const [addModal, setAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ name: '', email: '', role: 'Client', phone: '' });
 
+  // Confirm modal
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'danger',
+    confirmText: 'Xác nhận',
+  });
+
   // Edit form
   const [editForm, setEditForm] = useState({ fullName: '', phone: '', role: '' });
 
@@ -58,29 +68,51 @@ const AccountManagement = () => {
   };
 
   // === ACTIONS ===
-  const handleToggleStatus = async (acc) => {
+  const handleToggleStatus = (acc) => {
     const action = acc.status === 'Active' ? 'khóa' : 'mở khóa';
-    if (!window.confirm(`Bạn muốn ${action} tài khoản "${acc.fullName}"?`)) return;
-    try {
-      setProcessing(true);
-      await adminService.toggleAccountStatus(acc.id);
-      toast.success(`Đã ${action} tài khoản "${acc.fullName}"`);
-      await fetchAccounts();
-      setEditModal(null);
-    } catch (err) { toast.error(err.message); }
-    finally { setProcessing(false); }
+    setConfirmModal({
+      show: true,
+      title: `Xác nhận ${action} tài khoản`,
+      message: `Bạn muốn ${action} tài khoản "${acc.fullName}"?`,
+      confirmText: action.charAt(0).toUpperCase() + action.slice(1),
+      type: acc.status === 'Active' ? 'warning' : 'success',
+      onConfirm: async () => {
+        try {
+          setProcessing(true);
+          await adminService.toggleAccountStatus(acc.id);
+          toast.success(`Đã ${action} tài khoản "${acc.fullName}"`);
+          await fetchAccounts();
+          setEditModal(null);
+        } catch (err) { toast.error(err.message); }
+        finally {
+          setProcessing(false);
+          setConfirmModal(prev => ({ ...prev, show: false }));
+        }
+      }
+    });
   };
 
-  const handleDelete = async (acc) => {
-    if (!window.confirm(`⚠️ XÓA VĨNH VIỄN tài khoản "${acc.fullName}" (${acc.email})?\nHành động này không thể hoàn tác!`)) return;
-    try {
-      setProcessing(true);
-      await adminService.deleteAccount(acc.email);
-      toast.success(`Đã xóa tài khoản "${acc.fullName}"`);
-      setAccounts(prev => prev.filter(a => a.id !== acc.id));
-      setEditModal(null);
-    } catch (err) { toast.error('Không thể xóa (tài khoản có dữ liệu liên quan)'); }
-    finally { setProcessing(false); }
+  const handleDelete = (acc) => {
+    setConfirmModal({
+      show: true,
+      title: 'Xóa tài khoản vĩnh viễn',
+      message: `⚠️ XÓA VĨNH VIỄN tài khoản "${acc.fullName}" (${acc.email})?\nHành động này không thể hoàn tác!`,
+      confirmText: 'Xóa vĩnh viễn',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          setProcessing(true);
+          await adminService.deleteAccount(acc.email);
+          toast.success(`Đã xóa tài khoản "${acc.fullName}"`);
+          setAccounts(prev => prev.filter(a => a.id !== acc.id));
+          setEditModal(null);
+        } catch (err) { toast.error('Không thể xóa (tài khoản có dữ liệu liên quan)'); }
+        finally {
+          setProcessing(false);
+          setConfirmModal(prev => ({ ...prev, show: false }));
+        }
+      }
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -148,6 +180,19 @@ const AccountManagement = () => {
   // === RENDER ===
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="text-blue-600" size={24} />
+            Quản lý Tài khoản
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Quản lý danh sách người dùng và nhà bán hàng trên hệ thống.
+          </p>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -436,6 +481,49 @@ const AccountManagement = () => {
               <button onClick={handleCreateUser} disabled={processing} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm disabled:opacity-50">
                 {processing ? 'Đang tạo...' : 'Tạo tài khoản'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === MODAL: Xác nhận === */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className={`p-6 text-center ${confirmModal.type === 'danger' ? 'bg-red-50' :
+              confirmModal.type === 'warning' ? 'bg-orange-50' : 'bg-emerald-50'
+              }`}>
+              <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${confirmModal.type === 'danger' ? 'bg-red-100 text-red-600' :
+                confirmModal.type === 'warning' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'
+                }`}>
+                {confirmModal.type === 'danger' ? <Trash2 size={32} /> :
+                  confirmModal.type === 'warning' ? <Ban size={32} /> : <CheckCircle2 size={32} />}
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">{confirmModal.title}</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 text-center whitespace-pre-line leading-relaxed">
+                {confirmModal.message}
+              </p>
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                  disabled={processing}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  disabled={processing}
+                  className={`flex-1 px-4 py-3 text-white rounded-xl font-bold transition shadow-lg shadow-opacity-20 ${confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-700' :
+                    confirmModal.type === 'warning' ? 'bg-orange-600 hover:bg-orange-700' :
+                      'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
+                >
+                  {processing ? 'Đang xử lý...' : confirmModal.confirmText}
+                </button>
+              </div>
             </div>
           </div>
         </div>
