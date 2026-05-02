@@ -483,12 +483,18 @@ export default function UserProfile() {
                       <input type="text" readOnly className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-700 font-medium" value={basicInfo.email} />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-[13px] font-semibold text-gray-600 mb-2 ml-1">Giới tính</label>
-                      <select readOnly disabled className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-700 font-medium" value={basicInfo.gender}>
-                        <option>Nam</option>
-                        <option>Nữ</option>
-                        <option>Khác</option>
-                      </select>
+                      <label className="block text-[13px] font-semibold text-gray-600 mb-2 ml-1">Ngày sinh</label>
+                      <input type="text" readOnly className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-700 font-medium" value={basicInfo.birthDate || 'Chưa cập nhật'} />
+                    </div>
+                    <div className="col-span-2 flex justify-center mt-1">
+                      <div className="w-full max-w-[350px]">
+                        <label className="block text-[13px] font-semibold text-gray-600 mb-2 ml-1 text-center">Giới tính</label>
+                        <select readOnly disabled className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-700 font-medium text-center" value={basicInfo.gender}>
+                          <option>Nam</option>
+                          <option>Nữ</option>
+                          <option>Khác</option>
+                        </select>
+                      </div>
                     </div>
                     <div className="col-span-2 mt-1">
                       <label className="block text-[13px] font-semibold text-gray-600 mb-2 ml-1">Địa chỉ</label>
@@ -559,16 +565,12 @@ export default function UserProfile() {
               <div className="mt-12">
                 <h3 className="text-xl font-bold text-gray-800 mb-5" style={{ fontFamily: '"Playfair Display", Times, serif' }}>Cài đặt tài khoản</h3>
                 <div className="space-y-3 mt-4">
-                  <div className="flex items-center justify-between p-4 bg-[#fbfbfb] border border-gray-100 rounded-[14px] hover:bg-gray-50 cursor-pointer transition shadow-sm">
+                  <Link to="/user/UpdateProfile" className="flex items-center justify-between p-4 bg-[#fbfbfb] border border-gray-100 rounded-[14px] hover:bg-gray-50 cursor-pointer transition shadow-sm no-underline">
                     <span className="text-sm text-gray-700 font-semibold ml-2 tracking-wide">Đổi mật khẩu</span>
                     <ChevronRight size={18} className="text-gray-400 mr-2" />
-                  </div>
+                  </Link>
                   <div className="flex items-center justify-between p-4 bg-[#fbfbfb] border border-gray-100 rounded-[14px] hover:bg-gray-50 cursor-pointer transition shadow-sm">
                     <span className="text-sm text-gray-700 font-semibold ml-2 tracking-wide">Cài đặt thông báo</span>
-                    <ChevronRight size={18} className="text-gray-400 mr-2" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-[#fbfbfb] border border-gray-100 rounded-[14px] hover:bg-gray-50 cursor-pointer transition shadow-sm">
-                    <span className="text-sm text-gray-700 font-semibold ml-2 tracking-wide">Bảo mật tài khoản</span>
                     <ChevronRight size={18} className="text-gray-400 mr-2" />
                   </div>
                 </div>

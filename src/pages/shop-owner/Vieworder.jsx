@@ -1057,7 +1057,7 @@ export default function Vieworder() {
                       <div className="flex justify-center">
                         <span
                           className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${
-                            o.paymentStatus === "Success"
+                            o.paymentStatus === "Success" || o.paymentStatus === "Paid" || o.paymentStatus === "PAID"
                               ? "bg-emerald-100/50 text-emerald-700"
                               : o.paymentStatus === "Unpaid"
                                 ? "bg-slate-100 text-slate-500"
@@ -1425,7 +1425,7 @@ export default function Vieworder() {
                         </span>
                         <span
                           className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                            fullOrderDetail.paymentStatus === "Success"
+                            fullOrderDetail.paymentStatus === "Success" || fullOrderDetail.paymentStatus === "Paid" || fullOrderDetail.paymentStatus === "PAID"
                               ? "bg-emerald-50 text-emerald-700"
                               : fullOrderDetail.paymentStatus === "Unpaid"
                                 ? "bg-slate-100 text-slate-500"
@@ -1436,7 +1436,7 @@ export default function Vieworder() {
                                     : "bg-slate-100 text-slate-500"
                           }`}
                         >
-                          {fullOrderDetail.paymentStatus === "Success"
+                          {fullOrderDetail.paymentStatus === "Success" || fullOrderDetail.paymentStatus === "Paid" || fullOrderDetail.paymentStatus === "PAID"
                             ? "Đã thanh toán"
                             : fullOrderDetail.paymentStatus === "Unpaid"
                               ? "Chưa thanh toán"

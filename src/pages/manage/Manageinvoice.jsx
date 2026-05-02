@@ -12,6 +12,7 @@ import api from '../../services/api';
 import InvoiceService from '../../services/InvoiceService';
 import { CategoryService } from '../../services/CategoryService';
 import { ShopProductService } from '../../services/ShopProductService';
+import chatService from '../../services/chatService';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
 import '../ShoppingCart-AddtoCart/ShoppingCart.css';
@@ -142,7 +143,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
             </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
-                <button type="button" className="user-profile-btn">
+                <Link to="/user/UserProfile" className="user-profile-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
                   {userAvatar ? (
                     <img
                       src={userAvatar}
@@ -151,11 +152,11 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                     />
                   ) : (
                     <FaUserCircle
-                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                      style={{ fontSize: "20px", color: "var(--lp-accent)", marginRight: "8px" }}
                     />
                   )}
                   <span className="user-profile">{userLabel}</span>
-                </button>
+                </Link>
                 <div className="profile-dropdown">
                   <Link
                     to="/manage/Manageinvoice"
@@ -353,20 +354,20 @@ export default function Manageinvoice() {
 
         // Ánh xạ dữ liệu từ Backend sang định dạng FE mong đợi
         const mappedInvoices = rawData.map(order => {
-          // Các trạng thái đơn hàng từ Backend (giả định)
+          // Các trạng thái đơn hàng từ Backend
           const beStatus = (order.orderStatus || 'pending').toLowerCase();
 
-          let feStatus = 'pending_payment';
-          let feStatusText = 'Chờ xử lý';
+          let feStatus = 'pending';
+          let feStatusText = 'Chờ xác nhận';
 
           if (beStatus === 'pending') {
-            feStatus = 'pending_payment';
-            feStatusText = 'Chờ xử lý';
-          } else if (beStatus === 'confirmed' || beStatus === 'processing') {
-            feStatus = 'shipping';
-            feStatusText = 'Đang xử lý';
+            feStatus = 'pending';
+            feStatusText = 'Chờ xác nhận';
+          } else if (beStatus === 'confirmed') {
+            feStatus = 'confirmed';
+            feStatusText = 'Đang chuẩn bị';
           } else if (beStatus === 'shipping') {
-            feStatus = 'receiving';
+            feStatus = 'shipping';
             feStatusText = 'Đang giao hàng';
           } else if (beStatus === 'completed' || beStatus === 'delivered') {
             feStatus = 'completed';
@@ -377,20 +378,24 @@ export default function Manageinvoice() {
           }
 
           return {
-            id: order.orderId ? `ORD${order.orderId}` : order.id,
-            shopName: order.storeName || order.shopName || 'Cửa hàng hệ thống',
+            id: order.orderId ? order.orderId : order.id,
+            displayId: order.orderId ? `ORD${order.orderId}` : order.id,
+            shopName: order.store?.storeName || order.shopName || 'Cửa hàng hệ thống',
+            shopLogo: order.store?.logo || null,
+            storeId: order.store?.storeId || order.storeId,
+            ownerId: order.store?.ownerId || order.ownerId,
             status: feStatus,
             statusText: feStatusText,
-            items: (order.orderItems || order.items || []).map(item => ({
+            items: (order.items || []).map(item => ({
               id: item.variantId || item.id,
               name: item.productName || item.name || 'Sản phẩm',
-              image: item.productImage || item.thumbnailUrl || item.image || 'https://via.placeholder.com/150',
-              variant: `${item.size || ''} ${item.color ? '| ' + item.color : ''}`.trim() || 'Mặc định',
-              price: item.price || 0,
+              image: item.productImage || item.image || 'https://via.placeholder.com/150',
+              variant: item.variant || 'Mặc định',
+              price: Number(item.unitPrice || item.price || 0),
               quantity: item.quantity || 1
             })),
-            finalAmount: order.totalAmount || 0,
-            date: order.createdAt
+            finalAmount: Number(order.totalAmount || 0),
+            date: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'Vừa xong'
           };
         });
 
@@ -398,7 +403,25 @@ export default function Manageinvoice() {
       }
     } catch (err) {
       setError('Không thể tải danh sách đơn hàng.');
-      console.error('Error:', err);
+      console.error('Error fetching invoices:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContactSeller = async (shopId) => {
+    if (!shopId) return;
+    try {
+      setLoading(true);
+      const res = await chatService.startChat(shopId);
+      if (res && res.ConversationId) {
+        navigate('/chat', { state: { conversationId: res.ConversationId } });
+      } else {
+        navigate('/chat');
+      }
+    } catch (err) {
+      console.error('Error starting chat:', err);
+      navigate('/chat');
     } finally {
       setLoading(false);
     }
@@ -499,9 +522,12 @@ export default function Manageinvoice() {
             {/* LEFT SIDEBAR */}
             <aside className="orders-sidebar">
               <div className="user-brief">
-                <div className="user-avatar">
-                  <img src={`https://ui-avatars.com/api/?name=${userLabel || 'User'}&background=0ea5e9&color=fff`} alt="Avatar" />
-                </div>
+                <Link to="/user/UserProfile" className="user-avatar">
+                  <img
+                    src={userAvatar || `https://ui-avatars.com/api/?name=${userLabel || 'User'}&background=0ea5e9&color=fff`}
+                    alt="Avatar"
+                  />
+                </Link>
                 <div className="user-info">
                   <div className="username">{userLabel || 'Người dùng'}</div>
                   <Link to="/user/UserProfile" className="edit-profile">
@@ -582,9 +608,26 @@ export default function Manageinvoice() {
                     <div key={order.id} className="premium-order-card">
                       <div className="order-card-top">
                         <div className="shop-info-wrap">
+                          <Link to={`/shop/${order.storeId}`} className="shop-logo-link">
+                            <img
+                              src={order.shopLogo || `https://ui-avatars.com/api/?name=${order.shopName}&background=random`}
+                              alt={order.shopName}
+                              className="shop-logo-img"
+                            />
+                          </Link>
                           <span className="shop-badge-mall">Mall</span>
-                          <span className="shop-name-text">{order.shopName}</span>
-                          <button className="visit-shop-btn"><FaStore /> Xem Shop</button>
+                          <Link to={`/shop/${order.storeId}`} className="shop-name-text">
+                            {order.shopName}
+                          </Link>
+                          <button
+                            className="visit-shop-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/shop/${order.storeId}`);
+                            }}
+                          >
+                            <FaStore /> Xem Shop
+                          </button>
                         </div>
                         <div className="order-status-indicator">
                           <FaTruck className="truck-icon-blue" />
@@ -637,7 +680,15 @@ export default function Manageinvoice() {
                               Hủy đơn
                             </button>
                           )}
-                          <button className="pd-btn pd-btn-outline btn-sm">Liên hệ người bán</button>
+                          <button
+                            className="pd-btn pd-btn-outline btn-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleContactSeller(order.storeId);
+                            }}
+                          >
+                            Liên hệ người bán
+                          </button>
                           <button
                             className="pd-btn pd-btn-outline btn-sm"
                             onClick={() => navigate(`/manage/invoice-detail/${order.id}`)}

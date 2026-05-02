@@ -12,6 +12,7 @@ import {
   FiList,
   FiLink,
   FiInfo,
+  FiAlertCircle,
   FiImage,
   FiGrid,
   FiCheck,
@@ -206,6 +207,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [errorModal, setErrorModal] = useState({ isOpen: false, title: "", message: "" });
   const [pendingFiles, setPendingFiles] = useState([]); // Lưu các File mới chờ upload
   const [categories, setCategories] = useState([]);
   const fileInputRef = useRef(null);
@@ -442,7 +444,11 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         );
       } catch (error) {
         console.error("Xóa ảnh thất bại:", error);
-        alert("Lỗi: Không thể xóa ảnh. Vui lòng thử lại!");
+        setErrorModal({
+          isOpen: true,
+          title: "Lỗi hệ thống",
+          message: "Không thể xóa ảnh vào lúc này. Vui lòng thử lại sau!"
+        });
         return;
       } finally {
         setLoading(false);
@@ -566,7 +572,12 @@ const ProductForm = ({ initialData, isEdit = false }) => {
       const beError =
         error.response?.data?.message || "Lỗi cập nhật. Vui lòng thử lại!";
       const errMsg = Array.isArray(beError) ? beError[0] : beError;
-      alert("Lỗi: " + errMsg);
+      
+      setErrorModal({
+        isOpen: true,
+        title: "Không thể thực hiện",
+        message: errMsg
+      });
     } finally {
       setLoading(false);
     }
@@ -649,6 +660,30 @@ const ProductForm = ({ initialData, isEdit = false }) => {
               {successMessage}
             </div>
           )}
+
+          {/* Hiển thị phản hồi từ Admin/Báo cáo */}
+          {initialData?.rejectReason && (
+            <div className={`p-5 rounded-2xl border flex items-start gap-4 animate-in slide-in-from-top-4 duration-300 ${
+              initialData.approvalStatus === "REJECTED" 
+                ? "bg-rose-50 border-rose-100 text-rose-800" 
+                : "bg-blue-50 border-blue-100 text-blue-800"
+            }`}>
+              <div className={`p-2 rounded-xl shrink-0 ${
+                initialData.approvalStatus === "REJECTED" ? "bg-rose-500 text-white" : "bg-blue-500 text-white"
+              }`}>
+                {initialData.approvalStatus === "REJECTED" ? <FiAlertCircle size={20} /> : <FiInfo size={20} />}
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-sm uppercase tracking-wider">
+                  {initialData.approvalStatus === "REJECTED" ? "Lý do từ chối / Bị khóa" : "Thông báo từ hệ thống"}
+                </p>
+                <p className="text-sm font-medium leading-relaxed opacity-90">
+                  {initialData.rejectReason}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Thông tin chung */}
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
             <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
@@ -1198,6 +1233,17 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         confirmText="Xóa vĩnh viễn"
         cancelText="Hủy bỏ"
         isDanger={true}
+      />
+
+      {/* Modal hiển thị thông báo lỗi hệ thống/nghiệp vụ */}
+      <ConfirmModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
+        onConfirm={() => setErrorModal({ ...errorModal, isOpen: false })}
+        title={errorModal.title}
+        message={errorModal.message}
+        confirmText="Đã hiểu"
+        cancelText="Đóng"
       />
     </div>
   );

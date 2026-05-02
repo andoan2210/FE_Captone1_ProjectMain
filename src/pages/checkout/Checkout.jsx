@@ -24,7 +24,14 @@ function OrderItemRow({ item }) {
         <div className="ck-item-img-placeholder">🛍️</div>
       )}
       <div className="ck-item-info">
-        <div className="ck-item-name">{item.productName}</div>
+        <div className="ck-item-name">
+          {item.productName}
+          {item.isVoucherApplied && (
+            <span className="ck-item-voucher-badge">
+              Voucher {item.voucherDiscountLabel}
+            </span>
+          )}
+        </div>
         <div className="ck-item-qty">x{item.quantity}</div>
       </div>
       <div className="ck-item-price">

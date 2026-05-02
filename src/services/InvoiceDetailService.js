@@ -1,7 +1,7 @@
 import api from './api';
 import InvoiceService from './InvoiceService';
 
-const API_URL = '/api/order';
+const API_URL = '/order';
 
 /**
  * InvoiceDetailService
@@ -12,12 +12,7 @@ const InvoiceDetailService = {
 
   /**
    * Lấy chi tiết đơn hàng
-   * Backend: GET /api/order/order-detail/:orderId (JWT, CLIENT | SHOP_OWNER)
-   * Response: { orderId, orderStatus, paymentStatus, shippingAddress,
-   *             items[{productName, variant, quantity, price, total}],
-   *             subTotal, discountPercent, discountAmount, totalAmount,
-   *             voucher, payment{method,status,transactionCode},
-   *             createdAt, invoice{invoiceId,invoiceNumber} }
+   * Backend: GET /order/order-detail/:orderId
    */
   getOrderDetail: async (orderId) => {
     const isNumericId = orderId && !isNaN(Number(orderId));
@@ -29,18 +24,17 @@ const InvoiceDetailService = {
         const raw = response.data?.data || response.data;
         return { success: true, data: raw };
       } catch (error) {
-        console.warn('[InvoiceDetailService] Real API failed, using mock:', error.message);
+        console.warn('[InvoiceDetailService] Real API failed, trying mock fallback:', error.message);
       }
     }
 
-    // Fallback: tìm trong mock data (cho mock string IDs: 'ORD12345678')
+    // Fallback: tìm trong mock data
     return InvoiceService.getMockInvoiceById(orderId);
   },
 
   /**
    * Hủy đơn hàng
-   * Backend: PATCH /api/order/cancel-order/:orderId (JWT, CLIENT | SHOP_OWNER)
-   * Chỉ hủy được khi status là 'Pending' hoặc 'Confirmed'
+   * Backend: PATCH /order/cancel-order/:orderId
    */
   cancelOrder: async (orderId) => {
     const isNumericId = orderId && !isNaN(Number(orderId));
@@ -60,7 +54,7 @@ const InvoiceDetailService = {
       }
     }
 
-    // Fallback mock cancel (cho mock string IDs)
+    // Fallback mock cancel
     return InvoiceService.cancelOrder(orderId);
   },
 };

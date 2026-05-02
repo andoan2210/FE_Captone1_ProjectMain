@@ -22,7 +22,9 @@ import {
   FaUser,
   FaCheck,
 } from "react-icons/fa";
+import { FaFlag, FaExclamationTriangle, FaTimes } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
+import { adminService } from "../../services/adminService";
 import api from "../../services/api";
 import { ShopProductService } from "../../services/ShopProductService";
 import { ShopCuahangService } from "../../services/ShopCuahangService";
@@ -392,6 +394,25 @@ export default function ProductDetail() {
   const [wishlisted, setWishlisted] = useState(false);
   const [shopInfo, setShopInfo] = useState(null);
 
+  // Báo cáo (Report)
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const reportReasons = [
+    "Sản phẩm có dấu hiệu lừa đảo",
+    "Hàng giả, hàng nhái",
+    "Sản phẩm không rõ nguồn gốc, xuất xứ",
+    "Hình ảnh sản phẩm không rõ ràng",
+    "Sản phẩm có hình ảnh, nội dung phản cảm hoặc có thể gây phản cảm",
+    "Tên sản phẩm (Name) không phù hợp với hình ảnh sản phẩm",
+    "Sản phẩm có dấu hiệu tăng đơn ảo",
+    "Sản phẩm chứa hình ảnh và thông tin giao dịch ngoài sàn",
+    "Sản phẩm bị cấm buôn bán (động vật hoang dã, 18+,...)",
+    "Khác"
+  ];
+
   // Tải danh mục
   useEffect(() => {
     async function fetchCats() {
@@ -652,6 +673,37 @@ export default function ProductDetail() {
     }
   };
 
+  const handleSendReport = async () => {
+    if (!userLabel) {
+      toast.error("Vui lòng đăng nhập để gửi báo cáo.");
+      navigate("/login");
+      return;
+    }
+    if (!reportType) {
+      toast.error("Vui lòng chọn lý do báo cáo.");
+      return;
+    }
+
+    setIsSubmittingReport(true);
+    try {
+      await adminService.createReport({
+        productId: parseInt(idParam),
+        reportType: reportType,
+        description: reportDescription || reportType,
+        evidenceImages: [] // Có thể mở rộng thêm tính năng upload ảnh bằng chứng sau
+      });
+      toast.success("Cảm ơn bạn đã gửi báo cáo. Chúng tôi sẽ sớm xem xét!");
+      setShowReportModal(false);
+      setReportType("");
+      setReportDescription("");
+    } catch (err) {
+      console.error("Lỗi gửi báo cáo:", err);
+      toast.error(err.message || "Không thể gửi báo cáo vào lúc này.");
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="pd-loading-container">
@@ -769,7 +821,30 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              <h1 className="pd-title">{product.name}</h1>
+              <div className="pd-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}>
+                <h1 className="pd-title" style={{ margin: 0, flex: 1 }}>{product.name}</h1>
+                <button 
+                  className="pd-report-trigger-btn"
+                  onClick={() => setShowReportModal(true)}
+                  title="Báo cáo sản phẩm"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9ca3af',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '50%',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
+                  onMouseOut={(e) => e.currentTarget.style.color = '#9ca3af'}
+                >
+                  <FaFlag size={18} />
+                </button>
+              </div>
 
               <div
                 className="pd-meta-row"
@@ -1007,6 +1082,129 @@ export default function ProductDetail() {
       </main>
 
       <PageFooter />
+
+      {/* Modal Báo Cáo */}
+      {showReportModal && (
+        <div className="pd-modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="pd-report-modal" style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div className="pd-modal-header" style={{
+              padding: '20px',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Chọn lý do</h3>
+              <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="pd-modal-body" style={{ padding: '0', overflowY: 'auto', flex: 1 }}>
+              <div className="pd-reasons-list">
+                {reportReasons.map((reason, idx) => (
+                  <button
+                    key={idx}
+                    className={`pd-reason-item ${reportType === reason ? 'active' : ''}`}
+                    onClick={() => setReportType(reason)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '16px 20px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f9fafb',
+                      fontSize: '14px',
+                      color: reportType === reason ? '#ef4444' : '#374151',
+                      transition: 'background 0.2s',
+                      fontWeight: reportType === reason ? 500 : 400
+                    }}
+                    onMouseOver={(e) => { if (reportType !== reason) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                    onMouseOut={(e) => { if (reportType !== reason) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              
+              {reportType === "Khác" && (
+                <div style={{ padding: '20px' }}>
+                  <textarea
+                    placeholder="Mô tả chi tiết lý do của bạn..."
+                    value={reportDescription}
+                    onChange={(e) => setReportDescription(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      minHeight: '100px',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="pd-modal-footer" style={{ padding: '20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => setShowReportModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSendReport}
+                disabled={isSubmittingReport || !reportType}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: isSubmittingReport || !reportType ? '#fca5a5' : '#ef4444',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSubmittingReport || !reportType ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isSubmittingReport ? "Đang gửi..." : "Gửi báo cáo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

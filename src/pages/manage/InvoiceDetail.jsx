@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { CategoryService } from '../../services/CategoryService';
 import InvoiceDetailService from '../../services/InvoiceDetailService';
 import { ShopProductService } from '../../services/ShopProductService';
+import chatService from '../../services/chatService';
 import './InvoiceDetail.css';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
@@ -151,7 +152,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
             </Link>
             {userLabel ? (
               <div className="user-profile-wrapper">
-                <button type="button" className="user-profile-btn">
+                <Link to="/user/UserProfile" className="user-profile-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
                   {userAvatar ? (
                     <img
                       src={userAvatar}
@@ -160,11 +161,11 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
                     />
                   ) : (
                     <FaUserCircle
-                      style={{ fontSize: "20px", color: "var(--lp-accent)" }}
+                      style={{ fontSize: "20px", color: "var(--lp-accent)", marginRight: "8px" }}
                     />
                   )}
                   <span className="user-profile">{userLabel}</span>
-                </button>
+                </Link>
                 <div className="profile-dropdown">
                   <Link
                     to="/manage/Manageinvoice"
@@ -386,6 +387,24 @@ export default function InvoiceDetail() {
     }
   };
 
+  const handleContactSeller = async (shopId) => {
+    if (!shopId) return;
+    try {
+      setLoading(true);
+      const res = await chatService.startChat(shopId);
+      if (res && res.ConversationId) {
+        navigate('/chat', { state: { conversationId: res.ConversationId } });
+      } else {
+        navigate('/chat');
+      }
+    } catch (err) {
+      console.error('Error starting chat:', err);
+      navigate('/chat');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -494,7 +513,9 @@ export default function InvoiceDetail() {
             <div className="id-info-card">
               <div className="id-info-title"><FaMapMarkerAlt /> Địa chỉ nhận hàng</div>
               <div className="id-info-content">
-                <strong>{userLabel}</strong>
+                <Link to="/user/UserProfile" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <strong>{userLabel}</strong>
+                </Link>
                 <span>{orderData.shippingAddress || 'Chưa có địa chỉ'}</span>
               </div>
             </div>
@@ -533,12 +554,26 @@ export default function InvoiceDetail() {
                 ) : (
                   <span>Chưa có thông tin hóa đơn.</span>
                 )}
-                {orderData.voucher && (
-                  <span>
-                    <FaTag style={{ marginRight: 4 }} />
-                    Voucher: {orderData.voucher.code} (-{orderData.voucher.discountPercent}%)
-                  </span>
-                )}
+              </div>
+            </div>
+
+            {/* Shop Info */}
+            <div className="id-info-card">
+              <div className="id-info-title"><FaStore /> Thông tin cửa hàng</div>
+              <div className="id-info-content">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Link to={`/shop/${orderData.store?.storeId}`}>
+                    <img
+                      src={orderData.store?.logo || `https://ui-avatars.com/api/?name=${orderData.store?.storeName}&background=random`}
+                      alt="Shop"
+                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--id-border)' }}
+                    />
+                  </Link>
+                  <Link to={`/shop/${orderData.store?.storeId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <strong>{orderData.store?.storeName || 'Cửa hàng'}</strong>
+                  </Link>
+                </div>
+                <span>Chuyên cung cấp thời trang cao cấp</span>
               </div>
             </div>
           </div>
@@ -585,7 +620,20 @@ export default function InvoiceDetail() {
             {/* Actions */}
             <div className="id-actions-card">
               <div className="id-info-title"><FaQuestionCircle /> Bạn cần hỗ trợ?</div>
-              <button className="id-btn id-btn-outline">Liên hệ người bán</button>
+              <div className="id-actions-buttons">
+                <button
+                  className="id-btn id-btn-outline"
+                  onClick={() => handleContactSeller(orderData.store?.storeId)}
+                >
+                  <FiMessageCircle /> Liên hệ người bán
+                </button>
+                <button
+                  className="id-btn id-btn-outline"
+                  onClick={() => navigate(`/shop/${orderData.store?.storeId}`)}
+                >
+                  <FaStore /> Xem Shop
+                </button>
+              </div>
               <button className="id-btn id-btn-outline">Yêu cầu trả hàng / Hoàn tiền</button>
               {canCancel && (
                 <button

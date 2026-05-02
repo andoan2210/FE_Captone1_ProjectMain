@@ -37,6 +37,7 @@ const mapPaymentStatus = (bePaymentStatus) => {
   const statusLower = (bePaymentStatus || "").toLowerCase();
   const mapping = {
     unpaid: "Chưa thanh toán",
+    paid: "Đã thanh toán",
     success: "Đã thanh toán",
     failed: "Thanh toán thất bại",
     refunded: "Đã hoàn tiền",

@@ -38,7 +38,7 @@ export default function Vouchers() {
     // Form states
     const [form, setForm] = useState({
         code: '', discount: '', limit: '', expiry: '', isActive: true,
-        scope: 'all', selectedProducts: []
+        applyType: 'ALL', productIds: [], minOrderValue: '', maxDiscountValue: ''
     });
 
     // Fetch logic
@@ -65,7 +65,8 @@ export default function Vouchers() {
 
             setStats(statsData);
             setVouchers(items);
-            setProducts(productsResponse?.data || []);
+            // ShopProductService returns { data: { items: [] } } or similar, let's verify
+            setProducts(productsResponse?.data?.items || productsResponse?.data || []);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu: ", error);
             toast.error("Không thể tải danh sách voucher");
@@ -83,30 +84,44 @@ export default function Vouchers() {
 
     const handleOpenAddModal = () => {
         setModalMode('add');
+        setSelectedVoucher(null);
         setErrors({});
         setForm({
             code: '', discount: '', limit: '', expiry: '', isActive: true,
-            scope: 'all', selectedProducts: []
+            applyType: 'ALL', productIds: [], minOrderValue: '', maxDiscountValue: ''
         });
         setIsModalOpen(true);
     };
 
-    const handleOpenEditModal = (voucher) => {
+    const handleOpenEditModal = async (voucher) => {
         setModalMode('edit');
-        setSelectedVoucher(voucher);
-        setErrors({});
-        setForm({
-            code: voucher.code,
-            discount: voucher.discountPercent,
-            limit: voucher.quantity,
-            expiry: voucher.expiredDate
-                ? new Date(voucher.expiredDate).toISOString().split('T')[0]
-                : '',
-            isActive: voucher.isActive,
-            scope: 'all',
-            selectedProducts: []
-        });
-        setIsModalOpen(true);
+        setIsLoading(true); // Show loading while fetching details
+        try {
+            // Fetch full details including productIds via GET request
+            const response = await ShopVoucherService.getVoucherById(voucher.voucherId);
+            const detail = response; // BE returns the voucher object directly from findOne
+
+            setSelectedVoucher(voucher);
+            setErrors({});
+            setForm({
+                code: detail.code,
+                discount: detail.discountPercent,
+                limit: detail.quantity,
+                expiry: detail.expiredDate
+                    ? new Date(detail.expiredDate).toISOString().split('T')[0]
+                    : '',
+                isActive: detail.isActive,
+                applyType: detail.applyType || 'ALL',
+                productIds: detail.productIds || [],
+                minOrderValue: detail.minOrderValue || '',
+                maxDiscountValue: detail.maxDiscountValue || ''
+            });
+            setIsModalOpen(true);
+        } catch (error) {
+            toast.error("Không thể lấy chi tiết voucher");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleOpenDeleteModal = (voucher) => {
@@ -141,6 +156,10 @@ export default function Vouchers() {
             }
         }
 
+        if (form.applyType === 'SPECIFIC' && (!form.productIds || form.productIds.length === 0)) {
+            newErrors.productIds = 'Vui lòng chọn ít nhất một sản phẩm.';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -154,12 +173,16 @@ export default function Vouchers() {
             discountPercent: Number(form.discount),
             quantity: Number(form.limit),
             expiredDate: new Date(form.expiry).toISOString(),
-            isActive: form.isActive
+            isActive: form.isActive,
+            minOrderValue: form.minOrderValue ? Number(form.minOrderValue) : 0,
+            maxDiscountValue: form.maxDiscountValue ? Number(form.maxDiscountValue) : null,
+            applyType: form.applyType,
+            productIds: form.applyType === 'SPECIFIC' ? form.productIds : []
         };
 
         try {
             if (modalMode === 'edit') {
-                await ShopVoucherService.saveVoucher(formData, !!selectedVoucher, selectedVoucher?.voucherId);
+                await ShopVoucherService.saveVoucher(formData, true, selectedVoucher?.voucherId);
                 toast.success("Cập nhật voucher thành công 🎉");
             } else {
                 await ShopVoucherService.saveVoucher(formData);
@@ -190,6 +213,18 @@ export default function Vouchers() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const toggleProductSelection = (productId) => {
+        setForm(prev => {
+            const isSelected = prev.productIds.includes(productId);
+            if (isSelected) {
+                return { ...prev, productIds: prev.productIds.filter(id => id !== productId) };
+            } else {
+                return { ...prev, productIds: [...prev.productIds, productId] };
+            }
+        });
+        if (errors.productIds) setErrors({ ...errors, productIds: null });
     };
 
     return (
@@ -277,6 +312,7 @@ export default function Vouchers() {
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Mã Voucher</th>
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Ưu đãi</th>
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Số lượng</th>
+                                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Phạm vi</th>
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Hạn sử dụng</th>
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
@@ -285,7 +321,7 @@ export default function Vouchers() {
                         <tbody className="divide-y divide-slate-50">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center">
+                                    <td colSpan="7" className="px-6 py-12 text-center">
                                         <div className="flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div></div>
                                     </td>
                                 </tr>
@@ -299,11 +335,16 @@ export default function Vouchers() {
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
                                             <span className="text-sm font-extrabold text-slate-800">Giảm {v.discountPercent}%</span>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Áp dụng toàn shop</span>
+                                            {v.minOrderValue > 0 && <span className="text-[10px] text-slate-400 font-bold uppercase">Đơn từ {Number(v.minOrderValue).toLocaleString()}đ</span>}
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-center">
                                         <span className="text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">{v.quantity}</span>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${v.applyType === 'SPECIFIC' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'}`}>
+                                            {v.applyType === 'SPECIFIC' ? 'Sản phẩm chỉ định' : 'Toàn bộ Shop'}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
@@ -334,7 +375,7 @@ export default function Vouchers() {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-16 text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-50/20">
+                                    <td colSpan="7" className="px-6 py-16 text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-50/20">
                                         <div className="flex flex-col items-center gap-4">
                                             <FiBox size={48} className="opacity-10" />
                                             Chưa có voucher nào được tạo
@@ -388,7 +429,7 @@ export default function Vouchers() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSaving && setIsModalOpen(false)}></div>
-                    <div className="relative bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                    <div className="relative bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
@@ -405,93 +446,114 @@ export default function Vouchers() {
                         </div>
 
                         <div className="p-8 overflow-y-auto custom-scrollbar">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
 
-                                {/* THÔNG TIN CƠ BẢN */}
-                                <div className="space-y-6">
-                                    <h4 className="text-xs font-black text-blue-500 tracking-widest uppercase flex items-center gap-2">
-                                        <span className="w-4 h-[2px] bg-blue-500 rounded-full"></span> Thông tin mã
-                                    </h4>
+                                {/* CỘT TRÁI: THÔNG TIN CƠ BẢN */}
+                                <div className="space-y-8">
+                                    <section className="space-y-6">
+                                        <h4 className="text-xs font-black text-blue-500 tracking-widest uppercase flex items-center gap-2">
+                                            <span className="w-4 h-[2px] bg-blue-500 rounded-full"></span> Thiết lập mã & Ưu đãi
+                                        </h4>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-600 px-1">Mã định danh <span className="text-rose-500">*</span></label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-xs font-bold text-slate-400 group-focus-within:text-blue-500 transition-colors">#</div>
-                                            <input
-                                                type="text"
-                                                value={form.code}
-                                                onChange={e => {
-                                                    setForm({ ...form, code: e.target.value.toUpperCase() });
-                                                    if (errors.code) setErrors({ ...errors, code: null });
-                                                }}
-                                                className={`w-full border-2 rounded-2xl pl-8 pr-4 py-3 text-sm font-black tracking-widest uppercase outline-none transition-all ${errors.code
-                                                    ? 'border-rose-100 bg-rose-50 text-rose-600 focus:border-rose-400'
-                                                    : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                                    }`}
-                                                placeholder="SUMMER2024"
-                                            />
-                                        </div>
-                                        {errors.code && <p className="text-[11px] text-rose-500 font-bold mt-1 pl-4 flex items-center gap-1"><FiAlertTriangle size={12} /> {errors.code}</p>}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-600 px-1">Giảm giá (%) <span className="text-rose-500">*</span></label>
-                                            <input
-                                                type="number"
-                                                value={form.discount}
-                                                onChange={e => {
-                                                    setForm({ ...form, discount: e.target.value });
-                                                    if (errors.discount) setErrors({ ...errors, discount: null });
-                                                }}
-                                                className={`w-full border-2 rounded-2xl px-4 py-3 text-sm font-black outline-none transition-all ${errors.discount ? 'border-rose-100 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
-                                                    }`}
-                                                placeholder="10"
-                                            />
+                                            <label className="text-xs font-bold text-slate-600 px-1">Mã voucher <span className="text-rose-500">*</span></label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-xs font-bold text-slate-400 group-focus-within:text-blue-500 transition-colors">#</div>
+                                                <input
+                                                    type="text"
+                                                    value={form.code}
+                                                    onChange={e => {
+                                                        setForm({ ...form, code: e.target.value.toUpperCase() });
+                                                        if (errors.code) setErrors({ ...errors, code: null });
+                                                    }}
+                                                    className={`w-full border-2 rounded-2xl pl-8 pr-4 py-3 text-sm font-black tracking-widest uppercase outline-none transition-all ${errors.code
+                                                        ? 'border-rose-100 bg-rose-50 text-rose-600 focus:border-rose-400'
+                                                        : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
+                                                        }`}
+                                                    placeholder="SUMMER2024"
+                                                />
+                                            </div>
+                                            {errors.code && <p className="text-[11px] text-rose-500 font-bold mt-1 pl-4 flex items-center gap-1"><FiAlertTriangle size={12} /> {errors.code}</p>}
                                         </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-600 px-1">Giảm giá (%) <span className="text-rose-500">*</span></label>
+                                                <input
+                                                    type="number"
+                                                    value={form.discount}
+                                                    onChange={e => {
+                                                        setForm({ ...form, discount: e.target.value });
+                                                        if (errors.discount) setErrors({ ...errors, discount: null });
+                                                    }}
+                                                    className={`w-full border-2 rounded-2xl px-4 py-3 text-sm font-black outline-none transition-all ${errors.discount ? 'border-rose-100 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
+                                                        }`}
+                                                    placeholder="10"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-600 px-1">Số lượng <span className="text-rose-500">*</span></label>
+                                                <input
+                                                    type="number"
+                                                    value={form.limit}
+                                                    onChange={e => {
+                                                        setForm({ ...form, limit: e.target.value });
+                                                        if (errors.limit) setErrors({ ...errors, limit: null });
+                                                    }}
+                                                    className={`w-full border-2 rounded-2xl px-4 py-3 text-sm font-black outline-none transition-all ${errors.limit ? 'border-rose-100 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
+                                                        }`}
+                                                    placeholder="100"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-600 px-1">Đơn tối thiểu (đ)</label>
+                                                <input
+                                                    type="number"
+                                                    value={form.minOrderValue}
+                                                    onChange={e => setForm({ ...form, minOrderValue: e.target.value })}
+                                                    className="w-full border-2 border-slate-100 bg-slate-50 rounded-2xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-600 px-1">Giảm tối đa (đ)</label>
+                                                <input
+                                                    type="number"
+                                                    value={form.maxDiscountValue}
+                                                    onChange={e => setForm({ ...form, maxDiscountValue: e.target.value })}
+                                                    className="w-full border-2 border-slate-100 bg-slate-50 rounded-2xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
+                                                    placeholder="Không giới hạn"
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section className="space-y-6">
+                                        <h4 className="text-xs font-black text-rose-500 tracking-widest uppercase flex items-center gap-2">
+                                            <span className="w-4 h-[2px] bg-rose-500 rounded-full"></span> Hiệu lực & Trạng thái
+                                        </h4>
+
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-600 px-1">Số lượng <span className="text-rose-500">*</span></label>
-                                            <input
-                                                type="number"
-                                                value={form.limit}
-                                                onChange={e => {
-                                                    setForm({ ...form, limit: e.target.value });
-                                                    if (errors.limit) setErrors({ ...errors, limit: null });
-                                                }}
-                                                className={`w-full border-2 rounded-2xl px-4 py-3 text-sm font-black outline-none transition-all ${errors.limit ? 'border-rose-100 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
-                                                    }`}
-                                                placeholder="100"
-                                            />
+                                            <label className="text-xs font-bold text-slate-600 px-1">Ngày kết thúc <span className="text-rose-500">*</span></label>
+                                            <div className="relative group">
+                                                <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-all" size={16} />
+                                                <input
+                                                    type="date"
+                                                    value={form.expiry}
+                                                    onChange={e => {
+                                                        setForm({ ...form, expiry: e.target.value });
+                                                        if (errors.expiry) setErrors({ ...errors, expiry: null });
+                                                    }}
+                                                    className={`w-full border-2 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold outline-none transition-all ${errors.expiry ? 'border-rose-100 bg-rose-50' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
+                                                        }`}
+                                                />
+                                            </div>
+                                            {errors.expiry && <p className="text-[11px] text-rose-500 font-bold mt-1 pl-4">{errors.expiry}</p>}
                                         </div>
-                                    </div>
-                                </div>
 
-                                {/* CẤU HÌNH & HIỆU LỰC */}
-                                <div className="space-y-6">
-                                    <h4 className="text-xs font-black text-rose-500 tracking-widest uppercase flex items-center gap-2">
-                                        <span className="w-4 h-[2px] bg-rose-500 rounded-full"></span> Hiệu lực
-                                    </h4>
-
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-600 px-1">Ngày kết thúc <span className="text-rose-500">*</span></label>
-                                        <div className="relative group">
-                                            <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-all" size={16} />
-                                            <input
-                                                type="date"
-                                                value={form.expiry}
-                                                onChange={e => {
-                                                    setForm({ ...form, expiry: e.target.value });
-                                                    if (errors.expiry) setErrors({ ...errors, expiry: null });
-                                                }}
-                                                className={`w-full border-2 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold outline-none transition-all ${errors.expiry ? 'border-rose-100 bg-rose-50' : 'border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500'
-                                                    }`}
-                                            />
-                                        </div>
-                                        {errors.expiry && <p className="text-[11px] text-rose-500 font-bold mt-1 pl-4">{errors.expiry}</p>}
-                                    </div>
-
-                                    <div className="space-y-4 pt-2">
-                                        <label className="text-xs font-bold text-slate-600 px-1 uppercase tracking-tighter">Tham số bổ sung</label>
                                         <div
                                             onClick={() => setForm({ ...form, isActive: !form.isActive })}
                                             className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${form.isActive ? 'border-emerald-100 bg-emerald-50/50' : 'border-slate-100 bg-slate-50'
@@ -510,14 +572,81 @@ export default function Vouchers() {
                                                 <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${form.isActive ? 'right-1' : 'left-1'}`}></div>
                                             </div>
                                         </div>
+                                    </section>
+                                </div>
+
+                                {/* CỘT PHẢI: PHẠM VI ÁP DỤNG (SHOPEE STYLE) */}
+                                <div className="space-y-6">
+                                    <h4 className="text-xs font-black text-amber-500 tracking-widest uppercase flex items-center gap-2">
+                                        <span className="w-4 h-[2px] bg-amber-500 rounded-full"></span> Phạm vi áp dụng
+                                    </h4>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm({ ...form, applyType: 'ALL', productIds: [] })}
+                                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${form.applyType === 'ALL'
+                                                ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-100'
+                                                : 'border-slate-100 bg-slate-50 opacity-60 hover:opacity-100'
+                                                }`}
+                                        >
+                                            <FiGrid size={28} className={form.applyType === 'ALL' ? 'text-blue-600' : 'text-slate-400'} />
+                                            <span className="text-sm font-black">Toàn bộ Shop</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm({ ...form, applyType: 'SPECIFIC' })}
+                                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${form.applyType === 'SPECIFIC'
+                                                ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-100'
+                                                : 'border-slate-100 bg-slate-50 opacity-60 hover:opacity-100'
+                                                }`}
+                                        >
+                                            <FiBox size={28} className={form.applyType === 'SPECIFIC' ? 'text-blue-600' : 'text-slate-400'} />
+                                            <span className="text-sm font-black">Sản phẩm chỉ định</span>
+                                        </button>
                                     </div>
+
+                                    {form.applyType === 'SPECIFIC' && (
+                                        <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-xs font-bold text-slate-600 px-1 uppercase tracking-tighter">Chọn sản phẩm ({form.productIds.length})</label>
+                                                {errors.productIds && <span className="text-[10px] text-rose-500 font-bold">{errors.productIds}</span>}
+                                            </div>
+                                            <div className="bg-slate-50 rounded-3xl border-2 border-slate-100 p-4 max-h-[300px] overflow-y-auto custom-scrollbar space-y-2">
+                                                {products.length > 0 ? products.map(product => (
+                                                    <div
+                                                        key={product.productId}
+                                                        onClick={() => toggleProductSelection(product.productId)}
+                                                        className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all border-2 ${form.productIds.includes(product.productId)
+                                                            ? 'bg-white border-blue-500 shadow-sm'
+                                                            : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'
+                                                            }`}
+                                                    >
+                                                        <img src={product.thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-200" />
+                                                        <div className="flex-1 overflow-hidden">
+                                                            <p className="text-xs font-bold text-slate-800 truncate">{product.productName}</p>
+                                                            <p className="text-[10px] text-slate-400 font-bold">{Number(product.price).toLocaleString()}đ</p>
+                                                        </div>
+                                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${form.productIds.includes(product.productId)
+                                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                                            : 'border-slate-200 bg-white'
+                                                            }`}>
+                                                            {form.productIds.includes(product.productId) && <FiCheck size={12} />}
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <p className="text-center py-8 text-xs text-slate-400 font-medium">Không tìm thấy sản phẩm nào</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
                         <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
-                                <FiShield size={14} className="text-blue-400" /> Hệ thống bảo mật thông tin
+                            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
+                                <FiShield size={14} className="text-blue-400" /> Hệ thống bảo mật Shopee-style Active
                             </div>
                             <div className="flex gap-3">
                                 <button disabled={isSaving} onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-sm font-black text-slate-500 bg-white border-2 border-slate-100 rounded-2xl hover:bg-slate-100 transition-all">Huỷ bỏ</button>
@@ -533,6 +662,7 @@ export default function Vouchers() {
                     </div>
                 </div>
             )}
+
 
             {/* DELETE DIALOG */}
             <ConfirmModal

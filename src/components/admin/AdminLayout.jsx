@@ -77,8 +77,6 @@ const AdminLayout = () => {
     { name: 'Danh mục (Categories)', icon: <List size={18} />, path: '/admin/categories' },
     { name: 'Sản phẩm (Products)', icon: <Package size={18} />, path: '/admin/products' },
     { name: 'Báo cáo (Reports)', icon: <AlertTriangle size={18} />, path: '/admin/reports' },
-    { name: 'Đơn hàng toàn sàn', icon: <ReceiptText size={18} />, path: '/admin/orders' },
-    { name: 'AI & Thử đồ ảo', icon: <Sparkles size={18} />, path: '/admin/ai' },
   ];
 
   return (
@@ -150,15 +148,8 @@ const AdminLayout = () => {
 
         {/* Top Navbar */}
         <div className="bg-white h-[76px] flex items-center px-8 justify-between shrink-0 shadow-sm border-b border-gray-100 z-10">
-          {/* Search */}
-          <div className="relative w-[340px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm người dùng, email ..."
-              className="w-full pl-11 pr-4 py-2.5 bg-[#F4F6F8] border-none rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm font-medium text-gray-700 placeholder-gray-400 transition"
-            />
-          </div>
+          {/* Left side spacer */}
+          <div></div>
 
           {/* Right side icons */}
           <div className="flex items-center gap-6">
