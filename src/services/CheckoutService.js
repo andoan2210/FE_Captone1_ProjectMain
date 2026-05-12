@@ -73,6 +73,15 @@ const CheckoutService = {
 
     return response.data;
   },
+
+  /**
+   * Lấy danh sách voucher đang hoạt động của 1 store (public)
+   * @param {number} storeId
+   */
+  getVouchersByStore: async (storeId) => {
+    const response = await api.get(`/voucher/store/${storeId}`);
+    return response.data;
+  },
 };
 
 export default CheckoutService;

@@ -10,6 +10,7 @@ import {
   FaBox,
   FaSignOutAlt,
   FaUser,
+  FaBars,
 } from "react-icons/fa";
 import { FiMessageCircle } from "react-icons/fi";
 import { jwtDecode } from "jwt-decode";
@@ -28,8 +29,12 @@ import "./LandingPage.css";
 
 // LandingPage.jsx
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=900&q=85&auto=format&fit=crop";
+const HERO_IMAGES = [
+  "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=900&q=85&auto=format&fit=crop",
+  "https://file.hstatic.net/200000503583/file/phong-cach-thoi-trang-nam-13_d022183aeab04052bd4054396f3de231.jpg",
+  "https://anh.24h.com.vn/upload/3-2016/images/2016-09-30/1475226698-thuong-hieu-hk-fashion-huong-toi-nu-cong-so-viet-hk-fashion--1-.jpg",
+  "https://dongphuchaianh.vn/wp-content/uploads/2022/03/trang-phuc-cong-so-cho-nam-vest-cao-cap.jpg"
+];
 
 const offers = [
   { id: 1, discount: "20%", code: "SMART20", desc: "Đơn tối thiểu 500k" },
@@ -193,6 +198,7 @@ function ProductCard({ product, onCategoryClick, compact = false }) {
         });
       }
       localStorage.setItem("local_cart", JSON.stringify(localCart));
+      window.dispatchEvent(new Event('cart-updated'));
       showCardToast("success", "Đã thêm!");
     } catch (err) {
       showCardToast("error", "Lỗi!");
@@ -326,6 +332,14 @@ export default function LandingPage() {
   const [activeCategory, setActiveCategory] = useState(
     location.state?.category || "all",
   );
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -403,6 +417,37 @@ export default function LandingPage() {
   const [userLabel, setUserLabel] = useState(null);
   const [userAvatar, setUserAvatar] = useState(null);
   const [dbCategories, setDbCategories] = useState([]);
+  const [cartCount, setCartCount] = useState(0);
+
+  // Hàm tải số lượng giỏ hàng
+  const loadCartCount = async () => {
+    try {
+      const res = await CartService.getCart();
+      const data = res.data;
+      let count = 0;
+      if (Array.isArray(data)) {
+        count = data.length;
+      } else if (data && typeof data === "object") {
+        // Hỗ trợ cả định dạng grouped theo shops hoặc mảng phẳng
+        const items = data.cartItems || data.items || data.cart?.cartItems || (data.shops ? data.shops.flatMap(s => s.items || []) : []);
+        count = Array.isArray(items) ? items.length : 0;
+      }
+      setCartCount(count);
+    } catch (err) {
+      const localCart = JSON.parse(localStorage.getItem("local_cart") || "[]");
+      setCartCount(Array.isArray(localCart) ? localCart.length : 0);
+    }
+  };
+
+  useEffect(() => {
+    loadCartCount();
+    window.addEventListener('cart-updated', loadCartCount);
+    window.addEventListener('storage', loadCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', loadCartCount);
+      window.removeEventListener('storage', loadCartCount);
+    };
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -750,6 +795,7 @@ export default function LandingPage() {
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+              {cartCount > 0 && <span className="cart-quantity-badge">{cartCount}</span>}
             </Link>
             <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
@@ -838,22 +884,39 @@ export default function LandingPage() {
       </header>
 
       <nav className="main-nav" aria-label="Danh mục chính">
-        <div className="container nav-links">
-          <span
-            onClick={() => handleNavClick("all")}
-            style={{ cursor: "pointer" }}
-          >
-            TẤT CẢ DANH MỤC
-          </span>
-          {dbCategories.map((cat) => (
+        <div className="container nav-links-container">
+          <div className="category-dropdown-wrapper">
             <span
-              key={cat.id}
-              onClick={() => handleNavClick(cat.id)}
-              style={{ cursor: "pointer" }}
+              onClick={() => handleNavClick("all")}
+              className="category-dropdown-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {cat.name}
+              <FaBars style={{ fontSize: '16px' }} />
+              TẤT CẢ DANH MỤC
             </span>
-          ))}
+            <div className="category-dropdown-menu">
+              {dbCategories.map((cat) => (
+                <Link
+                  key={`dropdown-${cat.id}`}
+                  to={`/category/${cat.id}`}
+                  className="category-dropdown-item"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="nav-links-scroll">
+            {dbCategories.map((cat) => (
+              <span
+                key={`scroll-${cat.id}`}
+                onClick={() => handleNavClick(cat.id)}
+                style={{ cursor: "pointer" }}
+              >
+                {cat.name}
+              </span>
+            ))}
+          </div>
           <Link
             to={
               localStorage.getItem("userRole")?.toLowerCase().includes("shop")
@@ -920,12 +983,27 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="hero-image-container">
-            <img
-              className="hero-image"
-              src={HERO_IMAGE}
-              alt="Mẫu thời trang với túi xách — SmartAI Fashion"
-            />
-            <div className="ai-ready-badge">
+            {HERO_IMAGES.map((img, index) => (
+              <img
+                key={index}
+                className="hero-image"
+                src={img}
+                alt={`Mẫu thời trang ${index + 1} — SmartAI Fashion`}
+                style={{
+                  position: index === 0 ? "relative" : "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                  opacity: index === currentHeroIndex ? 1 : 0,
+                  transition: "opacity 0.8s ease-in-out",
+                  zIndex: index === currentHeroIndex ? 1 : 0
+                }}
+              />
+            ))}
+            <div className="ai-ready-badge" style={{ zIndex: 2 }}>
               <span className="star-icon" aria-hidden>
                 ★
               </span>

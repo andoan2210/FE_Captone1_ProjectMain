@@ -91,37 +91,32 @@ export default function Dashboard() {
                 console.error("Lỗi khi lấy danh sách đơn hàng:", err);
             }
 
-            // 3. Fetch Products
+            // 3. Fetch Products Analytics (Top 5 Best Sellers)
             try {
-                const productsRes = await ShopProductService.getMyProducts(1, 10);
-                let rawProducts = productsRes?.data || (Array.isArray(productsRes) ? productsRes : (productsRes?.items || []));
-
-                const totalProds = productsRes?.pagination?.total || productsRes?.total || rawProducts.length || 0;
+                // Fetch total products count
+                const productsRes = await ShopProductService.getMyProducts(1, 1);
+                const totalProds = productsRes?.pagination?.total || productsRes?.total || (Array.isArray(productsRes?.data) ? productsRes.data.length : 0);
 
                 setStats(prev => ({
                     ...prev,
                     totalProducts: totalProds
                 }));
 
-                const mappedProducts = rawProducts
-                    .map(p => ({
-                        ...p,
-                        sold: p.soldQuantity || p.sold || 0,
-                        price: p.price || 0
-                    }))
-                    .sort((a, b) => b.sold - a.sold)
-                    .slice(0, 5)
-                    .map((p) => ({
-                        id: p.productId || p.id,
-                        name: p.productName || p.name,
-                        image: p.thumbnailUrl || p.image || p.imageUrl || "",
-                        sold: p.sold,
-                        revenue: p.sold * p.price,
-                        trend: p.sold > 0 ? "Thịnh hành" : "Mới"
-                    }));
+                // Fetch real Top 5 Best Sellers from BE
+                const topProductsRes = await ShopProductService.getBestSellers(5);
+                const rawTopProducts = topProductsRes?.data || [];
+
+                const mappedProducts = rawTopProducts.map((p) => ({
+                    id: p.productId,
+                    name: p.productName,
+                    image: p.thumbnailUrl || "",
+                    sold: p.sold,
+                    revenue: p.revenue,
+                    trend: p.sold > 10 ? "Thịnh hành" : (p.sold > 0 ? "Bán chạy" : "Mới")
+                }));
                 setTopProducts(mappedProducts);
             } catch (err) {
-                console.error("Lỗi khi lấy danh sách sản phẩm:", err);
+                console.error("Lỗi khi lấy danh sách sản phẩm bán chạy:", err);
             }
 
             // 4. Fetch Vouchers (Try-catch riêng để không crash dashboard nếu API voucher lỗi 500)

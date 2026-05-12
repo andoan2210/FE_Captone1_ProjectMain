@@ -61,7 +61,37 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const searchRef = useRef(null);
+
+  // Hàm tải số lượng giỏ hàng
+  const loadCartCount = async () => {
+    try {
+      const res = await CartService.getCart();
+      const data = res.data;
+      let count = 0;
+      if (Array.isArray(data)) {
+        count = data.length;
+      } else if (data && typeof data === "object") {
+        const items = data.cartItems || data.items || data.cart?.cartItems || (data.shops ? data.shops.flatMap(s => s.items || []) : []);
+        count = Array.isArray(items) ? items.length : 0;
+      }
+      setCartCount(count);
+    } catch (err) {
+      const localCart = JSON.parse(localStorage.getItem("local_cart") || "[]");
+      setCartCount(Array.isArray(localCart) ? localCart.length : 0);
+    }
+  };
+
+  useEffect(() => {
+    loadCartCount();
+    window.addEventListener('cart-updated', loadCartCount);
+    window.addEventListener('storage', loadCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', loadCartCount);
+      window.removeEventListener('storage', loadCartCount);
+    };
+  }, []);
 
   const handleNavClick = (categoryId) => {
     if (categoryId === "all") {
@@ -157,6 +187,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+              {cartCount > 0 && <span className="cart-quantity-badge">{cartCount}</span>}
             </Link>
             <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
@@ -447,9 +478,9 @@ export default function ProductDetail() {
 
         if (data) {
           setProduct(data);
-          const initialImage = data.thumbnail || 
-            (data.images && data.images.length > 0 
-              ? (typeof data.images[0] === 'string' ? data.images[0] : data.images[0].imageUrl) 
+          const initialImage = data.thumbnail ||
+            (data.images && data.images.length > 0
+              ? (typeof data.images[0] === 'string' ? data.images[0] : data.images[0].imageUrl)
               : "");
           setSelectedImage(initialImage);
 
@@ -583,6 +614,7 @@ export default function ProductDetail() {
       );
       if (res.data || res.status === 200 || res.status === 201) {
         toast.success("Đã thêm sản phẩm vào giỏ hàng thành công!", { duration: 1000 });
+        window.dispatchEvent(new Event('cart-updated'));
         // Cập nhật lại số lượng còn lại nếu cần (optional)
       }
     } catch (err) {
@@ -823,7 +855,7 @@ export default function ProductDetail() {
 
               <div className="pd-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}>
                 <h1 className="pd-title" style={{ margin: 0, flex: 1 }}>{product.name}</h1>
-                <button 
+                <button
                   className="pd-report-trigger-btn"
                   onClick={() => setShowReportModal(true)}
                   title="Báo cáo sản phẩm"
@@ -1121,7 +1153,7 @@ export default function ProductDetail() {
                 <FaTimes size={20} />
               </button>
             </div>
-            
+
             <div className="pd-modal-body" style={{ padding: '0', overflowY: 'auto', flex: 1 }}>
               <div className="pd-reasons-list">
                 {reportReasons.map((reason, idx) => (
@@ -1149,7 +1181,7 @@ export default function ProductDetail() {
                   </button>
                 ))}
               </div>
-              
+
               {reportType === "Khác" && (
                 <div style={{ padding: '20px' }}>
                   <textarea
@@ -1169,9 +1201,9 @@ export default function ProductDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="pd-modal-footer" style={{ padding: '20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button 
+              <button
                 onClick={() => setShowReportModal(false)}
                 style={{
                   padding: '10px 20px',
@@ -1185,7 +1217,7 @@ export default function ProductDetail() {
               >
                 Hủy
               </button>
-              <button 
+              <button
                 onClick={handleSendReport}
                 disabled={isSubmittingReport || !reportType}
                 style={{

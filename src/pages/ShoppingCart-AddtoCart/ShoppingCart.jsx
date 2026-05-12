@@ -41,7 +41,37 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const searchRef = useRef(null);
+
+  // Hàm tải số lượng giỏ hàng
+  const loadCartCount = async () => {
+    try {
+      const res = await CartService.getCart();
+      const data = res.data;
+      let count = 0;
+      if (Array.isArray(data)) {
+        count = data.length;
+      } else if (data && typeof data === "object") {
+        const items = data.cartItems || data.items || data.cart?.cartItems || (data.shops ? data.shops.flatMap(s => s.items || []) : []);
+        count = Array.isArray(items) ? items.length : 0;
+      }
+      setCartCount(count);
+    } catch (err) {
+      const localCart = JSON.parse(localStorage.getItem("local_cart") || "[]");
+      setCartCount(Array.isArray(localCart) ? localCart.length : 0);
+    }
+  };
+
+  useEffect(() => {
+    loadCartCount();
+    window.addEventListener('cart-updated', loadCartCount);
+    window.addEventListener('storage', loadCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', loadCartCount);
+      window.removeEventListener('storage', loadCartCount);
+    };
+  }, []);
   const handleNavClick = (categoryId) => navigate('/', { state: { category: categoryId } });
 
   const handleSelectSuggestion = (keyword) => {
@@ -123,6 +153,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+              {cartCount > 0 && <span className="cart-quantity-badge">{cartCount}</span>}
             </Link>
             <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
@@ -332,7 +363,7 @@ export default function ShoppingCart() {
     });
     return Object.values(groups);
   }, [cartItems]);
-  
+
 
   const handleToggleShop = (shopId, isChecked) => {
     const shopItems = cartItems.filter(i => i.storeId === shopId).map(i => i.cartItemId);
@@ -443,6 +474,7 @@ export default function ShoppingCart() {
     );
     setCartItems(next);
     localStorage.setItem('local_cart', JSON.stringify(next));
+    window.dispatchEvent(new Event('cart-updated'));
 
     try {
       await CartService.updateCartItem(cartItemId, newQty);
@@ -475,6 +507,7 @@ export default function ShoppingCart() {
 
     try {
       await CartService.removeCartItem(itemToDelete);
+      window.dispatchEvent(new Event('cart-updated'));
       toast.success(`Đã xóa ${itemInfo?.name || 'sản phẩm'} khỏi giỏ hàng!`);
     } catch (err) {
       console.error('Lỗi xóa sản phẩm:', err);
@@ -755,9 +788,9 @@ export default function ShoppingCart() {
                   </div>
                   {discount > 0 && (
                     <div className="calc-row discount-row">
-                    <span>
-                      Giảm giá
-                    </span>
+                      <span>
+                        Giảm giá
+                      </span>
 
                       <span>−{formatVND(discount)}</span>
                     </div>

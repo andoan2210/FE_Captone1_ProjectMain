@@ -12,7 +12,10 @@ import api from '../../services/api';
 import InvoiceService from '../../services/InvoiceService';
 import { CategoryService } from '../../services/CategoryService';
 import { ShopProductService } from '../../services/ShopProductService';
+import * as CartService from '../../services/CartService';
 import chatService from '../../services/chatService';
+import ConfirmModal from '../../components/shop-owner/ConfirmModal';
+import { toast } from 'react-hot-toast';
 import '../LandingPage/LandingPage.css';
 import '../ProductDetail/ProductDetail.css';
 import '../ShoppingCart-AddtoCart/ShoppingCart.css';
@@ -41,7 +44,37 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const searchRef = useRef(null);
+
+  // Hàm tải số lượng giỏ hàng
+  const loadCartCount = async () => {
+    try {
+      const res = await CartService.getCart();
+      const data = res.data;
+      let count = 0;
+      if (Array.isArray(data)) {
+        count = data.length;
+      } else if (data && typeof data === "object") {
+        const items = data.cartItems || data.items || data.cart?.cartItems || (data.shops ? data.shops.flatMap(s => s.items || []) : []);
+        count = Array.isArray(items) ? items.length : 0;
+      }
+      setCartCount(count);
+    } catch (err) {
+      const localCart = JSON.parse(localStorage.getItem("local_cart") || "[]");
+      setCartCount(Array.isArray(localCart) ? localCart.length : 0);
+    }
+  };
+
+  useEffect(() => {
+    loadCartCount();
+    window.addEventListener('cart-updated', loadCartCount);
+    window.addEventListener('storage', loadCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', loadCartCount);
+      window.removeEventListener('storage', loadCartCount);
+    };
+  }, []);
 
   const handleNavClick = (categoryId) => {
     if (categoryId === "all") {
@@ -137,6 +170,7 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
           <div className="user-actions">
             <Link to="/cart" className="icon-link" aria-label="Giỏ hàng">
               <FaShoppingCart />
+              {cartCount > 0 && <span className="cart-quantity-badge">{cartCount}</span>}
             </Link>
             <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
@@ -314,6 +348,10 @@ export default function Manageinvoice() {
   const [userLabel, setUserLabel] = useState(null);
   const [userAvatar, setUserAvatar] = useState(null);
 
+  // Modal State
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+
   // ==================== AUTH & DATA FETCHING ====================
   useEffect(() => {
     fetchInvoices();
@@ -395,7 +433,8 @@ export default function Manageinvoice() {
               quantity: item.quantity || 1
             })),
             finalAmount: Number(order.totalAmount || 0),
-            date: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'Vừa xong'
+            date: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'Vừa xong',
+            rawDate: order.createdAt
           };
         });
 
@@ -431,6 +470,13 @@ export default function Manageinvoice() {
   const filteredInvoices = useMemo(() => {
     let result = [...invoices];
 
+    // Sắp xếp: Đơn hàng mới nhất luôn hiển thị lên đầu (trong tất cả các tab)
+    result.sort((a, b) => {
+      const dateA = new Date(a.rawDate || 0).getTime();
+      const dateB = new Date(b.rawDate || 0).getTime();
+      return dateB - dateA;
+    });
+
     if (activeTab !== 'all') {
       result = result.filter(inv => inv.status?.toLowerCase() === activeTab);
     }
@@ -463,23 +509,33 @@ export default function Manageinvoice() {
     navigate("/login");
   };
 
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return;
+  const handleCancelOrder = (orderId) => {
+    setCancelOrderId(orderId);
+    setShowCancelModal(true);
+  };
+
+  const executeCancelOrder = async () => {
+    if (!cancelOrderId) return;
     try {
-      const res = await InvoiceService.cancelOrder(orderId);
+      setLoading(true);
+      const res = await InvoiceService.cancelOrder(cancelOrderId);
       if (res.success) {
         // Cập nhật local state ngay lập tức
         setInvoices(prev => prev.map(inv =>
-          inv.id === orderId
+          inv.id === cancelOrderId
             ? { ...inv, status: 'cancelled', statusText: 'Đã hủy' }
             : inv
         ));
-        alert('Hủy đơn hàng thành công!');
+        toast.success('Hủy đơn hàng thành công!');
       } else {
-        alert(res.error || 'Không thể hủy đơn hàng.');
+        toast.error(res.error || 'Không thể hủy đơn hàng.');
       }
     } catch {
-      alert('Có lỗi xảy ra. Vui lòng thử lại.');
+      toast.error('Có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+      setShowCancelModal(false);
+      setCancelOrderId(null);
     }
   };
 
@@ -719,6 +775,16 @@ export default function Manageinvoice() {
       </main>
 
       <PageFooter />
+
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={executeCancelOrder}
+        title="Xác nhận hủy đơn"
+        message="Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."
+        confirmText="Xác nhận hủy"
+        cancelText="Để tôi xem lại"
+      />
     </div>
   );
 }
