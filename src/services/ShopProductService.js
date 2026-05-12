@@ -9,6 +9,14 @@ export const ShopProductService = {
     return response.data;
   },
 
+  // Lấy top 5 sản phẩm bán chạy nhất kèm doanh thu
+  getBestSellers: async (limit = 5) => {
+    const response = await api.get("/product/my-best-sellers", {
+      params: { limit },
+    });
+    return response.data;
+  },
+
   // Lấy danh sách sản phẩm theo trạng thái duyệt
   // status: PENDING | APPROVED | REJECTED
   getMyProductsByStatus: async (status, page = 1, limit = 10, search = "") => {

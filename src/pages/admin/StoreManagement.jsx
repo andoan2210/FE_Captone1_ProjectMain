@@ -25,6 +25,7 @@ const StoreManagement = () => {
 
     // Modals
     const [detailModal, setDetailModal] = useState(null);
+    const [confirmModal, setConfirmModal] = useState(null);
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => { fetchStores(); }, []);
@@ -40,16 +41,25 @@ const StoreManagement = () => {
     };
 
     // === ACTIONS ===
-    const handleToggleStatus = async (store) => {
-        const action = store.isActive ? 'vô hiệu hóa' : 'kích hoạt';
-        if (!window.confirm(`Bạn muốn ${action} cửa hàng "${store.storeName}"?`)) return;
-        try {
-            setProcessing(true);
-            await adminService.toggleStoreStatus(store.storeId);
-            toast.success(`Đã ${action} cửa hàng "${store.storeName}"`);
-            await fetchStores();
-        } catch (err) { toast.error(err.message); }
-        finally { setProcessing(false); }
+    const handleToggleStatus = (store) => {
+        const isDeactivating = store.isActive;
+        const action = isDeactivating ? 'vô hiệu hóa' : 'kích hoạt';
+        setConfirmModal({
+             store,
+             actionText: action,
+             isDeactivating,
+             onConfirm: async () => {
+                 setConfirmModal(null);
+                 try {
+                     setProcessing(true);
+                     await adminService.toggleStoreStatus(store.storeId);
+                     toast.success(`Đã ${action} cửa hàng "${store.storeName}"`);
+                     setDetailModal(prev => prev && prev.storeId === store.storeId ? {...prev, isActive: !prev.isActive} : prev);
+                     await fetchStores();
+                 } catch (err) { toast.error(err.message); }
+                 finally { setProcessing(false); }
+             }
+        });
     };
 
     const handleViewDetail = (store) => {
@@ -384,6 +394,32 @@ const StoreManagement = () => {
                                     </a>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* === MODAL: Xác nhận === */}
+            {confirmModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onClick={() => setConfirmModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-fadeIn" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 text-center">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${confirmModal.isDeactivating ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                                {confirmModal.isDeactivating ? <Ban size={32} /> : <CheckCircle2 size={32} />}
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận thao tác</h3>
+                            <p className="text-gray-500 text-sm leading-relaxed">
+                                Bạn có chắc chắn muốn {confirmModal.actionText} cửa hàng <br/>
+                                <span className="font-bold text-gray-800 text-base">"{confirmModal.store.storeName}"</span>?
+                            </p>
+                        </div>
+                        <div className="p-4 bg-gray-50 flex gap-3 justify-center border-t border-gray-100">
+                            <button onClick={() => setConfirmModal(null)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-100 transition min-w-[110px]">
+                                Hủy
+                            </button>
+                            <button onClick={confirmModal.onConfirm} className={`px-5 py-2.5 text-white rounded-xl font-semibold transition shadow-sm min-w-[110px] ${confirmModal.isDeactivating ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+                                Đồng ý
+                            </button>
                         </div>
                     </div>
                 </div>

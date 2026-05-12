@@ -214,8 +214,11 @@ const AIVirtualTryOn = () => {
 
   const handleReset = () => {
     setSelectedImage(null);
+    setSelectedProduct(null);
     setResultImage(null);
     setError(null);
+    // Xóa query params trên URL để không load lại sản phẩm cũ
+    navigate("/ai-virtual-tryon", { replace: true });
   };
 
   const handleDownload = () => {
@@ -639,10 +642,29 @@ const AIVirtualTryOn = () => {
                       👗
                     </div>
                     <p
-                      style={{ fontSize: "12px", fontWeight: "500", margin: 0 }}
+                      style={{ fontSize: "12px", fontWeight: "500", margin: 0, marginBottom: "0.75rem" }}
                     >
                       Chưa chọn
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/")}
+                      style={{
+                        padding: "0.4rem 0.8rem",
+                        backgroundColor: "var(--lp-accent, #0066cc)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "0.4rem",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        transition: "opacity 0.2s",
+                      }}
+                      onMouseEnter={(e) => (e.target.style.opacity = "0.8")}
+                      onMouseLeave={(e) => (e.target.style.opacity = "1")}
+                    >
+                      Đến cửa hàng chọn
+                    </button>
                   </div>
                 )}
               </div>
@@ -858,7 +880,7 @@ const AIVirtualTryOn = () => {
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
+                          objectFit: "contain",
                         }}
                       />
                     </div>
