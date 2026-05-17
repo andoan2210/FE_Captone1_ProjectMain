@@ -21,9 +21,11 @@ import {
   FaSignOutAlt,
   FaUser,
   FaCheck,
+  FaTrash,
 } from "react-icons/fa";
 import { FaFlag, FaExclamationTriangle, FaTimes } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
+import { useNotification } from "../../hooks/useNotification";
 import { adminService } from "../../services/adminService";
 import api from "../../services/api";
 import { ShopProductService } from "../../services/ShopProductService";
@@ -63,6 +65,45 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const searchRef = useRef(null);
+
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifPanelRef = useRef(null);
+  const {
+    unreadCount,
+    notifications,
+    loading: notifLoading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    loadMore,
+    nextCursor,
+  } = useNotification();
+
+  const handleNotificationClick = async (n) => {
+    if (!n.IsRead) {
+      await markAsRead(n.NotificationId);
+    }
+    setShowNotifPanel(false);
+    const textToSearch = `${n.Title || ''} ${n.Content || ''}`;
+    const orderMatch = textToSearch.match(/#(\d+)/) || textToSearch.match(/ORD-(\d+)/i);
+    if (orderMatch && orderMatch[1]) {
+      navigate(`/manage/invoice-detail/${orderMatch[1]}`);
+    } else {
+      navigate('/manage/Manageinvoice');
+    }
+  };
+
+  // Đóng notification panel khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutsideNotif = (e) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideNotif);
+    return () => document.removeEventListener('mousedown', handleClickOutsideNotif);
+  }, []);
 
   // Hàm tải số lượng giỏ hàng
   const loadCartCount = async () => {
@@ -192,6 +233,81 @@ function PageHeader({ userLabel, userAvatar, dbCategories, onLogout }) {
             <Link to="/chat" className="icon-link" aria-label="Tin nhắn">
               <FiMessageCircle />
             </Link>
+            {userLabel && (
+              <div className="notif-bell-wrapper" ref={notifPanelRef}>
+                <button
+                  className="icon-link"
+                  aria-label="Thông báo"
+                  onClick={() => {
+                    setShowNotifPanel((prev) => {
+                      if (!prev) fetchNotifications();
+                      return !prev;
+                    });
+                  }}
+                  type="button"
+                  style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <FaBell />
+                  {unreadCount > 0 && (
+                    <span className="cart-quantity-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                  )}
+                </button>
+                {showNotifPanel && (
+                  <div className="notif-dropdown-panel">
+                    <div className="notif-panel-header">
+                      <h4>Thông báo</h4>
+                      {unreadCount > 0 && (
+                        <button type="button" className="notif-mark-all" onClick={markAllAsRead}>Đánh dấu tất cả đã đọc</button>
+                      )}
+                    </div>
+                    <div className="notif-panel-list">
+                      {notifications.length === 0 && !notifLoading && (
+                        <div className="notif-empty">Chưa có thông báo nào</div>
+                      )}
+                      {notifications.map((n) => (
+                        <div
+                          key={n.NotificationId}
+                          className={`notif-item ${!n.IsRead ? 'notif-unread' : ''}`}
+                          onClick={() => handleNotificationClick(n)}
+                        >
+                          <div className="notif-item-content">
+                            <div className="notif-item-title">{n.Title}</div>
+                            <div className="notif-item-body">{n.Content}</div>
+                            <div className="notif-item-time">
+                              {n.CreatedAt ? new Date(typeof n.CreatedAt === 'string' ? n.CreatedAt.replace('Z', '') : n.CreatedAt).toLocaleString('vi-VN') : ''}
+                              {!n.IsRead && (
+                                <button
+                                  type="button"
+                                  className="notif-item-read-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(n.NotificationId);
+                                  }}
+                                >
+                                  Đánh dấu đã đọc
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="notif-item-delete"
+                            onClick={(e) => { e.stopPropagation(); deleteNotification(n.NotificationId); }}
+                            title="Xóa"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      ))}
+                      {notifLoading && <div className="notif-loading">Đang tải...</div>}
+                      {nextCursor && !notifLoading && (
+                        <button type="button" className="notif-load-more" onClick={loadMore}>Xem thêm</button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {userLabel ? (
               <div className="user-profile-wrapper">
                 <button type="button" className="user-profile-btn">

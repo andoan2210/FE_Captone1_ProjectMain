@@ -45,9 +45,9 @@ const chatService = {
    */
   uploadImage: async (file) => {
     const formData = new FormData();
-    formData.append("image", file); // 'image' là tên field, hãy đảm bảo BE dùng cùng tên này
-    const res = await api.post("/chat/upload", formData); // Để axios tự xử lý headers
-    return res.data; // Mong đợi { imageUrl: '...' }
+    formData.append("chatimage", file); 
+    const res = await api.post("/chat/send-image", formData); 
+    return { imageUrl: res.data.url }; 
   },
 };
 
