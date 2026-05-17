@@ -248,13 +248,13 @@ const AdminProducts = () => {
 
   const formatDate = (date) => {
     if (!date) return "--";
-    return new Date(date).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const d = new Date(date);
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);

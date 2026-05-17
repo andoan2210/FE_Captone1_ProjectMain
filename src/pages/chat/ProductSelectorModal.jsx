@@ -49,8 +49,8 @@ const ProductSelectorModal = ({ isOpen, onClose, onSelect, shopId }) => {
           </button>
         </div>
 
-        <div className="search-box">
-          <FiSearch className="search-icon" />
+        <div className="product-search-box">
+          <FiSearch className="product-search-icon" />
           <input
             type="text"
             placeholder="Tìm theo tên sản phẩm..."

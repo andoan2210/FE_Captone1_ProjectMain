@@ -309,8 +309,10 @@
   border-radius: var(--invoice-radius);
   box-shadow: var(--invoice-shadow);
   border: 1px solid var(--invoice-border);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  will-change: transform, box-shadow;
+  transform: translate3d(0, 0, 0); /* Force GPU Hardware Acceleration to prevent scroll stuttering */
 }
 
 .premium-order-card:hover {

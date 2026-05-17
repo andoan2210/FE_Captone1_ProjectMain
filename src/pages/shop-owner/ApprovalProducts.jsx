@@ -110,13 +110,13 @@ const ApprovalProducts = () => {
   // Format ngày tháng
   const formatDate = (date) => {
     if (!date) return "--";
-    return new Date(date).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const d = new Date(date);
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
   // Format giá tiền
@@ -214,11 +214,10 @@ const ApprovalProducts = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 font-bold text-sm border-b-2 transition-all duration-300 ${
-                  isActive
+                className={`flex items-center gap-2 px-6 py-4 font-bold text-sm border-b-2 transition-all duration-300 ${isActive
                     ? "text-blue-600 border-blue-600 bg-blue-50"
                     : "text-slate-500 border-transparent hover:text-slate-700"
-                }`}
+                  }`}
               >
                 <TabIcon size={18} />
                 {tab.label}
@@ -308,11 +307,10 @@ const ApprovalProducts = () => {
                     {/* Tồn kho */}
                     <td className="px-6 py-4">
                       <p
-                        className={`text-sm font-bold ${
-                          product.stock > 0
+                        className={`text-sm font-bold ${product.stock > 0
                             ? "text-emerald-600"
                             : "text-rose-600"
-                        }`}
+                          }`}
                       >
                         {product.stock} {product.stock === 0 && "(Hết hàng)"}
                       </p>
@@ -323,11 +321,10 @@ const ApprovalProducts = () => {
                       <div className="flex flex-col gap-2">
                         <ApprovalBadge status={product.approvalStatus} />
                         {product.rejectReason && (
-                          <div className={`flex items-start gap-2 p-2 rounded-lg border ${
-                            product.approvalStatus === "REJECTED" 
-                              ? "bg-rose-50 border-rose-200 text-rose-700" 
+                          <div className={`flex items-start gap-2 p-2 rounded-lg border ${product.approvalStatus === "REJECTED"
+                              ? "bg-rose-50 border-rose-200 text-rose-700"
                               : "bg-blue-50 border-blue-200 text-blue-700"
-                          }`}>
+                            }`}>
                             {product.approvalStatus === "REJECTED" ? (
                               <FiAlertCircle className="text-rose-600 mt-0.5 flex-shrink-0" size={16} />
                             ) : (

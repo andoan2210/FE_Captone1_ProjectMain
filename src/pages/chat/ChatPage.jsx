@@ -6,7 +6,6 @@ import {
   FiLoader,
   FiMessageCircle,
   FiMoreVertical,
-  FiSmile,
   FiSend,
   FiArrowDown,
   FiImage,
@@ -95,13 +94,15 @@ function getMyUserId() {
 // ──────────────────────────────────────────────
 function formatTime(dateStr) {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
+  const fixedStr = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
+  const d = new Date(fixedStr);
   return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatLastTime(dateStr) {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
+  const fixedStr = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
+  const d = new Date(fixedStr);
   const now = new Date();
   const diff = (now - d) / 1000;
   if (diff < 60) return "Vừa xong";
@@ -140,6 +141,7 @@ const ChatPage = () => {
   const [socketError, setSocketError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
 
   const messagesEndRef = useRef(null);
@@ -348,6 +350,7 @@ const ChatPage = () => {
       productName: product.name,
       price: product.price,
       thumbnail: product.thumbnail,
+      sold: product.sold || 0,
     });
     sendMessage(activeConvId, content);
     setIsProductModalOpen(false);
@@ -634,6 +637,8 @@ const ChatPage = () => {
                                       src={content}
                                       alt="chat-img"
                                       className="chat-image"
+                                      onClick={() => setPreviewImage(content)}
+                                      style={{ cursor: "zoom-in" }}
                                       onError={(e) => {
                                         e.target.src = "";
                                         e.target.alt = "Ảnh lỗi";
@@ -674,9 +679,7 @@ const ChatPage = () => {
 
               <div className="chat-input-area">
                 <div className="input-wrapper">
-                  <button className="emoji-btn" title="Emoji">
-                    <FiSmile size={20} />
-                  </button>
+
 
                   <input
                     type="file"
@@ -737,6 +740,41 @@ const ChatPage = () => {
         onSelect={handleSelectProduct}
         shopId={activeConv?.Users_Conversations_ShopOwnerIdToUsers?.Stores?.[0]?.StoreId || activeConv?.Users_Conversations_ShopOwnerIdToUsers?.Stores?.StoreId}
       />
+
+      {/* Image Preview Overlay */}
+      {previewImage && (
+        <div 
+          className="image-preview-overlay" 
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'zoom-out'
+          }}
+        >
+          <img 
+            src={previewImage} 
+            alt="Preview" 
+            style={{ 
+              maxWidth: '90%', 
+              maxHeight: '90%', 
+              objectFit: 'contain',
+              borderRadius: '8px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              transform: 'scale(1)',
+              transition: 'transform 0.2s ease-out'
+            }} 
+          />
+        </div>
+      )}
     </div>
   );
 };
