@@ -147,14 +147,21 @@ const Products = () => {
     try {
       if (selectedProducts.length > 0) {
         await ShopProductService.bulkDeleteProducts(selectedProducts);
+        setAllProducts((prev) =>
+          prev.filter((p) => !selectedProducts.includes(p.productId))
+        );
         setSelectedProducts([]);
       } else if (productToDelete) {
         await ShopProductService.deleteProduct(productToDelete.productId);
+        setAllProducts((prev) =>
+          prev.filter((p) => p.productId !== productToDelete.productId)
+        );
         setProductToDelete(null);
       }
-      await fetchProducts();
+      // Không cần fetchProducts() nữa để tăng tốc độ UI
     } catch (error) {
       console.error("Delete failed", error);
+      alert("Xóa sản phẩm thất bại, vui lòng thử lại.");
     }
     setIsDeleteModalOpen(false);
   };
