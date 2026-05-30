@@ -93,9 +93,9 @@ export default function Dashboard() {
 
             // 3. Fetch Products Analytics (Top 5 Best Sellers)
             try {
-                // Fetch total products count
+                // Fetch total products count - dùng limit=1 để lấy pagination.total từ BE
                 const productsRes = await ShopProductService.getMyProducts(1, 1);
-                const totalProds = productsRes?.pagination?.total || productsRes?.total || (Array.isArray(productsRes?.data) ? productsRes.data.length : 0);
+                const totalProds = productsRes?.pagination?.total ?? (Array.isArray(productsRes?.data) ? productsRes.data.length : 0);
 
                 setStats(prev => ({
                     ...prev,
@@ -124,7 +124,17 @@ export default function Dashboard() {
                 const vouchersRes = await ShopVoucherService.getAllVouchers({ page: 1, limit: 100 });
                 const voucherData = vouchersRes?.data || vouchersRes || {};
                 let rawVouchers = voucherData.items || (Array.isArray(voucherData) ? voucherData : []);
-                const activeV = rawVouchers.filter((v) => v.isActive !== false);
+
+                // Lọc voucher thực sự đang chạy: phải isActive=true VÀ chưa hết hạn
+                const now = new Date();
+                const activeV = rawVouchers.filter((v) => {
+                    // Ưu tiên dùng displayStatus từ backend (đã tính toán chính xác)
+                    if (v.displayStatus) {
+                        return v.displayStatus === 'active';
+                    }
+                    // Fallback: tự kiểm tra isActive + expiredDate
+                    return v.isActive === true && v.expiredDate && new Date(v.expiredDate) > now;
+                });
 
                 setStats(prev => ({
                     ...prev,

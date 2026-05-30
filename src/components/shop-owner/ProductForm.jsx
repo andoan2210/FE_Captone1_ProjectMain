@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import ConfirmModal from "./ConfirmModal";
 import { ShopProductService } from "../../services/ShopProductService";
 import { CategoryService } from "../../services/CategoryService";
+import toast from "react-hot-toast";
 
 // =============================================================================
 // [0] DANH SÁCH GỢI Ý (SUGGESTIONS)
@@ -39,7 +40,7 @@ const COMMON_SIZES = [
     "Freesize",
     "One size",
 ];
-const SHOE_SIZES = ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"];
+const SHOE_SIZES = ["26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40"];
 const ALL_SIZE_OPTIONS = [...COMMON_SIZES, ...SHOE_SIZES];
 
 // =============================================================================
@@ -163,6 +164,76 @@ const SuggestibleSizeInput = ({ value, onChange, placeholder }) => {
     );
 };
 
+// Helper to extract color from S3 image URL
+const extractColorFromUrl = (url) => {
+    if (!url) return "";
+    const filename = url.substring(url.lastIndexOf("/") + 1);
+    const match = filename.match(/color-([^-]+)-/);
+    if (match) {
+        let result = match[1];
+        while (result.includes("%")) {
+            try {
+                const decoded = decodeURIComponent(result);
+                if (decoded === result) break;
+                result = decoded;
+            } catch {
+                break;
+            }
+        }
+        try {
+            const bytes = new Uint8Array(result.split("").map(c => c.charCodeAt(0)));
+            const decoded = new TextDecoder("utf-8").decode(bytes);
+            if (decoded && decoded !== result) {
+                return decoded;
+            }
+        } catch (e) {
+            console.warn("Failed to decode mojibake:", e);
+        }
+        return result;
+    }
+    return "";
+};
+
+// Helper to sanitize color name to accentless lowercase string
+const cleanColorName = (str) => {
+    if (!str) return "";
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "");
+};
+
+// Helpers to read/write image-to-color mapping in description field
+const parseDescriptionMetadata = (description) => {
+    if (!description) return { cleanDescription: "", imageColors: {} };
+    const regex = /<!--image-colors-metadata:([\s\S]*?)-->/;
+    const match = description.match(regex);
+    if (match) {
+        try {
+            const imageColors = JSON.parse(match[1]);
+            const cleanDescription = description.replace(regex, "").trim();
+            return { cleanDescription, imageColors };
+        } catch (e) {
+            console.error("Failed to parse image colors metadata", e);
+        }
+    }
+    return { cleanDescription: description, imageColors: {} };
+};
+
+const injectDescriptionMetadata = (description, imageColors) => {
+    const regex = /<!--image-colors-metadata:([\s\S]*?)-->/g;
+    const cleanDesc = (description || "").replace(regex, "").trim();
+    if (!imageColors || Object.keys(imageColors).length === 0) {
+        return cleanDesc;
+    }
+    return `${cleanDesc}\n\n<!--image-colors-metadata:${JSON.stringify(imageColors)}-->`;
+};
+
+
 // =============================================================================
 // [1] KHỞI TẠO COMPONENT & QUẢN LÝ TRẠNG THÁI (STATE)
 // =============================================================================
@@ -181,7 +252,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     ? "Đang hoạt động"
                     : "Tạm ẩn"
                 : "Đang hoạt động",
-        description: initialData?.description || "",
+        description: initialData?.description ? parseDescriptionMetadata(initialData.description).cleanDescription : "",
         variants: (initialData?.variants || initialData?.ProductVariants || []).map(
             (v) => ({
                 id: v.variantId || v.VariantId || Date.now() + Math.random(),
@@ -197,6 +268,12 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     // Track các ảnh cần xóa khi Edit
     const [removeImageIds, setRemoveImageIds] = useState([]);
     const [existingImagesInfo, setExistingImagesInfo] = useState([]); // { imageId, imageUrl }
+
+    // Track image to color mapping
+    const [imageColorsMap, setImageColorsMap] = useState({});
+    const [existingImageLoading, setExistingImageLoading] = useState({});
+    const [activeColorSelectIdx, setActiveColorSelectIdx] = useState(null);
+    const clickTimerRef = useRef({});
 
     // ✅ Thêm state riêng cho thumbnail
     const [thumbnailFile, setThumbnailFile] = useState(null); // File thumbnail mới
@@ -222,6 +299,9 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 setCategories(Array.isArray(catData) ? catData : Array.isArray(catData.data) ? catData.data : []);
 
                 if (isEdit && initialData) {
+                    const parsedDesc = parseDescriptionMetadata(initialData.description || "");
+                    const parsedImageColors = parsedDesc.imageColors || {};
+
                     // ✅ Xử lý ảnh: thumbnail + images phụ RIÊNG BIỆT
                     const allImages = [];
                     const info = [];
@@ -233,6 +313,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                     }
 
                     // ✅ Images phụ riêng biệt
+                    const initialColorsMap = {};
                     if (initialData.images && Array.isArray(initialData.images)) {
                         // Backend trả về mảng string URL hoặc object tùy endpoint
                         initialData.images.forEach((img) => {
@@ -240,15 +321,34 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                             allImages.push(url);
                             if (img.imageId)
                                 info.push({ imageId: img.imageId, imageUrl: url });
+                            
+                            // Get color: priority is description metadata, fallback is URL prefix
+                            if (parsedImageColors[url]) {
+                                initialColorsMap[url] = parsedImageColors[url];
+                            } else {
+                                const color = extractColorFromUrl(url);
+                                if (color) {
+                                    const matchedVariant = initialData.variants?.find(
+                                        (v) => cleanColorName(v.color) === cleanColorName(color)
+                                    );
+                                    if (matchedVariant) {
+                                        initialColorsMap[url] = matchedVariant.color;
+                                    } else {
+                                        initialColorsMap[url] = color;
+                                    }
+                                }
+                            }
                         });
                     }
 
                     setFormData((prev) => ({
                         ...prev,
+                        description: parsedDesc.cleanDescription,
                         images: allImages,
                         category: initialData.categoryId || prev.category,
                     }));
                     setExistingImagesInfo(info);
+                    setImageColorsMap(initialColorsMap);
                 } else if (!isEdit && formData.variants.length === 0) {
                     // Mặc định 1 dòng biến thể khi thêm mới
                     setFormData((prev) => ({
@@ -347,28 +447,40 @@ const ProductForm = ({ initialData, isEdit = false }) => {
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
-
-        // Tính toán số lượng ảnh thực tế hiện có (không tính ảnh chờ xóa)
-        const currentActiveCount = formData.images.length - removeImageIds.length;
-        const remainSlots = 6 - currentActiveCount;
-
-        if (remainSlots <= 0) {
-            setErrors((prev) => ({ ...prev, images: "Bạn đã đạt giới hạn tối đa 6 hình ảnh" }));
-            return;
-        }
-
         const imageErrors = [];
         const newPendingFiles = [];
 
         // Lấy danh sách tên file đang chờ để chặn trùng lặp
-        const pendingFileNames = pendingFiles.map(f => `${f.name}-${f.size}`);
+        const pendingFileKeys = pendingFiles.map(f => `${f.name}-${f.size}`);
 
-        files.slice(0, remainSlots).forEach((file) => {
+        // Lấy danh sách URL đã có sẵn trên server (để chặn trùng lặp với ảnh cũ)
+        const existingUrls = existingImagesInfo
+            .filter(info => !removeImageIds.includes(info.imageId))
+            .map(info => decodeURIComponent(info.imageUrl));
+
+        files.forEach((file) => {
             const fileKey = `${file.name}-${file.size}`;
+            const cleanUploadName = file.name.replace(/^color-[^-]+-/, "");
             
-            // Chặn spam cùng 1 file
-            if (pendingFileNames.includes(fileKey)) {
-                console.log(`⚠️ Skip duplicate file: ${file.name}`);
+            // Chặn spam cùng 1 file (kiểm tra file đã chọn, file vừa chọn, và file đã có trên server)
+            const isExistingDuplicate = existingUrls.some(url => url.includes(cleanUploadName));
+            
+            if (
+                pendingFileKeys.includes(fileKey) || 
+                newPendingFiles.some(f => `${f.name}-${f.size}` === fileKey) ||
+                isExistingDuplicate
+            ) {
+                // Rút gọn tên file nếu quá dài để hiển thị thông báo đẹp hơn
+                let displayFileName = file.name;
+                if (displayFileName.length > 25) {
+                    const extIndex = displayFileName.lastIndexOf('.');
+                    const ext = extIndex !== -1 ? displayFileName.substring(extIndex) : '';
+                    const nameWithoutExt = extIndex !== -1 ? displayFileName.substring(0, extIndex) : displayFileName;
+                    displayFileName = `${nameWithoutExt.substring(0, 12)}...${nameWithoutExt.substring(nameWithoutExt.length - 6)}${ext}`;
+                }
+                toast.error(`Ảnh "${displayFileName}" đã tồn tại trong sản phẩm`, {
+                    style: { maxWidth: '400px', fontSize: '14px' }
+                });
                 return; 
             }
 
@@ -470,6 +582,50 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         console.log("🔄 Restored image from deletion queue:", imageId);
     };
 
+    // Helpers for handling single and double click
+    const handleImageClick = (idx, img) => {
+        if (clickTimerRef.current[idx]) {
+            clearTimeout(clickTimerRef.current[idx]);
+            delete clickTimerRef.current[idx];
+            handleImageDoubleClick(idx, img);
+        } else {
+            clickTimerRef.current[idx] = setTimeout(() => {
+                delete clickTimerRef.current[idx];
+                handleImageSingleClick(idx, img);
+            }, 250);
+        }
+    };
+
+    const handleImageSingleClick = (idx, img) => {
+        const infoFound = existingImagesInfo.find((i) => i.imageUrl === img);
+        const isPendingDelete = infoFound && removeImageIds.includes(infoFound.imageId);
+        if (isPendingDelete) return;
+        setActiveColorSelectIdx((prev) => (prev === idx ? null : idx));
+    };
+
+    const handleImageDoubleClick = (idx, img) => {
+        const infoFound = existingImagesInfo.find((i) => i.imageUrl === img);
+        if (infoFound) {
+            const isPendingDelete = removeImageIds.includes(infoFound.imageId);
+            if (isPendingDelete) {
+                undoRemoveImage(infoFound.imageId);
+            } else {
+                removeImage(idx);
+            }
+        } else {
+            removeImage(idx);
+        }
+        setActiveColorSelectIdx(null);
+    };
+
+    const handleSetImageColor = (imgUrl, color) => {
+        setImageColorsMap((prev) => ({
+            ...prev,
+            [imgUrl]: color,
+        }));
+        setIsDirty(true);
+    };
+
     // --- QUẢN LÝ BIẾN THỂ ---
     const addVariant = () => {
         setFormData((prev) => ({
@@ -486,7 +642,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
         if (formData.variants.length <= 1) return;
         setFormData((prev) => ({
             ...prev,
-            variants: prev.variants.filter((v) => v.id !== id),
+            variants: formData.variants.filter((v) => v.id !== id),
         }));
         setIsDirty(true);
     };
@@ -522,9 +678,22 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
         setLoading(true);
         try {
+            // Clean up imageColorsMap to only include currently active images (not deleted ones)
+            const activeImageColors = {};
+            formData.images.forEach((imgUrl) => {
+                const infoFound = existingImagesInfo.find(info => info.imageUrl === imgUrl);
+                const isDeleted = infoFound && removeImageIds.includes(infoFound.imageId);
+                if (!isDeleted && imageColorsMap[imgUrl]) {
+                    activeImageColors[imgUrl] = imageColorsMap[imgUrl];
+                }
+            });
+
+            const finalDescription = injectDescriptionMetadata(formData.description, activeImageColors);
+
             // Chuẩn bị dữ liệu gửi đi
             const productToSave = {
                 ...formData,
+                description: finalDescription,
                 categoryId: Number(formData.category),
                 productName: formData.name,
                 status: formData.status,
@@ -541,11 +710,24 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                 hasThumbnailFile: !!thumbnailFile,
             });
 
+            // Đóng gói mảng pendingFiles và đổi tên nếu có màu sắc
+            const finalPendingFiles = pendingFiles.map((file) => {
+                const color = imageColorsMap[file.previewUrl];
+                const cleanName = file.name.replace(/^color-[^-]+-/, "");
+                let newName = cleanName;
+                if (color) {
+                    newName = `color-${cleanColorName(color)}-${cleanName}`;
+                }
+                const newFile = new File([file], newName, { type: file.type });
+                newFile.previewUrl = file.previewUrl;
+                return newFile;
+            });
+
             // Truyền thumbnailFile + imagesToDelete riêng biệt
             await ShopProductService.saveProduct(
                 productToSave,
                 isEdit,
-                pendingFiles,
+                finalPendingFiles,
                 imagesToDelete, // ✅ Use calculated imagesToDelete
                 thumbnailFile,
             );
@@ -606,6 +788,10 @@ const ProductForm = ({ initialData, isEdit = false }) => {
             status: prev.status === "Đang hoạt động" ? "Tạm ẩn" : "Đang hoạt động",
         }));
     };
+
+    const uniqueColorsInVariants = [
+        ...new Set(formData.variants.map((v) => v.color?.trim()).filter(Boolean)),
+    ];
 
     // =============================================================================
     // [3] PHẦN GIAO DIỆN (RENDER JSX)
@@ -844,7 +1030,7 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {formData.variants.map((v, idx) => (
+                                    {formData.variants.map((v) => (
                                         <tr
                                             key={v.id}
                                             className="group hover:bg-slate-50/50 transition-colors"
@@ -1011,9 +1197,14 @@ const ProductForm = ({ initialData, isEdit = false }) => {
 
                     {/* 3.3 Nhóm: Quản lý Hình ảnh */}
                     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                        <div className="flex items-center gap-3 pb-2">
-                            <FiImage className="text-blue-600" />
-                            <h2 className="text-lg font-bold text-slate-800">Hình ảnh</h2>
+                        <div className="flex items-center justify-between gap-3 pb-2 flex-wrap">
+                            <div className="flex items-center gap-3">
+                                <FiImage className="text-blue-600" />
+                                <h2 className="text-lg font-bold text-slate-800">Hình ảnh</h2>
+                            </div>
+                            <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                Tip: Click 1 lần để gán màu, Click đúp để xóa
+                            </span>
                         </div>
 
                         <input
@@ -1056,55 +1247,83 @@ const ProductForm = ({ initialData, isEdit = false }) => {
                                 return (
                                     <div
                                         key={idx}
-                                        className={`aspect-square rounded-2xl bg-slate-100 border overflow-hidden relative group animate-in zoom-in duration-300 transition-all ${isPendingDelete ? "border-rose-500 opacity-60" : "border-slate-200"
+                                        onClick={() => handleImageClick(idx, img)}
+                                        className={`aspect-square rounded-2xl bg-slate-100 border overflow-hidden relative cursor-pointer animate-in zoom-in duration-300 transition-all select-none ${isPendingDelete ? "border-rose-500 opacity-60" : "border-slate-200"
                                             }`}
+                                        title="Click 1 lần để gán màu, Click đúp để xóa"
                                     >
-                                        {/* Overlay trạng thái chờ xóa */}
-                                        {isPendingDelete && (
-                                            <div className="absolute inset-0 bg-rose-500/20 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-2">
-                                                <span className="text-[10px] font-black text-rose-700 bg-white/90 px-2 py-1 rounded-lg shadow-sm uppercase tracking-wider">
-                                                    Chờ xóa
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => undoRemoveImage(info.imageId)}
-                                                    className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-50 shadow-md transition-all active:scale-90"
-                                                    title="Hoàn tác xóa"
-                                                >
-                                                    <FiRefreshCw size={16} />
-                                                </button>
+                                        {/* Overlay trạng thái loading cho ảnh cũ chuyển màu */}
+                                        {existingImageLoading[img] && (
+                                            <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] z-20 flex flex-col items-center justify-center gap-1">
+                                                <div className="w-5 h-5 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+                                                <span className="text-[9px] font-bold text-blue-600">Đang xử lý...</span>
                                             </div>
                                         )}
 
-                                        {/* Nút xóa */}
-                                        {!isPendingDelete && (
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                                        {/* Overlay trạng thái chờ xóa */}
+                                        {isPendingDelete && (
+                                            <div className="absolute inset-0 bg-rose-500/20 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1">
+                                                <span className="text-[9px] font-black text-rose-700 bg-white/95 px-2 py-0.5 rounded-lg shadow-sm uppercase tracking-wider">
+                                                    Chờ xóa
+                                                </span>
+                                                <span className="text-[8px] text-rose-500 font-bold bg-white/90 px-1 py-0.5 rounded mt-0.5">Click đúp để hoàn tác</span>
+                                            </div>
+                                        )}
+
+                                        {/* Badge hiển thị màu sắc */}
+                                        {!isPendingDelete && imageColorsMap[img] && (
+                                            <span className="absolute bottom-1.5 left-1.5 bg-blue-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg z-10 shadow-sm pointer-events-none">
+                                                {imageColorsMap[img]}
+                                            </span>
+                                        )}
+
+                                        {/* Dropdown chọn màu */}
+                                        {!isPendingDelete && activeColorSelectIdx === idx && (
+                                            <div 
+                                                className="absolute inset-0 bg-white/95 z-20 flex flex-col justify-center p-2 animate-in fade-in duration-200"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <p className="text-[10px] font-extrabold text-slate-500 mb-1 select-none">Gán màu sắc:</p>
+                                                <select
+                                                    value={imageColorsMap[img] || ""}
+                                                    onChange={(e) => {
+                                                        const color = e.target.value;
+                                                        handleSetImageColor(img, color);
+                                                        setActiveColorSelectIdx(null);
+                                                    }}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs outline-none font-bold text-slate-700 cursor-pointer"
+                                                >
+                                                    <option value="">Không gán màu</option>
+                                                    {uniqueColorsInVariants.map((color) => (
+                                                        <option key={color} value={color}>
+                                                            {color}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeImage(idx)}
-                                                    className="p-2 bg-white text-rose-600 rounded-xl hover:bg-rose-50 transition-all"
+                                                    onClick={() => setActiveColorSelectIdx(null)}
+                                                    className="mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-700"
                                                 >
-                                                    <FiTrash2 size={16} />
+                                                    Đóng
                                                 </button>
                                             </div>
                                         )}
 
                                         <img
                                             src={img}
-                                            className={`w-full h-full object-cover ${isPendingDelete ? "grayscale" : ""}`}
+                                            className={`w-full h-full object-cover select-none pointer-events-none ${isPendingDelete ? "grayscale" : ""}`}
                                             alt={`Preview ${idx}`}
                                         />
                                     </div>
                                 );
                             })}
-                            {formData.images.length - removeImageIds.length < 6 && (
-                                <div
-                                    onClick={() => fileInputRef.current.click()}
-                                    className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-blue-300 hover:text-blue-400 cursor-pointer transition-all"
-                                >
-                                    <FiPlus size={20} />
-                                </div>
-                            )}
+                            <div
+                                onClick={() => fileInputRef.current.click()}
+                                className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-blue-300 hover:text-blue-400 cursor-pointer transition-all"
+                            >
+                                <FiPlus size={20} />
+                            </div>
                         </div>
                     </div>
 

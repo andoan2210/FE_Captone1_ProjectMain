@@ -39,6 +39,66 @@ import { FiMessageCircle } from "react-icons/fi";
 import "../LandingPage/LandingPage.css";
 import "./ProductDetail.css";
 
+// Helper to extract color from S3 image URL
+const extractColorFromUrl = (url) => {
+  if (!url) return "";
+  const filename = url.substring(url.lastIndexOf("/") + 1);
+  const match = filename.match(/color-([^-]+)-/);
+  if (match) {
+    let result = match[1];
+    while (result.includes("%")) {
+      try {
+        const decoded = decodeURIComponent(result);
+        if (decoded === result) break;
+        result = decoded;
+      } catch {
+        break;
+      }
+    }
+    try {
+      const bytes = new Uint8Array(result.split("").map(c => c.charCodeAt(0)));
+      const decoded = new TextDecoder("utf-8").decode(bytes);
+      if (decoded && decoded !== result) {
+        return decoded;
+      }
+    } catch (e) {
+      console.warn("Failed to decode mojibake:", e);
+    }
+    return result;
+  }
+  return "";
+};
+
+// Helper to sanitize color name to accentless lowercase string
+const cleanColorName = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "");
+};
+
+// Helper to read image-to-color mapping in description field
+const parseDescriptionMetadata = (description) => {
+  if (!description) return { cleanDescription: "", imageColors: {} };
+  const regex = /<!--image-colors-metadata:([\s\S]*?)-->/;
+  const match = description.match(regex);
+  if (match) {
+    try {
+      const imageColors = JSON.parse(match[1]);
+      const cleanDescription = description.replace(regex, "").trim();
+      return { cleanDescription, imageColors };
+    } catch (e) {
+      console.error("Failed to parse image colors metadata", e);
+    }
+  }
+  return { cleanDescription: description, imageColors: {} };
+};
+
 // Reuse user label logic
 function getUserDisplayNameFromToken() {
   const token = localStorage.getItem("token");
@@ -593,6 +653,9 @@ export default function ProductDetail() {
         const data = res?.data || res;
 
         if (data) {
+          const parsed = parseDescriptionMetadata(data.description || "");
+          data.description = parsed.cleanDescription;
+          data.imageColorsMetadata = parsed.imageColors;
           setProduct(data);
           const initialImage = data.thumbnail ||
             (data.images && data.images.length > 0
@@ -702,6 +765,224 @@ export default function ProductDetail() {
     setSelectedImage(allImages[nextIndex]);
   };
 
+  const findImageByColor = (color) => {
+    console.log("🔍 findImageByColor - color:", color);
+    console.log("🔍 findImageByColor - allImages:", allImages);
+    if (!color || !allImages.length) return null;
+
+    // Cách 0: Kiểm tra description metadata (Độ ưu tiên cao nhất, gán màu trực tiếp FE)
+    if (product && product.imageColorsMetadata) {
+      const matchUrl = Object.keys(product.imageColorsMetadata).find(
+        (url) => cleanColorName(product.imageColorsMetadata[url]) === cleanColorName(color)
+      );
+      if (matchUrl && allImages.includes(matchUrl)) {
+        console.log("🔍 findImageByColor - matched image by description metadata:", matchUrl);
+        return matchUrl;
+      }
+    }
+
+    // Cách 0.5: Khớp chính xác theo prefix màu trong URL ảnh (Giải quyết thứ tự lộn xộn do tùy chỉnh gán màu)
+    const exactMatched = allImages.find((img) => {
+      const imgColor = extractColorFromUrl(img);
+      if (!imgColor) return false;
+      return cleanColorName(imgColor) === cleanColorName(color);
+    });
+
+    if (exactMatched) {
+      console.log("🔍 findImageByColor - matched image by exact prefix color:", exactMatched);
+      return exactMatched;
+    }
+
+    const removeTones = (str) => {
+      if (!str) return "";
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim();
+    };
+
+    const colorTranslations = {
+      "den": ["den", "black"],
+      "trang": ["trang", "white"],
+      "do": ["do", "red"],
+      "vang": ["vang", "yellow"],
+      "xanh la": ["xanhla", "green"],
+      "xanh duong": ["xanhduong", "blue"],
+      "xanh bien": ["xanhbien", "blue"],
+      "xam": ["xam", "gray", "grey"],
+      "hong": ["hong", "pink"],
+      "cam": ["cam", "orange"],
+      "nau": ["nau", "brown"],
+      "tim": ["tim", "purple"],
+    };
+
+    const cleanColor = removeTones(color);
+    const keywords = [cleanColor];
+    if (colorTranslations[cleanColor]) {
+      keywords.push(...colorTranslations[cleanColor]);
+    }
+    console.log("🔍 findImageByColor - keywords:", keywords);
+
+    // Cách 1: Tìm theo từ khóa trong URL ảnh
+    const matched = allImages.find((img) => {
+      const lowerImg = img.toLowerCase();
+      const isMatch = keywords.some((kw) => lowerImg.includes(kw));
+      console.log(`  Checking img: ${lowerImg} against keywords -> Match: ${isMatch}`);
+      return isMatch;
+    });
+
+    if (matched) {
+      console.log("🔍 findImageByColor - matched image by keyword:", matched);
+      return matched;
+    }
+
+    // Cách 2: Khớp theo index (nếu ảnh lưu trên S3 có tên random/UUID)
+    if (product && product.variants) {
+      const uniqueColors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+      const colorIndex = uniqueColors.indexOf(color);
+      if (colorIndex !== -1 && allImages[colorIndex]) {
+        console.log(`🔍 findImageByColor - matched image by index [${colorIndex}]:`, allImages[colorIndex]);
+        return allImages[colorIndex];
+      }
+    }
+
+    console.log("🔍 findImageByColor - no match found");
+    return null;
+  };
+
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+    const matchedImage = findImageByColor(color);
+    if (matchedImage) {
+      setSelectedImage(matchedImage);
+    }
+  };
+
+  const handleColorHover = (color) => {
+    const matchedImage = findImageByColor(color);
+    if (matchedImage) {
+      setSelectedImage(matchedImage);
+    }
+  };
+
+  const handleColorLeave = () => {
+    if (selectedColor) {
+      const matchedImage = findImageByColor(selectedColor);
+      if (matchedImage) {
+        setSelectedImage(matchedImage);
+      }
+    }
+  };
+
+  const handleSelectImage = (img) => {
+    setSelectedImage(img);
+
+    // Cách 0: Kiểm tra description metadata (Độ ưu tiên cao nhất, gán màu trực tiếp FE)
+    if (product && product.imageColorsMetadata && product.imageColorsMetadata[img]) {
+      const metaColor = product.imageColorsMetadata[img];
+      // Tìm trong màu sắc của size hiện tại
+      const matchedColor = colorsForSelectedSize.find(
+        (c) => cleanColorName(c) === cleanColorName(metaColor)
+      );
+      if (matchedColor) {
+        setSelectedColor(matchedColor);
+        return;
+      }
+      // Nếu size hiện tại không có màu này nhưng sản phẩm có biến thể màu này, vẫn chọn màu đó
+      const allProductColors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+      const matchedAnyColor = allProductColors.find(
+        (c) => cleanColorName(c) === cleanColorName(metaColor)
+      );
+      if (matchedAnyColor) {
+        setSelectedColor(matchedAnyColor);
+        return;
+      }
+    }
+
+    // Cách 0.5: Khớp chính xác ngược lại theo prefix màu trong URL ảnh được click
+    const exactColor = extractColorFromUrl(img);
+    if (exactColor) {
+      // Tìm trong màu sắc của size hiện tại
+      const matchedColor = colorsForSelectedSize.find(
+        (c) => cleanColorName(c) === cleanColorName(exactColor)
+      );
+      if (matchedColor) {
+        setSelectedColor(matchedColor);
+        return;
+      }
+      // Nếu size hiện tại không có màu này nhưng sản phẩm có biến thể màu này, vẫn chọn màu đó
+      const allProductColors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+      const matchedAnyColor = allProductColors.find(
+        (c) => cleanColorName(c) === cleanColorName(exactColor)
+      );
+      if (matchedAnyColor) {
+        setSelectedColor(matchedAnyColor);
+        return;
+      }
+    }
+
+    if (!colorsForSelectedSize.length) return;
+
+    const removeTones = (str) => {
+      if (!str) return "";
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim();
+    };
+
+    const colorTranslations = {
+      "den": ["den", "black"],
+      "trang": ["trang", "white"],
+      "do": ["do", "red"],
+      "vang": ["vang", "yellow"],
+      "xanh la": ["xanhla", "green"],
+      "xanh duong": ["xanhduong", "blue"],
+      "xanh bien": ["xanhbien", "blue"],
+      "xam": ["xam", "gray", "grey"],
+      "hong": ["hong", "pink"],
+      "cam": ["cam", "orange"],
+      "nau": ["nau", "brown"],
+      "tim": ["tim", "purple"],
+    };
+
+    const lowerImg = img.toLowerCase();
+
+    // Cách 1: Tìm theo từ khóa trong tên ảnh
+    const matchedColor = colorsForSelectedSize.find((color) => {
+      const cleanColor = removeTones(color);
+      const keywords = [cleanColor];
+      if (colorTranslations[cleanColor]) {
+        keywords.push(...colorTranslations[cleanColor]);
+      }
+      return keywords.some((kw) => lowerImg.includes(kw));
+    });
+
+      if (matchedColor) {
+        setSelectedColor(matchedColor);
+        return;
+      }
+
+    // Cách 2: Khớp ngược lại theo index của ảnh trong allImages
+    const imgIndex = allImages.indexOf(img);
+    if (imgIndex !== -1) {
+      if (colorsForSelectedSize[imgIndex]) {
+        setSelectedColor(colorsForSelectedSize[imgIndex]);
+      } else {
+        const uniqueColors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+        if (uniqueColors[imgIndex]) {
+          setSelectedColor(uniqueColors[imgIndex]);
+        }
+      }
+    }
+  };
+
   const handleLogout = () => {
 
     localStorage.removeItem("token");
@@ -778,7 +1059,10 @@ export default function ProductDetail() {
 
     const productId = product.id;
     const thumbnailUrl =
-      product.thumbnail || (product.images && product.images.length > 0 ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].imageUrl) : "") || "";
+      selectedImage ||
+      product.thumbnail ||
+      (product.images && product.images.length > 0 ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].imageUrl) : "") ||
+      "";
     const productName = product.name || "Sản phẩm";
     const price = product.price || 0;
 
@@ -942,7 +1226,7 @@ export default function ProductDetail() {
                     <div
                       key={idx}
                       className={`pd-thumb-item ${selectedImage === img ? "active" : ""}`}
-                      onClick={() => setSelectedImage(img)}
+                      onClick={() => handleSelectImage(img)}
                     >
                       <img src={img} alt={`Xem thêm ${idx}`} />
                     </div>
@@ -1033,7 +1317,7 @@ export default function ProductDetail() {
                           const firstColor = product.variants.find(
                             (v) => v.size === size,
                           )?.color;
-                          if (firstColor) setSelectedColor(firstColor);
+                          if (firstColor) handleColorChange(firstColor);
                         }}
                       >
                         {size}
@@ -1051,7 +1335,9 @@ export default function ProductDetail() {
                         <button
                           key={color}
                           className={`pd-color-chip ${selectedColor === color ? "active" : ""}`}
-                          onClick={() => setSelectedColor(color)}
+                          onClick={() => handleColorChange(color)}
+                          onMouseEnter={() => handleColorHover(color)}
+                          onMouseLeave={() => handleColorLeave()}
                         >
                           {color}
                         </button>

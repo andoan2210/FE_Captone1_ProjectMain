@@ -56,7 +56,7 @@ function getUserDisplayNameFromToken() {
 
 function getSpecList(product) {
     if (!product) return [];
-    const description = (product.description || "").trim();
+    const cleanDesc = (product.description || "").replace(/<!--image-colors-metadata:[\s\S]*?-->/g, "").trim();
     return [
         `Danh mục: ${product.categoryName || "Đang cập nhật"}`,
         `Giá bán: ${VND.format(product.price || 0)}`,
@@ -64,7 +64,7 @@ function getSpecList(product) {
         `Kích thước: ${product.sizes?.length ? product.sizes.join(", ") : "-"}`,
         `Màu sắc: ${product.colors?.length ? product.colors.join(", ") : "-"}`,
         `Tồn kho: ${product.totalStock || 0}`,
-        `Mô tả: ${description ? `${description.slice(0, 100)}${description.length > 100 ? "..." : ""}` : "Chưa có mô tả"}`,
+        `Mô tả: ${cleanDesc ? `${cleanDesc.slice(0, 100)}${cleanDesc.length > 100 ? "..." : ""}` : "Chưa có mô tả"}`,
     ];
 }
 
