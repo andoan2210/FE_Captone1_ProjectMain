@@ -105,6 +105,9 @@ const Products = () => {
     setLoading(true);
     try {
       const detail = await ShopProductService.getMyProductById(product.productId);
+      if (detail && detail.description) {
+        detail.description = detail.description.replace(/<!--image-colors-metadata:[\s\S]*?-->/g, "").trim();
+      }
       setProductToView(detail);
       setIsViewModalOpen(true);
     } catch (error) {

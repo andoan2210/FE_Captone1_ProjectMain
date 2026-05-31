@@ -175,6 +175,9 @@ const AdminProducts = () => {
     try {
       const response = await adminService.getProductDetail(productId);
       const productData = response.data || response;
+      if (productData && productData.description) {
+        productData.description = productData.description.replace(/<!--image-colors-metadata:[\s\S]*?-->/g, "").trim();
+      }
       setSelectedProduct(productData);
       setShowDetailModal(true);
     } catch (error) {

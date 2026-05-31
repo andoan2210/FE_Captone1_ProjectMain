@@ -335,6 +335,7 @@ const ChatbotWidget = () => {
                                     src={product.thumbnailUrl}
                                     alt={product.productName}
                                     loading="lazy"
+                                    onLoad={scrollToBottom}
                                     onError={(e) => {
                                       e.target.style.display = "none";
                                     }}

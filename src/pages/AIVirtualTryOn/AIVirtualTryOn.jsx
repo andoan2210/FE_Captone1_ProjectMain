@@ -195,6 +195,25 @@ const AIVirtualTryOn = () => {
         Price: price ? parseInt(price) : 0,
       });
       console.log("✅ Sản phẩm được set từ URL");
+
+      // Gọi API tải thêm tất cả hình ảnh chi tiết của sản phẩm để hỗ trợ chọn màu/biến thể
+      ShopProductService.getProductById(productId)
+        .then((res) => {
+          const fullProduct = res?.data || res;
+          if (fullProduct) {
+            const secondaryImages = (fullProduct.images || []).map((img) =>
+              typeof img === "string" ? img : img.imageUrl
+            );
+            const allImgs = [fullProduct.thumbnail, ...secondaryImages].filter(Boolean);
+            setSelectedProduct((prev) => ({
+              ...prev,
+              AllImages: allImgs,
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error("Lỗi khi tải chi tiết sản phẩm:", err);
+        });
     }
 
     loadCategories();
@@ -690,6 +709,57 @@ const AIVirtualTryOn = () => {
                         borderRadius: "0.4rem",
                       }}
                     />
+
+                    {/* Danh sách các màu/ảnh chi tiết của sản phẩm */}
+                    {selectedProduct.AllImages && selectedProduct.AllImages.length > 1 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "0.5rem",
+                          marginTop: "0.5rem",
+                          overflowX: "auto",
+                          width: "100%",
+                          padding: "0.25rem 0",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {selectedProduct.AllImages.map((img, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() =>
+                              setSelectedProduct((prev) => ({
+                                ...prev,
+                                ThumbnailUrl: img,
+                              }))
+                            }
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "0.25rem",
+                              border:
+                                selectedProduct.ThumbnailUrl === img
+                                  ? "2px solid #0066cc"
+                                  : "1px solid #ddd",
+                              cursor: "pointer",
+                              overflow: "hidden",
+                              flexShrink: 0,
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            <img
+                              src={img}
+                              alt={`Màu ${idx + 1}`}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         marginTop: "0.75rem",
